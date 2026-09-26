@@ -67,6 +67,15 @@ GO2 /utlidar/cloud + /utlidar/imu
 - `deploy_local.sh` 可生成 `deploy_ws` 并执行 colcon build。
 - 主启动与停止脚本、离线回放脚本和若干测试脚本已存在。
 
+### P0 ROS 2 interface baseline (static)
+
+- 已完成 24 个仓库内 ROS 2 package 的静态清单，并按主链、辅助、仿真和旧/替代流程分类。
+- 已从 `nav_launch.sh` 及其 launch include 树确认主链 node、关键 topic、消息类型、参数来源和 remap；详见 `docs/interface_inventory.md`。
+- 主数据流第 1 至 8 段均可由仓库源码静态闭合；safety gate 到 GO2 的第 9 段只能确认本地 publisher，GO2 外部 subscriber 和物理执行仍为 `NOT VERIFIED`。
+- 静态 TF 意图为 `map -> camera_init -> aft_mapped -> sensor -> vehicle`，并有 `sensor -> camera`；Point-LIO 发布 `camera_init -> aft_mapped` 动态 TF。
+- `transform_sensors` 内的 `body -> utlidar_*` TransformStamped 没有广播，不能作为实际 TF edge。
+- 本轮没有启动 ROS graph，实际节点名、QoS 协商、TF 连通性与消息频率均为 `TODO: runtime verification required`。
+
 ### Present in code but not yet verified
 
 - 当前 commit 在干净环境中的完整依赖安装与全量 build：`NOT VERIFIED`。
@@ -82,9 +91,12 @@ GO2 /utlidar/cloud + /utlidar/imu
 - 大量旧脚本和文档硬编码 `/home/lch/dog/...`，并非都适用于当前 checkout。
 - 根 README 引用的 `today_representative.md` 不在仓库中。
 - 5 组代表性 rosbag 仅在本地目录中，受 `.gitignore` 排除，ChatGPT 无法通过 GitHub读取原始数据。
-- `utlidar.yaml` 设置 `use_sim_time: true`；实时链是否提供 `/clock` 需要验证。
 - `transform_sensors` 从用户 Desktop 读取 `imu_calib_data.yaml`，文件缺失时使用源码默认值；当前真实标定来源和有效性尚未确认。
-- 仓库包含旧流程、当前 DDS 流程、仿真和实验脚本，哪些仍是受支持入口尚未形成正式清单。
+- 仓库包含旧流程、当前 DDS 流程、仿真和实验脚本；package 已完成静态分类，但 shell 脚本的正式支持/弃用清单仍未建立。
+- Point-LIO 配置使用 `use_sim_time: true`，FAR launch 显式设置 `false`，其余主链节点通常使用 wall time；真实 launch 未启动 `/clock` publisher。
+- `mapping_utlidar.launch` 将顶层 `use_imu_as_input` 设为 `false`，与 `utlidar.yaml` 中的 `true` 不一致。
+- `go2_keyboard_teleop` 与 `transform_sensors` 的 manifest/setup 未声明源码实际使用的全部运行依赖，干净环境 rosdep 完整性待验证。
+- Point-LIO 与 local planner 都声明 `/path` publisher；当前 Point-LIO YAML 通过 `path_en=false` 禁止其 path 数据输出。
 
 ## Known Experimental Results
 
@@ -115,7 +127,7 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 ## Current Questions
 
 - 当前 baseline 能否在全新 Ubuntu 22.04 / ROS 2 Humble 环境完整构建？
-- 24 个 package 中哪些属于当前主线、辅助工具、旧流程或未使用模块？
+- 本轮静态分类已给出 24 个 package 的主链/辅助/仿真/旧或替代流程角色；仍需运行时确认混合用途 package 的实际启用组件。
 - 实时运行时 `/clock` 是否存在，Point-LIO 的 `use_sim_time` 是否与主线一致？
 - GO2 当前固件、ROS domain、CycloneDDS QoS 和网卡配置的正式支持矩阵是什么？
 - `imu_calib_data.yaml` 的权威版本、生成方法和部署位置是什么？

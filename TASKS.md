@@ -4,7 +4,7 @@
 
 ## P0 — Baseline Understanding
 
-- [ ] 建立完整 ROS 2 package 与 node 清单，并标记主线/辅助/旧流程。
+- [x] 建立完整 ROS 2 package 与主链 node 静态清单，并标记主线/辅助/仿真/旧或替代流程（见 `docs/interface_inventory.md`；运行时名称仍待验证）。
 - [ ] 建立 topic、消息类型、QoS、publisher/subscriber 与 data-flow 清单。
 - [ ] 建立 TF / coordinate frame 清单，并用运行时 TF tree 验证静态结论。
 - [ ] 确认 GO2 UTLiDAR 数据入口、DDS 前提与无 PC 侧 driver 的边界。
