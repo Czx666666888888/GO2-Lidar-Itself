@@ -34,3 +34,10 @@ bash code/scripts/go2_lidar_preflight.sh <连接GO2的网卡名>
 - retest8/9: 回退后, 能走一点
 
 详见 today_representative.md(在 analysis 包 today_analysis_20260901.tar.gz)
+
+## Project Management
+
+- `AGENTS.md`：ChatGPT 网页版与 Codex 的长期协作规则、安全边界和验证要求。
+- `PROJECT_STATUS.md`：当前可确认的系统状态、基线、问题和待验证项。
+- `TASKS.md`：当前阶段的项目接管与可复现性任务清单。
+- `docs/`：现有架构、设计决策和实验记录。
