@@ -1,0 +1,71 @@
+# ROS 2 / colcon generated workspaces
+build/
+install/
+log/
+deploy_ws/
+
+# Runtime recordings and generated outputs
+rosbags/
+*.bag
+*.db3
+*.mcap
+tmp/
+outputs/
+go2_data/
+*.log
+**/Log/*.txt
+
+# Python caches and environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Native build products
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.out
+*.exe
+code/autonomy_stack_go2_src/utilities/unitree_pkgs/go2_h264_repub/go2_h264_repub
+
+# Generated analysis and calibration artifacts
+*.npy
+*.npz
+*.csv
+*.pcd
+
+# IDE / editor / OS metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local agent/tool metadata
+.agents/
+.codex/
+
+# Local secrets and credentials (templates may use an explicit .example suffix)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials*
+secrets*
