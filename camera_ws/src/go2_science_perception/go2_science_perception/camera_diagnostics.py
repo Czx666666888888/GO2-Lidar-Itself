@@ -108,8 +108,13 @@ class CameraDiagnostics(Node):
                 f"frame_id={stat.frame_id or 'unknown'} resolution={resolution} "
                 f"encoding={encoding} fresh={fresh}"
             )
-        log = self.get_logger().info if all_fresh else self.get_logger().warn
-        log("\n".join(lines))
+        report = "\n".join(lines)
+        # Keep different severities at different call sites.  rclpy keys log
+        # calls by source location and rejects changing severity at one site.
+        if all_fresh:
+            self.get_logger().info(report)
+        else:
+            self.get_logger().warning(report)
 
 
 def main(args=None) -> None:

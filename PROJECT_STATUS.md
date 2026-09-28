@@ -140,8 +140,9 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 独立工作空间：`camera_ws/`；不加入现有 `code/` 导航 build/launch。
 - ROS 2 package：`go2_science_perception`，提供只读 camera diagnostics 和 CameraInfo inspector。
 - 2026-09-28 宿主只读枚举确认 USB `8086:0b07` D435 和 UVC device nodes 存在。
-- `librealsense2`、`realsense2_camera`、`realsense2_description` 当前未安装，因此 RGB、depth、aligned depth、CameraInfo 和 camera TF 均为 `NOT VERIFIED`。
-- `camera_ws` 已在当前 ROS 2 Humble 主机独立 build 成功；4 个 package tests 全部通过。完整 camera launch 因缺少 `realsense2_camera` 明确阻塞。
+- 2026-09-28 已从 ROS 2 Ubuntu Jammy 官方 APT 仓库安装 librealsense 2.58.4 与 RealSense ROS wrapper/description 4.58.4；D435 firmware `5.12.7.150`，USB 3.2。
+- 官方 wrapper 和 `camera_ws` 完整 launch 均已实测 RGB、raw depth、aligned depth、CameraInfo 与相机内部 `/tf_static` 数据；640x480 color/aligned-depth 尺寸一致，实际 frame 已记录在 `camera_ws/docs/architecture.md`。
+- `camera_ws` 独立 build 成功，4 个 package tests 全部通过，完整 launch 运行超过 30 秒并干净退出。CameraInfo/metadata 约 30 Hz，但 Python 大图像订阅约 RGB 18 Hz、aligned depth 8 Hz且有短暂 freshness 告警，持续端到端 30 Hz 尚未验证。
 - camera optical -> GO2 body -> SLAM map 转换为 `Future integration / NOT IMPLEMENTED`。
 - 本工作流不包含目标检测、导航接入或 GO2 运动控制。
 

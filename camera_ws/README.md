@@ -25,14 +25,15 @@
 
 ## Environment
 
-2026-09-28 只读调查结果：
+2026-09-28 安装与实机验证结果：
 
-- USB 已枚举 `8086:0b07 Intel Corp. RealSense D435`，序列号 `214523023703`，`uvcvideo` 已绑定。
-- `librealsense2` Debian packages：未安装。
-- `realsense2_camera`：未安装。
-- `realsense2_description`：未安装。
-- 当前 ROS 2 Jammy APT 索引中的 wrapper 候选版本：`4.58.4-1jammy.20260908...`。
-- 因 wrapper/SDK 缺失，ROS topic 和图像流验证为 `NOT VERIFIED`。
+- USB 已枚举 `8086:0b07 Intel Corp. RealSense D435`，`serial redacted`，`uvcvideo` 已绑定。
+- `ros-humble-librealsense2`：`2.58.4-1jammy.20260830.174155`。
+- `ros-humble-realsense2-camera`：`4.58.4-1jammy.20260908.100350`。
+- `ros-humble-realsense2-camera-msgs`：`4.58.4-1jammy.20260907.215954`。
+- `ros-humble-realsense2-description`：`4.58.4-1jammy.20260908.002050`。
+- 包来源为 ROS 2 Ubuntu Jammy 官方 APT 仓库；wrapper 报告 librealsense build/runtime 均为 `2.58.4`。
+- D435 固件为 `5.12.7.150`，USB descriptor 为 `3.2`。
 
 RealSense ROS 官方文档要求 SDK 和 ROS wrapper 各选择一种安装来源，避免并存版本冲突。对于已经配置 ROS 2 Humble APT 源的 Ubuntu 22.04，官方提供的二进制安装形式为：
 
@@ -41,7 +42,7 @@ sudo apt install ros-humble-librealsense2\*
 sudo apt install ros-humble-realsense2-\*
 ```
 
-本轮没有执行上述命令。安装前应由用户确认，并再次核对候选包、内核/DKMS策略和磁盘变化。官方来源：
+本机已按用户授权完成上述官方二进制包安装。官方来源：
 
 - https://github.com/realsenseai/realsense-ros#installation-on-ubuntu
 - https://github.com/realsenseai/librealsense/blob/master/doc/distribution_linux.md
@@ -81,7 +82,7 @@ ros2 run go2_science_perception camera_info_inspector --ros-args \
 
 ## Topics
 
-以下为 wrapper 4.x 配置下的预期接口，不是本轮实测结果：
+以下为本轮实测接口：
 
 | Topic | Type | Purpose |
 |---|---|---|
@@ -105,8 +106,10 @@ ros2 run go2_science_perception camera_info_inspector --ros-args \
 
 ## Known Limitations
 
-- ROS wrapper/SDK 尚未安装，RGB、depth、aligned depth、CameraInfo 和 TF 均为 `NOT VERIFIED`。
-- 当前只有 USB/UVC 枚举证据，不能据此声称 ROS 2 相机正常。
+- RGB、raw depth、aligned depth、color/depth CameraInfo 和相机内部静态 TF 均已收到真实消息；这不等于深度精度或长期稳定性已经标定。
+- 640x480x30 profile 启动成功，小消息 metadata 和 CameraInfo 约 30 Hz；本机 Python 大图像订阅观测值较低（RGB 约 18 Hz、aligned depth 约 8 Hz），且 aligned depth 曾短暂超过 2 秒未更新后恢复。端到端图像吞吐稳定性仍需排查。
+- RGB 与 aligned depth 均为 640x480，aligned depth 使用 color optical frame；视觉抽样显示两者有对应场景且深度非全零，但尚未做定量像素对齐/深度精度验证。
+- wrapper 使用硬件时钟并报告其可能周期性复位；后续跨传感器时间同步需要专项验证。
 - D435 不提供 IMU；配置显式禁用 gyro、accel 和 motion，不设计任何 IMU 依赖。
 - 尚无目标检测、像素深度读取、三维点发布、外参或 map 转换。
 - 相机 optical、GO2 body 和 map 坐标严禁混用，参见 `docs/architecture.md`。

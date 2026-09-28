@@ -41,6 +41,7 @@
 - [x] 增加集中式 RealSense wrapper 配置和独立 camera test launch。
 - [x] 记录 pixel、camera optical、GO2 body、map 坐标边界与未来标定要求。
 - [x] 只读确认 D435 USB/UVC 枚举状态并记录 SDK/wrapper 缺失。
-- [ ] 经用户授权后安装官方 RealSense ROS 2 Humble packages。
-- [ ] 构建并进行持续 RGB/depth/CameraInfo/aligned-depth 实机验证；当前 `NOT VERIFIED`。
+- [x] 经用户授权后安装官方 RealSense ROS 2 Humble packages，并记录精确版本与来源。
+- [x] 实机确认 RGB、raw depth、aligned depth、CameraInfo 与相机内部 frame/TF 数据可用。
+- [ ] 排查本机 Python 大图像订阅吞吐（实测低于 30 Hz且有短暂 aligned-depth freshness 告警），完成持续速率验证。
 - [ ] 未来阶段再设计目标检测、三维反投影、外参与 map 转换；当前禁止耦合导航。

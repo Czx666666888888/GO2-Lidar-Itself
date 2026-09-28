@@ -16,7 +16,9 @@ Future pixel-to-3D code must read, for the exact active image profile:
 
 No D435 intrinsic value may be hard-coded. Changing resolution or stream profile may change the applicable calibration. This workspace provides `camera_info_inspector` to expose the runtime values.
 
-Status: CameraInfo implementation exists; live values are `NOT VERIFIED` because the ROS wrapper/SDK is not installed.
+2026-09-28 在 color 640x480 profile 下实测：`fx=608.898193359375`、`fy=608.2466430664062`、`cx=320.7738952636719`、`cy=243.91554260253906`，distortion model 为 `plumb_bob`，frame 为 `camera_color_optical_frame`。`camera_info_inspector` 输出与原始 CameraInfo 一致。这些值只适用于本次设备和 profile，未来代码仍必须运行时读取，不能复制为硬编码常量。
+
+同次 raw depth CameraInfo 为 640x480，`fx=fy=386.96484375`、`cx=318.3269958496094`、`cy=235.739501953125`，frame 为 `camera_depth_optical_frame`。
 
 ## Extrinsic Calibration
 
