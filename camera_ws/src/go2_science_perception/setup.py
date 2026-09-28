@@ -24,6 +24,7 @@ setup(
         "console_scripts": [
             "camera_diagnostics = go2_science_perception.camera_diagnostics:main",
             "camera_info_inspector = go2_science_perception.camera_info_inspector:main",
+            "depth_viewer = go2_science_perception.depth_viewer:main",
         ],
     },
 )
