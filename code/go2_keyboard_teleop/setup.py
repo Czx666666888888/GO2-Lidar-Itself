@@ -27,6 +27,7 @@ setup(
             "go2_safety_gate = go2_keyboard_teleop.safety_gate:main",
             "go2_debug_control = go2_keyboard_teleop.debug_control:main",
             "wp5_explore_node = go2_keyboard_teleop.wp5_explore_node:main",
+            "nbv_explore_node = go2_keyboard_teleop.nbv_explore_node:main",
             "base_odom_node = go2_keyboard_teleop.base_odom_node:main",
         ],
     },

@@ -1,6 +1,6 @@
 # Project Status
 
-更新日期：2026-09-26
+更新日期：2026-09-28
 状态来源：当前仓库静态阅读、根 `README.md` 的既有记录和 Git 历史。除非特别说明，本文件不代表本轮重新完成了真机构建或运行验证。
 
 ## Project Goal
@@ -123,6 +123,25 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 分支：`main`
 - 代码基线：根 README 所述的 2026-08-31 打包版回退代码。
 - README 记录的回退参数包括 FAR `robot_dim=0.7`、`converge=0.30`，local `obstacleInflate=0.2`、`stopDisThre=0.2`、`useCost=false`，WP5 `min_goal_dis=0.8`、`arrive_dis=0.35`、簇门槛 2、`risk_weight=0.3`、`min_obs_dis=0.2`。
+
+## Algorithm Baselines
+
+### Baseline A — current repository baseline
+
+- 分支：`main`
+- commit：`ace88b66f14951dcc5ee3c0b312f6a0ec690048b`
+- 来源：当前仓库 2026-08-31 回退代码，加上后续接口调查、安全门/DDS/部署适配。
+- 验证状态：已有文档记录和历史实验，但本轮未重新 build、回放或真机验证；`retest4/5/6/8/9` 仅归属 Baseline A。
+
+### Baseline B — senior algorithm package
+
+- 分支：`update/senior-algorithm-baseline`
+- commit：本分支的 `chore: import senior algorithm baseline` 提交（精确 hash 见 Git 历史）。
+- 来源：`实时SLAM与自主导航源码.tar.gz`，包内版本 `cp0904` / 2026-09-04，SHA-256 `d0ebf562d73955b3b070175ee027966abbd0d55e1da0e61240d8c495ceca4d5f`。
+- 导入范围：新增可选 NBV exploration、NBV 离线比较、FAR `robot_dim=0.8`、NBV 入口和包内 RViz 显示配置；保留当前安全门、DDS QoS 和可移植启动脚本。
+- 验证状态：`Imported / NOT YET EXPERIMENTALLY VERIFIED`。没有 Baseline B rosbag、离线链结果或真机结果。
+- 构建状态：当前主机 ROS 2 Humble 使用 `BUILD_WORKERS=4 bash code/scripts/deploy_local.sh` 全量构建 24 packages 成功；有既有编译警告，无 build error。干净环境 build、节点启动和运行时数据仍为 `NOT VERIFIED`。
+- 严格差异与未导入的旧集成文件：`docs/senior_algorithm_diff.md`。
 
 ## Current Questions
 

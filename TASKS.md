@@ -27,6 +27,15 @@
 - [ ] 验证离线链的关键 topic、频率和消息类型，不发送硬件命令。
 - [ ] 建立 GO2 真机前置条件和分阶段安全验证表。
 
+## P2 — Senior Algorithm Baseline
+
+- [x] 记录 Baseline A HEAD，扫描学长 `cp0904` 包并建立严格静态差异文档。
+- [x] 在 `update/senior-algorithm-baseline` 导入 NBV/FAR 算法增量，不覆盖 `main`。
+- [ ] 在干净 ROS 2 Humble 环境完成 Baseline B 全量 build。
+- [ ] 使用同一来源 rosbag 对 WP5 与 NBV 做可复现离线 A/B；当前 `NOT VERIFIED`。
+- [ ] 运行时核对 Baseline B 的 node/topic/QoS/TF；当前 `NOT VERIFIED`。
+- [ ] 由 ChatGPT 决定是否、何时将 NBV 接入默认 launch，以及后续实验矩阵；本轮不优化、不 merge `main`。
+
 ## Out of Scope for This Phase
 
 - 新增或替换规划算法

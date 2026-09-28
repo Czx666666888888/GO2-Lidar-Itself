@@ -2,6 +2,12 @@
 
 The entries below are a structured transcription of the root `README.md`. No rosbag was replayed and no metric was recalculated during creation of this document.
 
+## Baseline Attribution
+
+- `retest4`、`retest5`、`retest6`、`retest8`、`retest9` 全部归属 **Baseline A**（`main` at `ace88b66f14951dcc5ee3c0b312f6a0ec690048b` 所继承的旧算法线）。
+- 这些既有观测不得自动用于评价 **Baseline B**。
+- **Baseline B**（`update/senior-algorithm-baseline`，学长 `cp0904`/2026-09-04 包）当前没有实验结果：`NOT YET EXPERIMENTALLY VERIFIED`。
+
 ## Evidence Rules
 
 - **Recorded observation:** text already present in the repository README.
