@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass
 import math
-from typing import Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
@@ -23,6 +23,70 @@ class PlaneCandidate:
     offset: float
     indices: np.ndarray
     median_residual_m: float
+
+
+@dataclass
+class FrameMetrics:
+    """Diagnostic measurements produced for one processed depth frame."""
+
+    mask_area: int = 0
+    top_roi_pixel_count: int = 0
+    valid_depth_points: int = 0
+    inlier_count: int = 0
+    inlier_ratio: float = math.nan
+    median_residual_m: float = math.nan
+    normal_error_deg: float = math.nan
+    plane_normal: Optional[np.ndarray] = None
+
+
+INVALID_REASONS = (
+    "no_blue",
+    "too_small_mask",
+    "too_few_depth",
+    "no_plane",
+    "low_inlier_ratio",
+    "bad_normal",
+    "timestamp_mismatch",
+)
+
+
+def aggregate_diagnostics(
+    processed_frames: int,
+    valid_frames: int,
+    invalid_counts: Dict[str, int],
+    normal_errors: Sequence[float],
+    inlier_ratios: Sequence[float],
+) -> Sequence[str]:
+    """Return deterministic final summary lines for logs and tests."""
+    total = max(processed_frames, 1)
+    lines = [
+        f"frames={processed_frames} valid={valid_frames} "
+        f"invalid={processed_frames - valid_frames} "
+        f"valid_ratio={valid_frames / float(total):.3f}"
+    ]
+    for reason in INVALID_REASONS:
+        count = int(invalid_counts.get(reason, 0))
+        lines.append(
+            f"invalid_reason={reason} count={count} "
+            f"ratio={count / float(total):.3f}"
+        )
+    if normal_errors:
+        values = np.asarray(normal_errors, dtype=np.float64)
+        lines.append(
+            f"normal_error_deg count={values.size} mean={np.mean(values):.3f} "
+            f"median={np.median(values):.3f} max={np.max(values):.3f}"
+        )
+    else:
+        lines.append("normal_error_deg count=0 mean=n/a median=n/a max=n/a")
+    if inlier_ratios:
+        values = np.asarray(inlier_ratios, dtype=np.float64)
+        lines.append(
+            f"inlier_ratio count={values.size} mean={np.mean(values):.3f} "
+            f"median={np.median(values):.3f}"
+        )
+    else:
+        lines.append("inlier_ratio count=0 mean=n/a median=n/a")
+    return lines
 
 
 def expected_horizontal_normal(mount_pitch_deg: float) -> np.ndarray:
@@ -219,6 +283,9 @@ class BlueSurfaceCenter(Node):
         self.invalid_frames = 0
         self.loss_events = 0
         self.previous_valid: Optional[bool] = None
+        self.invalid_counts = {reason: 0 for reason in INVALID_REASONS}
+        self.normal_error_samples = []
+        self.inlier_ratio_samples = []
         self.rng = np.random.default_rng(
             int(self.get_parameter("random_seed").value)
         )
@@ -285,7 +352,7 @@ class BlueSurfaceCenter(Node):
 
     def _largest_blue_mask(
         self, image: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         lower = np.array(
             [
@@ -327,18 +394,23 @@ class BlueSurfaceCenter(Node):
         mask = np.zeros_like(raw)
         contours = np.empty((0, 1, 2), dtype=np.int32)
         if count <= 1:
-            return raw, mask, contours
+            return raw, mask, contours, 0
         component = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
         area = int(stats[component, cv2.CC_STAT_AREA])
         if area < int(self.get_parameter("min_component_area_px").value):
-            return raw, mask, contours
+            return raw, mask, contours, area
         mask[labels == component] = 255
         contours, _ = cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        return raw, mask, contours
+        return raw, mask, contours, area
 
-    def _record_outcome(self, valid: bool) -> None:
+    def _record_outcome(
+        self,
+        valid: bool,
+        metrics: FrameMetrics,
+        invalid_reason: Optional[str] = None,
+    ) -> None:
         now = self.get_clock().now().nanoseconds * 1e-9
         if self.metrics_start_time is None:
             self.metrics_start_time = now
@@ -347,9 +419,32 @@ class BlueSurfaceCenter(Node):
             self.valid_frames += 1
         else:
             self.invalid_frames += 1
+            if invalid_reason not in self.invalid_counts:
+                raise ValueError(f"Unknown invalid reason: {invalid_reason}")
+            self.invalid_counts[invalid_reason] += 1
             if self.previous_valid is True:
                 self.loss_events += 1
+        if math.isfinite(metrics.normal_error_deg):
+            self.normal_error_samples.append(metrics.normal_error_deg)
+        if math.isfinite(metrics.inlier_ratio):
+            self.inlier_ratio_samples.append(metrics.inlier_ratio)
         self.previous_valid = valid
+        normal = metrics.plane_normal
+        normal_text = (
+            "(n/a,n/a,n/a)" if normal is None else
+            f"({normal[0]:.5f},{normal[1]:.5f},{normal[2]:.5f})"
+        )
+        status = "VALID" if valid else f"INVALID:{invalid_reason}"
+        self.get_logger().info(
+            f"FRAME_METRICS status={status} mask_area={metrics.mask_area} "
+            f"top_roi_pixel_count={metrics.top_roi_pixel_count} "
+            f"valid_depth_points={metrics.valid_depth_points} "
+            f"inlier_count={metrics.inlier_count} "
+            f"inlier_ratio={metrics.inlier_ratio:.5f} "
+            f"median_residual_m={metrics.median_residual_m:.6f} "
+            f"normal_error_deg={metrics.normal_error_deg:.3f} "
+            f"plane_normal={normal_text}"
+        )
         if now - self.last_metrics_log_time >= 5.0:
             ratio = self.valid_frames / float(self.processed_frames)
             self.get_logger().info(
@@ -360,7 +455,7 @@ class BlueSurfaceCenter(Node):
             self.last_metrics_log_time = now
         duration = float(self.get_parameter("validation_duration_sec").value)
         if duration > 0.0 and now - self.metrics_start_time >= duration:
-            self.get_logger().info(f"Final {self._summary_text()}")
+            self._log_final_summary()
             rclpy.shutdown()
 
     def _summary_text(self) -> str:
@@ -374,6 +469,17 @@ class BlueSurfaceCenter(Node):
             f"valid={self.valid_frames} invalid={self.invalid_frames} "
             f"loss_events={self.loss_events} valid_ratio={ratio:.3f}"
         )
+
+    def _log_final_summary(self) -> None:
+        self.get_logger().info(f"Final {self._summary_text()}")
+        for line in aggregate_diagnostics(
+            self.processed_frames,
+            self.valid_frames,
+            self.invalid_counts,
+            self.normal_error_samples,
+            self.inlier_ratio_samples,
+        ):
+            self.get_logger().info(f"FINAL_DIAGNOSTICS {line}")
 
     def _invalid(self, reason: str) -> None:
         status = f"INVALID: {reason}"
@@ -389,6 +495,7 @@ class BlueSurfaceCenter(Node):
         target_mask: np.ndarray,
         top_mask: np.ndarray,
         contours: np.ndarray,
+        ransac_pixels: Optional[np.ndarray] = None,
         inlier_pixels: Optional[np.ndarray] = None,
         center_pixel: Optional[Tuple[int, int]] = None,
         center: Optional[np.ndarray] = None,
@@ -396,12 +503,18 @@ class BlueSurfaceCenter(Node):
         valid_depth_ratio: float = 0.0,
         inlier_ratio: float = 0.0,
         normal_error: Optional[float] = None,
+        plane_normal: Optional[np.ndarray] = None,
+        top_roi_pixel_count: int = 0,
+        valid_depth_points: int = 0,
+        median_residual_m: Optional[float] = None,
     ) -> None:
         if not bool(self.get_parameter("show_debug").value) or self.color is None:
             return
         annotated = self.color.copy()
         if len(contours):
             cv2.drawContours(annotated, contours, -1, (255, 255, 0), 2)
+        if ransac_pixels is not None and ransac_pixels.size:
+            annotated[ransac_pixels[:, 1], ransac_pixels[:, 0]] = (255, 0, 255)
         if inlier_pixels is not None and inlier_pixels.size:
             annotated[inlier_pixels[:, 1], inlier_pixels[:, 0]] = (0, 255, 255)
         if center_pixel is not None:
@@ -416,9 +529,17 @@ class BlueSurfaceCenter(Node):
         error_text = "n/a" if normal_error is None else f"{normal_error:.1f} deg"
         lines = [
             self.last_status,
-            f"mask_area={mask_area} valid_depth_ratio={valid_depth_ratio:.3f}",
+            f"mask_area={mask_area} top_roi_pixels={top_roi_pixel_count}",
+            f"valid_depth_points={valid_depth_points} ratio={valid_depth_ratio:.3f}",
             f"inlier_ratio={inlier_ratio:.3f} normal_error={error_text}",
         ]
+        if median_residual_m is not None:
+            lines.append(f"median_residual={median_residual_m:.5f} m")
+        if plane_normal is not None:
+            lines.append(
+                f"normal=({plane_normal[0]:.3f}, {plane_normal[1]:.3f}, "
+                f"{plane_normal[2]:.3f})"
+            )
         if center is not None:
             lines.append(
                 f"X={center[0]:.3f} Y={center[1]:.3f} Z={center[2]:.3f} m"
@@ -443,7 +564,9 @@ class BlueSurfaceCenter(Node):
             )
             return panel
 
-        top_panel = mask_panel(top_mask, "top candidate ROI / RANSAC inliers")
+        top_panel = mask_panel(top_mask, "top ROI: valid=magenta inlier=yellow")
+        if ransac_pixels is not None and ransac_pixels.size:
+            top_panel[ransac_pixels[:, 1], ransac_pixels[:, 0]] = (255, 0, 255)
         if inlier_pixels is not None and inlier_pixels.size:
             top_panel[inlier_pixels[:, 1], inlier_pixels[:, 0]] = (0, 255, 255)
         debug = np.vstack(
@@ -467,15 +590,16 @@ class BlueSurfaceCenter(Node):
         self.last_processed_stamp = self.depth_stamp
         empty = np.zeros(self.color.shape[:2], dtype=np.uint8)
         no_contours = np.empty((0, 1, 2), dtype=np.int32)
+        metrics = FrameMetrics()
         if self.color.shape[:2] != self.depth_m.shape:
             self._invalid("RGB and aligned-depth dimensions differ")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "timestamp_mismatch")
             self._draw_debug(empty, empty, empty, no_contours)
             return
         width, height = self.camera_size
         if (width, height) != (self.color.shape[1], self.color.shape[0]):
             self._invalid("CameraInfo dimensions do not match images")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "timestamp_mismatch")
             self._draw_debug(empty, empty, empty, no_contours)
             return
         max_delta = float(
@@ -483,15 +607,19 @@ class BlueSurfaceCenter(Node):
         )
         if abs(self.color_stamp - self.depth_stamp) > max_delta:
             self._invalid("RGB/aligned-depth timestamps are too far apart")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "timestamp_mismatch")
             self._draw_debug(empty, empty, empty, no_contours)
             return
 
-        raw_mask, target_mask, contours = self._largest_blue_mask(self.color)
+        raw_mask, target_mask, contours, largest_area = self._largest_blue_mask(
+            self.color
+        )
         mask_area = int(np.count_nonzero(target_mask))
+        metrics.mask_area = mask_area
         if mask_area == 0:
-            self._invalid("no sufficiently large blue component")
-            self._record_outcome(False)
+            reason = "no_blue" if largest_area == 0 else "too_small_mask"
+            self._invalid(reason)
+            self._record_outcome(False, metrics, reason)
             self._draw_debug(raw_mask, target_mask, empty, contours)
             return
         top_mask = top_region_mask(
@@ -501,9 +629,10 @@ class BlueSurfaceCenter(Node):
             int(self.get_parameter("top_erosion_iterations").value),
         )
         top_area = int(np.count_nonzero(top_mask))
+        metrics.top_roi_pixel_count = top_area
         if top_area == 0:
             self._invalid("top candidate ROI is empty after erosion")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "too_small_mask")
             self._draw_debug(
                 raw_mask,
                 target_mask,
@@ -520,11 +649,12 @@ class BlueSurfaceCenter(Node):
             float(self.get_parameter("max_depth_m").value),
         )
         valid_count = points.shape[0]
+        metrics.valid_depth_points = valid_count
         valid_depth_ratio = valid_count / float(top_area)
         min_points = int(self.get_parameter("min_depth_points").value)
         if valid_count < min_points:
             self._invalid(f"only {valid_count} valid top-ROI depth points")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "too_few_depth")
             self._draw_debug(
                 raw_mask,
                 target_mask,
@@ -532,6 +662,8 @@ class BlueSurfaceCenter(Node):
                 contours,
                 mask_area=mask_area,
                 valid_depth_ratio=valid_depth_ratio,
+                top_roi_pixel_count=top_area,
+                valid_depth_points=valid_count,
             )
             return
 
@@ -549,39 +681,52 @@ class BlueSurfaceCenter(Node):
         )
         if selected is None:
             self._invalid("no reliable dominant plane in top ROI")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "no_plane")
             self._draw_debug(
                 raw_mask,
                 target_mask,
                 top_mask,
                 contours,
+                ransac_pixels=pixels,
                 mask_area=mask_area,
                 valid_depth_ratio=valid_depth_ratio,
+                top_roi_pixel_count=top_area,
+                valid_depth_points=valid_count,
             )
             return
 
         surface_points = points[selected.indices]
         surface_pixels = pixels[selected.indices]
         inlier_ratio = surface_points.shape[0] / float(points.shape[0])
+        metrics.inlier_count = surface_points.shape[0]
+        metrics.inlier_ratio = inlier_ratio
+        metrics.median_residual_m = selected.median_residual_m
+        metrics.plane_normal = selected.normal
         normal_error = plane_normal_error_deg(
             selected, float(self.get_parameter("mount_pitch_deg").value)
         )
+        metrics.normal_error_deg = normal_error
         max_normal_error = float(
             self.get_parameter("max_normal_error_deg").value
         )
         if normal_error > max_normal_error:
             self._invalid(f"plane normal error {normal_error:.1f} deg")
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "bad_normal")
             self._draw_debug(
                 raw_mask,
                 target_mask,
                 top_mask,
                 contours,
-                surface_pixels,
+                ransac_pixels=pixels,
+                inlier_pixels=surface_pixels,
                 mask_area=mask_area,
                 valid_depth_ratio=valid_depth_ratio,
                 inlier_ratio=inlier_ratio,
                 normal_error=normal_error,
+                plane_normal=selected.normal,
+                top_roi_pixel_count=top_area,
+                valid_depth_points=valid_count,
+                median_residual_m=selected.median_residual_m,
             )
             return
         min_inlier_ratio = float(
@@ -592,17 +737,22 @@ class BlueSurfaceCenter(Node):
                 f"dominant plane inlier ratio {inlier_ratio:.3f} below "
                 f"{min_inlier_ratio:.3f}"
             )
-            self._record_outcome(False)
+            self._record_outcome(False, metrics, "low_inlier_ratio")
             self._draw_debug(
                 raw_mask,
                 target_mask,
                 top_mask,
                 contours,
-                surface_pixels,
+                ransac_pixels=pixels,
+                inlier_pixels=surface_pixels,
                 mask_area=mask_area,
                 valid_depth_ratio=valid_depth_ratio,
                 inlier_ratio=inlier_ratio,
                 normal_error=normal_error,
+                plane_normal=selected.normal,
+                top_roi_pixel_count=top_area,
+                valid_depth_points=valid_count,
+                median_residual_m=selected.median_residual_m,
             )
             return
         center = robust_center(surface_points)
@@ -616,7 +766,7 @@ class BlueSurfaceCenter(Node):
         point.point.y = float(center[1])
         point.point.z = float(center[2])
         self.publisher.publish(point)
-        self._record_outcome(True)
+        self._record_outcome(True, metrics)
         self.last_status = (
             f"VALID: top plane inliers={surface_points.shape[0]} "
             f"normal_error={normal_error:.1f} deg"
@@ -634,19 +784,24 @@ class BlueSurfaceCenter(Node):
             target_mask,
             top_mask,
             contours,
-            surface_pixels,
-            center_uv,
-            center,
-            mask_area,
-            valid_depth_ratio,
-            inlier_ratio,
-            normal_error,
+            ransac_pixels=pixels,
+            inlier_pixels=surface_pixels,
+            center_pixel=center_uv,
+            center=center,
+            mask_area=mask_area,
+            valid_depth_ratio=valid_depth_ratio,
+            inlier_ratio=inlier_ratio,
+            normal_error=normal_error,
+            plane_normal=selected.normal,
+            top_roi_pixel_count=top_area,
+            valid_depth_points=valid_count,
+            median_residual_m=selected.median_residual_m,
         )
 
     def close_windows(self) -> None:
         """Close this node's OpenCV window."""
         if self.processed_frames:
-            self.get_logger().info(f"Final {self._summary_text()}")
+            self._log_final_summary()
         if bool(self.get_parameter("show_debug").value):
             cv2.destroyWindow("Blue Surface Center")
 

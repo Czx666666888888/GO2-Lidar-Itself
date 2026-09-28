@@ -46,7 +46,8 @@
 - [x] 增加 RGB/aligned-depth OpenCV 查看器及 5×5 ROI median 米制深度探针。
 - [x] 增加独立蓝色目标上表面多平面 RANSAC 中心节点、CameraInfo 反投影、debug 窗口和 camera-frame PointStamped。
 - [x] 将蓝色上表面链路改为形态学稳定 mask、上部2D ROI和单主平面拟合，并加入连续 VALID/丢失统计。
-- [ ] 蓝色上表面最终实测 VALID 比例仅42.2%，需在固定目标/固定光照数据上继续定位法向跳变原因。
+- [x] 增加逐帧mask/ROI/depth/RANSAC/法向指标、7类INVALID计数和30秒汇总。
+- [ ] 固定观察30秒238帧全部因 `bad_normal` 拒绝；上部2D ROI实际拟合到接近camera optical X轴的蓝色竖直面，需由ChatGPT评审后决定下一版上表面候选策略。
 - [ ] 在可交互桌面对近处/远处目标各执行一次人工点击并补录深度值；当前 `NOT VERIFIED`。
 - [ ] 排查本机 Python 大图像订阅吞吐（实测低于 30 Hz且有短暂 aligned-depth freshness 告警），完成持续速率验证。
 - [ ] 未来阶段再设计目标检测、三维反投影、外参与 map 转换；当前禁止耦合导航。

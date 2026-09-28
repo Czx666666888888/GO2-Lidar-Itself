@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 
 from go2_science_perception.blue_surface_center import (
+    INVALID_REASONS,
     PlaneCandidate,
+    aggregate_diagnostics,
     expected_horizontal_normal,
     plane_normal_error_deg,
     project_masked_depth,
@@ -12,6 +14,20 @@ from go2_science_perception.blue_surface_center import (
     robust_center,
     top_region_mask,
 )
+
+
+def test_aggregate_diagnostics_reports_all_invalid_reasons_and_statistics():
+    counts = {reason: 0 for reason in INVALID_REASONS}
+    counts["bad_normal"] = 2
+    counts["no_blue"] = 1
+    lines = aggregate_diagnostics(
+        10, 7, counts, [10.0, 20.0, 30.0], [0.5, 0.75]
+    )
+    assert lines[0] == "frames=10 valid=7 invalid=3 valid_ratio=0.700"
+    assert "invalid_reason=no_blue count=1 ratio=0.100" in lines
+    assert "invalid_reason=bad_normal count=2 ratio=0.200" in lines
+    assert "normal_error_deg count=3 mean=20.000 median=20.000 max=30.000" in lines
+    assert "inlier_ratio count=2 mean=0.625 median=0.625" in lines
 
 
 def test_project_masked_depth_uses_runtime_intrinsics_and_valid_depth():

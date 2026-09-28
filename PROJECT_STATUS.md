@@ -144,7 +144,7 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 官方 wrapper 和 `camera_ws` 完整 launch 均已实测 RGB、raw depth、aligned depth、CameraInfo 与相机内部 `/tf_static` 数据；640x480 color/aligned-depth 尺寸一致，实际 frame 已记录在 `camera_ws/docs/architecture.md`。
 - `camera_ws` 独立 build 成功，4 个 package tests 全部通过，完整 launch 运行超过 30 秒并干净退出。CameraInfo/metadata 约 30 Hz，但 Python 大图像订阅约 RGB 18 Hz、aligned depth 8 Hz且有短暂 freshness 告警，持续端到端 30 Hz 尚未验证。
 - camera optical -> GO2 body -> SLAM map 转换为 `Future integration / NOT IMPLEMENTED`。
-- 独立 `blue_surface_center` 当前使用 HSV close/open、最大连通区域、目标上部2D ROI及单主平面 RANSAC；安装俯仰角只用于拟合后的法向可靠性检查。近30秒墙钟实测中28秒有效处理204帧，VALID 86帧（42.2%）、VALID到invalid丢失11次；仍未达到稳定识别结论。输出 frame 为 `camera_color_optical_frame`，尚未做 GO2/map 转换。
+- 独立 `blue_surface_center` 当前使用 HSV close/open、最大连通区域、目标上部2D ROI及单主平面 RANSAC；安装俯仰角只用于拟合后的法向可靠性检查。新增逐帧指标与7类INVALID计数。固定观察30秒共238帧，0 VALID，全部因 `bad_normal` 被拒；normal error均值86.660°、中位86.679°，而RANSAC inlier ratio均值0.665。当前证据指向上部2D ROI仍主要覆盖蓝色竖直可见面，并非HSV、深度点或RANSAC失败；尚未修改35°阈值或选择策略。输出 frame 为 `camera_color_optical_frame`，尚未做 GO2/map 转换。
 - 本工作流仅包含蓝色区域测试检测，不包含通用目标分类、导航接入或 GO2 运动控制。
 
 ## Next Recommended Work
