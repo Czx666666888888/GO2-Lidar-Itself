@@ -94,7 +94,7 @@ ros2 launch go2_science_perception depth_viewer.launch.py
 ros2 launch go2_science_perception blue_surface_center.launch.py
 ```
 
-该 launch 使用 `config/blue_surface_center.yaml`。节点对最大蓝色连通区域腐蚀后，将有效 aligned-depth 像素按实时 color `CameraInfo` 反投影，依次拟合多个 RANSAC 平面，并以参数 `mount_pitch_deg`（默认向下45°）推导出的水平面法向先验选择上表面，而不是直接选择最大平面。可靠结果发布到 `/science/blue_surface_center`；没有足够深度点或可靠平面时显示并记录 `INVALID`，不发布伪造坐标。
+该 launch 使用 `config/blue_surface_center.yaml`。HSV mask 先执行 close/open，再保留最大连通区域；节点从目标 bounding box 上部 `top_region_ratio`（默认0.55）取得候选ROI并向内腐蚀一次，只反投影该区域的有效 aligned depth，随后拟合单个主平面。参数 `mount_pitch_deg`（默认向下45°）只用于拟合后的法向可靠性检查，不参与多平面竞争。可靠结果发布到 `/science/blue_surface_center`；没有足够深度点或可靠平面时显示并记录 `INVALID`，不发布伪造坐标。
 
 ## Topics
 

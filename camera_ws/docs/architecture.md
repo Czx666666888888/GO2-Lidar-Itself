@@ -18,7 +18,8 @@ RealSense D435
   -> CameraInfo intrinsics                  [runtime input]
   -> 3D position (Xc, Yc, Zc)
      in camera color optical frame          [IMPLEMENTED]
-  -> multi-plane RANSAC + normal prior      [IMPLEMENTED]
+  -> upper 55% 2D ROI + single-plane RANSAC[IMPLEMENTED]
+  -> post-fit normal reliability check      [IMPLEMENTED]
   -> robust top-surface center PointStamped [IMPLEMENTED]
   -> TF2 transform                          [Future integration / NOT IMPLEMENTED]
   -> GO2 body/base frame                    [Future integration / NOT IMPLEMENTED]

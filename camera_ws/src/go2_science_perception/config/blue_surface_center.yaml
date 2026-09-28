@@ -9,19 +9,22 @@ blue_surface_center:
     s_min: 80
     v_min: 50
     min_component_area_px: 200
-    erosion_kernel_px: 3
-    erosion_iterations: 2
+    morphology_kernel_px: 5
+    morphology_close_iterations: 1
+    morphology_open_iterations: 1
+    top_region_ratio: 0.55
+    top_erosion_kernel_px: 3
+    top_erosion_iterations: 1
     min_depth_m: 0.15
     max_depth_m: 5.0
     min_depth_points: 100
     max_cloud_points: 12000
-    ransac_max_planes: 4
     ransac_iterations: 120
     ransac_distance_threshold_m: 0.008
     ransac_min_inliers: 60
     min_surface_inlier_ratio: 0.08
     mount_pitch_deg: 45.0
-    max_normal_error_deg: 25.0
+    max_normal_error_deg: 35.0
     max_rgb_depth_delta_sec: 0.20
     processing_rate_hz: 8.0
     show_debug: true
