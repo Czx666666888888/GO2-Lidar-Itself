@@ -13,13 +13,14 @@ RealSense D435
   -> color/depth CameraInfo
   -> aligned depth to color
   -> Blue HSV object mask                   [IMPLEMENTED: isolated test node]
-  -> eroded main connected component        [IMPLEMENTED]
+  -> morphology-cleaned main component      [IMPLEMENTED]
   -> aligned-depth pixels in mask           [IMPLEMENTED]
   -> CameraInfo intrinsics                  [runtime input]
   -> 3D position (Xc, Yc, Zc)
      in camera color optical frame          [IMPLEMENTED]
-  -> upper 55% 2D ROI + single-plane RANSAC[IMPLEMENTED]
-  -> post-fit normal reliability check      [IMPLEMENTED]
+  -> complete target-mask local point cloud [IMPLEMENTED]
+  -> sequential RANSAC, up to four planes   [IMPLEMENTED]
+  -> 35deg normal filter, then support/fit ranking [IMPLEMENTED]
   -> robust top-surface center PointStamped [IMPLEMENTED]
   -> TF2 transform                          [Future integration / NOT IMPLEMENTED]
   -> GO2 body/base frame                    [Future integration / NOT IMPLEMENTED]

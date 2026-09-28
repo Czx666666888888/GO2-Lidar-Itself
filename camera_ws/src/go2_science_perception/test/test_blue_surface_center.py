@@ -10,9 +10,9 @@ from go2_science_perception.blue_surface_center import (
     expected_horizontal_normal,
     plane_normal_error_deg,
     project_masked_depth,
-    ransac_dominant_plane,
+    ransac_multiple_planes,
     robust_center,
-    top_region_mask,
+    select_horizontal_plane,
 )
 
 
@@ -65,30 +65,44 @@ def test_plane_normal_error_reports_wrong_normal():
     assert plane_normal_error_deg(candidate, 45.0) == pytest.approx(90.0)
 
 
-def test_ransac_fits_one_dominant_plane_in_prefiltered_roi():
+def test_ransac_extracts_multiple_planes_from_complete_mask_cloud():
     rng = np.random.default_rng(3)
-    xy = rng.uniform(-0.2, 0.2, size=(180, 2))
-    horizontal = np.column_stack((xy[:, 0], xy[:, 1], np.ones(180)))
-    outliers = rng.uniform(-1.0, 1.0, size=(20, 3))
-    candidate = ransac_dominant_plane(
-        np.vstack((horizontal, outliers)),
+    yz = rng.uniform(-0.2, 0.2, size=(220, 2))
+    side = np.column_stack((np.full(220, 0.3), yz[:, 0], yz[:, 1] + 1.0))
+    xy = rng.uniform(-0.2, 0.2, size=(140, 2))
+    top = np.column_stack((xy[:, 0], xy[:, 1], np.ones(140)))
+    candidates = ransac_multiple_planes(
+        np.vstack((side, top)),
+        max_planes=4,
         iterations=100,
         distance_threshold_m=0.002,
-        min_inliers=80,
+        min_inliers=60,
         rng=np.random.default_rng(8),
     )
-    assert candidate is not None
-    assert candidate.indices.size >= 180
-    assert abs(candidate.normal[2]) == pytest.approx(1.0, abs=1e-4)
+    assert len(candidates) == 2
+    assert sorted(candidate.indices.size for candidate in candidates) == [140, 220]
 
 
-def test_top_region_mask_keeps_upper_fraction_then_erodes():
-    mask = np.zeros((10, 8), dtype=np.uint8)
-    mask[2:8, 1:7] = 255
-    top = top_region_mask(mask, 0.5, 3, 1)
-    assert np.count_nonzero(top) > 0
-    assert not np.any(top[5:])
-    assert not np.any(top[:, 0])
+def test_selection_rejects_largest_side_and_uses_horizontal_candidate():
+    horizontal = expected_horizontal_normal(45.0)
+    side = PlaneCandidate(
+        np.array([1.0, 0.0, 0.0]), 0.0, np.arange(700), 0.001
+    )
+    top = PlaneCandidate(horizontal, 0.0, np.arange(200), 0.003)
+    selected = select_horizontal_plane([side, top], 900, 45.0, 35.0)
+    assert selected is top
+
+
+def test_selection_prefers_support_then_residual_after_normal_filter():
+    horizontal = expected_horizontal_normal(45.0)
+    large = PlaneCandidate(horizontal, 0.0, np.arange(300), 0.006)
+    small = PlaneCandidate(horizontal, 0.0, np.arange(200), 0.001)
+    assert select_horizontal_plane([small, large], 500, 45.0, 35.0) is large
+    equal_clean = PlaneCandidate(horizontal, 0.0, np.arange(300), 0.002)
+    assert (
+        select_horizontal_plane([large, equal_clean], 600, 45.0, 35.0)
+        is equal_clean
+    )
 
 
 def test_robust_center_uses_component_median():
