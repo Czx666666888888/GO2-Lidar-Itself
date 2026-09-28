@@ -33,3 +33,14 @@
 - 调参以改善 retest 结果
 - 修改 Point-LIO、WP5、FAR/local planner 或 safety gate 行为
 - 未经评审的 ROS interface 或架构重构
+
+## D435 Standalone Perception Workspace
+
+- [x] 创建独立 `camera_ws` 和 ROS 2 Humble Python package。
+- [x] 增加 RGB/aligned-depth/CameraInfo 只读诊断节点及 CameraInfo 内参检查节点。
+- [x] 增加集中式 RealSense wrapper 配置和独立 camera test launch。
+- [x] 记录 pixel、camera optical、GO2 body、map 坐标边界与未来标定要求。
+- [x] 只读确认 D435 USB/UVC 枚举状态并记录 SDK/wrapper 缺失。
+- [ ] 经用户授权后安装官方 RealSense ROS 2 Humble packages。
+- [ ] 构建并进行持续 RGB/depth/CameraInfo/aligned-depth 实机验证；当前 `NOT VERIFIED`。
+- [ ] 未来阶段再设计目标检测、三维反投影、外参与 map 转换；当前禁止耦合导航。

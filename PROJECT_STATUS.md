@@ -1,6 +1,6 @@
 # Project Status
 
-更新日期：2026-09-26
+更新日期：2026-09-28
 状态来源：当前仓库静态阅读、根 `README.md` 的既有记录和 Git 历史。除非特别说明，本文件不代表本轮重新完成了真机构建或运行验证。
 
 ## Project Goal
@@ -134,6 +134,16 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 主链真实 TF 树及各点云/里程计 frame 是否一致？
 - README 的 retest 指标如何计算，分析脚本与原始日志能否复现这些数值？
 - safety gate 的 Sport lease、ARMED 和 API 成功能否对应到可测量的真实运动？
+
+## Standalone D435 Perception Workstream
+
+- 独立工作空间：`camera_ws/`；不加入现有 `code/` 导航 build/launch。
+- ROS 2 package：`go2_science_perception`，提供只读 camera diagnostics 和 CameraInfo inspector。
+- 2026-09-28 宿主只读枚举确认 USB `8086:0b07` D435 和 UVC device nodes 存在。
+- `librealsense2`、`realsense2_camera`、`realsense2_description` 当前未安装，因此 RGB、depth、aligned depth、CameraInfo 和 camera TF 均为 `NOT VERIFIED`。
+- `camera_ws` 已在当前 ROS 2 Humble 主机独立 build 成功；4 个 package tests 全部通过。完整 camera launch 因缺少 `realsense2_camera` 明确阻塞。
+- camera optical -> GO2 body -> SLAM map 转换为 `Future integration / NOT IMPLEMENTED`。
+- 本工作流不包含目标检测、导航接入或 GO2 运动控制。
 
 ## Next Recommended Work
 
