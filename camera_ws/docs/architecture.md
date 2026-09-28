@@ -12,19 +12,20 @@ RealSense D435
   -> depth image
   -> color/depth CameraInfo
   -> aligned depth to color
-  -> Target Detector                         [NOT IMPLEMENTED]
-  -> pixel coordinate (u, v)                [NOT IMPLEMENTED]
-  -> depth at the aligned RGB pixel         [NOT IMPLEMENTED]
+  -> Blue HSV object mask                   [IMPLEMENTED: isolated test node]
+  -> eroded main connected component        [IMPLEMENTED]
+  -> aligned-depth pixels in mask           [IMPLEMENTED]
   -> CameraInfo intrinsics                  [runtime input]
   -> 3D position (Xc, Yc, Zc)
-     in camera color optical frame          [NOT IMPLEMENTED]
-  -> PointStamped with exact header.frame_id[NOT IMPLEMENTED]
+     in camera color optical frame          [IMPLEMENTED]
+  -> multi-plane RANSAC + normal prior      [IMPLEMENTED]
+  -> robust top-surface center PointStamped [IMPLEMENTED]
   -> TF2 transform                          [Future integration / NOT IMPLEMENTED]
   -> GO2 body/base frame                    [Future integration / NOT IMPLEMENTED]
   -> SLAM map frame                         [Future integration / NOT IMPLEMENTED]
 ```
 
-当前实现只覆盖相机 wrapper 启动配置、topic 健康检查和 `CameraInfo` 内参打印。
+当前实现还包括独立的蓝色上表面中心测试节点；它只输出相机 optical frame 坐标，不接入 GO2 或 map。
 
 ## Current Nodes
 
@@ -33,6 +34,7 @@ RealSense D435
 | Official `realsense2_camera` wrapper | D435 USB streams | image, CameraInfo, camera-internal TF | Opens camera only |
 | `camera_diagnostics` | RGB, aligned depth, color/depth CameraInfo | Log report | Read-only |
 | `camera_info_inspector` | Color CameraInfo | Intrinsics log | Read-only |
+| `blue_surface_center` | RGB, aligned depth, color CameraInfo | `/science/blue_surface_center`, debug window | Camera-frame perception only |
 
 No node publishes robot velocity, Sport API requests, navigation goals or SLAM data.
 

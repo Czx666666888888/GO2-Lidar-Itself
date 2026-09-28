@@ -44,6 +44,7 @@
 - [x] 经用户授权后安装官方 RealSense ROS 2 Humble packages，并记录精确版本与来源。
 - [x] 实机确认 RGB、raw depth、aligned depth、CameraInfo 与相机内部 frame/TF 数据可用。
 - [x] 增加 RGB/aligned-depth OpenCV 查看器及 5×5 ROI median 米制深度探针。
+- [x] 增加独立蓝色目标上表面多平面 RANSAC 中心节点、CameraInfo 反投影、debug 窗口和 camera-frame PointStamped。
 - [ ] 在可交互桌面对近处/远处目标各执行一次人工点击并补录深度值；当前 `NOT VERIFIED`。
 - [ ] 排查本机 Python 大图像订阅吞吐（实测低于 30 Hz且有短暂 aligned-depth freshness 告警），完成持续速率验证。
 - [ ] 未来阶段再设计目标检测、三维反投影、外参与 map 转换；当前禁止耦合导航。

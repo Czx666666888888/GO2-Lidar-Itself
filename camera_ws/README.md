@@ -88,6 +88,14 @@ ros2 launch go2_science_perception depth_viewer.launch.py
 
 窗口包括 `D435 RGB` 和 `D435 Aligned Depth`。在 RGB 窗口左键点击后，节点会从同一像素附近的 5×5 aligned-depth ROI 中排除 0、负值和非有限值，输出有效像素数以及米制 median。按 `q` 或 `Esc` 退出。节点会读取并打印实际 color `CameraInfo`，本阶段不计算 XYZ，也不发布机器人或导航命令。
 
+独立运行蓝色目标上表面中心定位：
+
+```bash
+ros2 launch go2_science_perception blue_surface_center.launch.py
+```
+
+该 launch 使用 `config/blue_surface_center.yaml`。节点对最大蓝色连通区域腐蚀后，将有效 aligned-depth 像素按实时 color `CameraInfo` 反投影，依次拟合多个 RANSAC 平面，并以参数 `mount_pitch_deg`（默认向下45°）推导出的水平面法向先验选择上表面，而不是直接选择最大平面。可靠结果发布到 `/science/blue_surface_center`；没有足够深度点或可靠平面时显示并记录 `INVALID`，不发布伪造坐标。
+
 ## Topics
 
 以下为本轮实测接口：
@@ -100,6 +108,7 @@ ros2 launch go2_science_perception depth_viewer.launch.py
 | `/camera/camera/color/camera_info` | `sensor_msgs/msg/CameraInfo` | Color intrinsics |
 | `/camera/camera/depth/camera_info` | `sensor_msgs/msg/CameraInfo` | Depth intrinsics |
 | `/tf_static` | `tf2_msgs/msg/TFMessage` | Camera-internal static transforms |
+| `/science/blue_surface_center` | `geometry_msgs/msg/PointStamped` | Valid blue top-surface center in the runtime color optical frame |
 
 ## Expected Output
 
@@ -119,7 +128,7 @@ ros2 launch go2_science_perception depth_viewer.launch.py
 - RGB 与 aligned depth 均为 640x480，aligned depth 使用 color optical frame；视觉抽样显示两者有对应场景且深度非全零，但尚未做定量像素对齐/深度精度验证。
 - wrapper 使用硬件时钟并报告其可能周期性复位；后续跨传感器时间同步需要专项验证。
 - D435 不提供 IMU；配置显式禁用 gyro、accel 和 motion，不设计任何 IMU 依赖。
-- 已实现像素 ROI 深度读取，但尚无目标检测、三维点发布、外参或 map 转换。
+- 已实现基于蓝色分割的局部上表面中心 `PointStamped`；尚无类别识别、外参或 map 转换。
 - 相机 optical、GO2 body 和 map 坐标严禁混用，参见 `docs/architecture.md`。
 
 D400 系列型号能力依据官方 datasheet；带 IMU 的对应型号是 D435i，而不是本项目的 D435：
