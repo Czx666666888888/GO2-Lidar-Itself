@@ -26,9 +26,9 @@ RealSense D435
   -> 35deg normal filter, then support/fit ranking [IMPLEMENTED]
   -> GOOD / MARGINAL / UNRELIABLE quality gate [IMPLEMENTED]
   -> robust top-surface center PointStamped [GOOD only]
-  -> TF2 transform                          [Future integration / NOT IMPLEMENTED]
-  -> GO2 body/base frame                    [Future integration / NOT IMPLEMENTED]
-  -> SLAM map frame                         [Future integration / NOT IMPLEMENTED]
+  -> parameterized vehicle -> camera_link   [PROVISIONAL / NOT CALIBRATED]
+  -> timestamped TF2 transform              [IMPLEMENTED]
+  -> SLAM map PointStamped + Marker         [IMPLEMENTED / NOT NAVIGATION-CONNECTED]
 ```
 
 当前实现还包括独立的蓝色上表面中心测试节点；它只输出相机 optical frame 坐标，不接入 GO2 或 map。
@@ -50,6 +50,7 @@ RealSense D435
 | `camera_info_inspector` | Color CameraInfo | Intrinsics log | Read-only |
 | `blue_surface_center` | RGB, aligned depth, color CameraInfo | `/science/blue_surface_center`, debug window | Camera-frame perception only |
 | `coarse_target_locator` | RGB, aligned depth, color CameraInfo | `/science/target_coarse_point`, debug window | Coarse camera-frame perception only |
+| `camera_target_to_map` | `/science/target_coarse_point`, TF | `/science/target_coarse_point_map`, Marker, `vehicle -> camera_link` static TF | Read-only map projection |
 
 No node publishes robot velocity, Sport API requests, navigation goals or SLAM data.
 
@@ -71,7 +72,17 @@ Yc = (v - cy) * Zc / fy
 Zc = aligned depth converted to metres
 ```
 
-The resulting point remains in the source camera optical frame; no body/map conversion is implemented.
+`coarse_target_locator`的结果仍在源相机optical frame。独立 `camera_target_to_map` 节点通过TF2按该点原始时间戳转换到 `map`，并发布map点和Marker；该转换不改变粗定位节点。
+
+当前暂定外参只定义在ROS机械frame之间，不直接对optical frame写RPY：
+
+```text
+map -> camera_init -> aft_mapped -> sensor -> vehicle
+                                             -> camera_link
+                                                -> camera_color_optical_frame
+```
+
+其中 `vehicle -> camera_link` 参数默认平移为 `(0.36, 0.00, 0.12) m`，RPY为 `(0, +30, 0) deg`；最后一段由RealSense wrapper已有TF提供。`camera_target_to_map`订阅 `/science/target_coarse_point`，发布 `/science/target_coarse_point_map` 和 `/science/target_coarse_point_map_marker`。这些外参是暂定值，不等于完成标定。
 
 ### GO2 body coordinates
 
@@ -108,4 +119,4 @@ Before any map publication or navigation consumption:
 5. Validate timestamps and transform availability under robot motion.
 6. Only after review, define a target topic for navigation consumption.
 
-All six items are `Future integration / NOT IMPLEMENTED`.
+第1、2、4、5项已在2026-09-29单次实机链路中进行初步验证；第3项仍只有暂定手量外参，第6项明确不在本轮范围。不得将这次约15 mm的单次A/B差值解释为外参标定完成或导航可用。

@@ -1,0 +1,47 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 1
+      Class: rviz_default_plugins/Grid
+      Name: Grid
+      Plane: XY
+      Reference Frame: map
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Registered Scan
+      Topic:
+        Value: /registered_scan
+      Size (Pixels): 3
+      Style: Points
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Name: Coarse Target Map Marker
+      Topic:
+        Value: /science/target_coarse_point_map_marker
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Value: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: map
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 8
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Name: Current View
+Window Geometry:
+  Height: 900
+  Width: 1400

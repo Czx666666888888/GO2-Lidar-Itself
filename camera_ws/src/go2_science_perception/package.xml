@@ -15,10 +15,16 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>realsense2_description</exec_depend>
+  <exec_depend>point_lio_unilidar</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>transform_sensors</exec_depend>
 
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

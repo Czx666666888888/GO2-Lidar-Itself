@@ -50,7 +50,9 @@
 - [x] 回退上部55% ROI，恢复完整target mask最多4平面RANSAC，并实现先35°法向过滤、再按内点数/残差选择。
 - [x] 增加mask有效深度中位数粗距离、分段RANSAC阈值、动态最少内点和三级感知质量；完成近/中/远三档各15秒受控实测，质量不足时不发布精确3D中心。
 - [x] 保留precise/backup节点不变，新增独立HSV mask质心+median depth粗定位节点和 `/science/target_coarse_point`；完成0.5/1.0/1.5/2.0 m四档实机记录。
+- [x] 新增参数化 `vehicle -> camera_link` 暂定外参、按原PointStamped时间戳转换到map的节点和RViz Marker；仅启动SLAM+D435+RViz完成一次静止目标/人工移动GO2 A/B验证（均值差约14.9 mm），未接FAR/WP5。
+- [ ] 使用外部测量真值完成camera外参正式标定，并重复纯平移、纯旋转、多距离/方位及SLAM长期漂移试验；当前外参仅为 `PROVISIONAL / NOT CALIBRATED`。
 - [ ] 多平面版本30秒实测VALID 56/204（27.5%），主要失败仍为 `bad_normal=118`；需在固定目标/固定相机/固定光照条件下采集受控对比数据后再决定优化方向。
 - [ ] 在可交互桌面对近处/远处目标各执行一次人工点击并补录深度值；当前 `NOT VERIFIED`。
 - [ ] 排查本机 Python 大图像订阅吞吐（实测低于 30 Hz且有短暂 aligned-depth freshness 告警），完成持续速率验证。
-- [ ] 未来阶段再设计目标检测、三维反投影、外参与 map 转换；当前禁止耦合导航。
+- [ ] map转换已完成只读原型验证；未来仅在外参正式标定和重复稳定性验证通过后，另行评审是否接入导航。

@@ -143,13 +143,15 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 2026-09-28 已从 ROS 2 Ubuntu Jammy 官方 APT 仓库安装 librealsense 2.58.4 与 RealSense ROS wrapper/description 4.58.4；D435 firmware `5.12.7.150`，USB 3.2。
 - 官方 wrapper 和 `camera_ws` 完整 launch 均已实测 RGB、raw depth、aligned depth、CameraInfo 与相机内部 `/tf_static` 数据；640x480 color/aligned-depth 尺寸一致，实际 frame 已记录在 `camera_ws/docs/architecture.md`。
 - `camera_ws` 独立 build 成功，4 个 package tests 全部通过，完整 launch 运行超过 30 秒并干净退出。CameraInfo/metadata 约 30 Hz，但 Python 大图像订阅约 RGB 18 Hz、aligned depth 8 Hz且有短暂 freshness 告警，持续端到端 30 Hz 尚未验证。
-- camera optical -> GO2 body -> SLAM map 转换为 `Future integration / NOT IMPLEMENTED`。
+- camera optical -> GO2 vehicle -> SLAM map 的只读TF2转换原型已实现；外参仍为 `PROVISIONAL / NOT CALIBRATED`，且未接导航。
 - 独立 `blue_surface_center` 已回退会稳定选择侧面的上部55% ROI，改为完整蓝色target mask点云、最多4平面顺序RANSAC；先执行35°法向硬过滤，再按内点数和残差选择。30秒实测204帧、56 VALID（27.5%）；主要拒绝为 `bad_normal=118`，其次 `low_inlier_ratio=19`。实测存在最大侧面误差85.860°而第二候选误差11.070°并被选择的帧，证明最大平面没有被直接当作上表面；当前比例仍不能称为稳定。输出 frame 为 `camera_color_optical_frame`，尚未做 GO2/map 转换。
 - 2026-09-29 已加入基于完整mask有效深度中位数的距离/尺度自适应：`<1.0 m -> 0.008 m`、`1.0–1.5 m -> 0.012 m`、`>=1.5 m -> 0.018 m`；RANSAC最少内点为 `max(30, ceil(point_count * 0.03))`。`perception_quality` 综合 mask面积、有效深度比例、平面内点比例和法向误差，只有 `GOOD` 发布精确相机系3D中心，`MARGINAL/UNRELIABLE` 仅保留2D/debug观测。
 - 同日完成三档各15秒受控实测：近档0.284–0.286 m为49/49 `UNRELIABLE`（全部 `bad_normal`）；中档1.194–1.215 m为62/63 `MARGINAL`、1/63 `UNRELIABLE`；远档1.795–1.877 m为63/67 `MARGINAL`、4/67 `UNRELIABLE`。三档均无 `GOOD`，因此均未发布精确3D中心。该结果证明分段阈值和质量门控在实机数据上生效，不证明精确3D识别已稳定。
 - 当前源码default和运行YAML的 `mount_pitch_deg` 已统一为30.0°。上述三档数据采集时仍使用45.0°，当前30°配置的近/中/远表现为 `NOT VERIFIED`。
 - 新增独立 `coarse_target_locator`，保留 `blue_surface_center.py` 作为precise/backup且未改动。粗节点复用蓝色mask，以完整mask质心、腐蚀后有效深度中位数和运行时CameraInfo发布 `/science/target_coarse_point`；不做RANSAC、法向或上表面判断，不接map。
 - 2026-09-29完成0.5/1.0/1.5/2.0 m四档实机粗定位：实际median Z分别为0.487–0.488、0.941–0.954、1.467–1.513、1.918–1.998 m；发布统计37/37、60/61、38/38、64/64，frame均为 `camera_color_optical_frame`。这是功能与连续发布证据，不是外部真值测距精度标定。
+- 新增独立 `camera_target_to_map`，按输入PointStamped原始时间戳查询TF2，发布 `/science/target_coarse_point_map` 与RViz Marker。暂定 `vehicle -> camera_link` 外参为 `(0.36,0,0.12) m`、RPY `(0,+30,0) deg`，并复用RealSense的camera_link到optical TF；`coarse_target_locator`未修改。
+- 只读实机组合明确未启动FAR/WP5/local planner/path follower。有效A/B试验中蓝色目标静止、GO2由用户人工移动，map目标均值三维差约14.9 mm（25与32样本）；整轮2347次转换、TF失败0。该单次结果支持“本场景基本稳定”，但外参仍为 `PROVISIONAL / NOT CALIBRATED`，不能作为导航接入或标定精度证据。
 - 本工作流仅包含蓝色区域测试检测，不包含通用目标分类、导航接入或 GO2 运动控制。
 
 ## Next Recommended Work

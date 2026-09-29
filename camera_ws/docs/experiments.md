@@ -150,3 +150,20 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **XYZ ranges:** 0.5 m档 `X=0.150–0.151, Y=-0.027–-0.025 m`；1.0 m档 `X=0.179–0.182, Y=-0.233–-0.230 m`；1.5 m档 `X=0.194–0.200, Y=-0.490–-0.474 m`；2.0 m档 `X=0.208–0.217, Y=-0.724–-0.695 m`。这些横纵坐标随本次目标在画面中的位置变化，不是距离精度指标。
 - **Invalid detail:** 1.0 m档有1帧RGB/aligned-depth/CameraInfo兼容性检查失败，随后恢复；其余三个计入档位无无效帧。
 - **Evidence boundary:** 该实验确认四个摆放距离下粗定位节点能从实机连续数据发布相机系粗点，并显示目标随距离增加而缩小。它不是测距标定：标称距离未使用外部量具同步记录，未评估真值误差、重复摆放、不同光照、遮挡或视场边缘表现。原始ROS日志位于本机 `/tmp/ros_log_d435_coarse_05`、`/tmp/ros_log_d435_coarse_10`、`/tmp/ros_log_d435_coarse_15_retry`、`/tmp/ros_log_d435_coarse_20`，不在Git中。
+
+## 2026-09-29 — Provisional Camera Extrinsic and Map Stability
+
+- **Scope/safety:** 只启动Point-LIO雷达SLAM、D435 wrapper、`coarse_target_locator`、`camera_target_to_map`、三个SLAM TF桥和RViz。运行节点清单不含FAR、WP5、local planner、path follower或safety gate；Codex未发布任何运动命令，GO2由用户人工移动。
+- **Extrinsic under test:** `vehicle -> camera_link` 为 `(0.36, 0.00, 0.12) m`、RPY `(0, +30, 0) deg`；RealSense继续提供 `camera_link -> camera_color_optical_frame`。map链为 `map -> camera_init -> aft_mapped -> sensor -> vehicle -> camera_link -> camera_color_optical_frame`。
+- **Interfaces:** `/science/target_coarse_point_map`实测类型为 `geometry_msgs/msg/PointStamped`、唯一发布者为 `camera_target_to_map`；Marker topic `/science/target_coarse_point_map_marker`实测类型为 `visualization_msgs/msg/Marker`，RViz为订阅者。Marker样本frame为 `map`、球体直径0.12 m、lifetime 0.5 s。
+- **Discarded trial:** 首轮B位置中用户同时移动了蓝色物体，A/B不满足“目标静止”条件，数据作废，不用于结论。
+
+| 有效档位 | 样本数 | map均值 `(x,y,z)` m | 帧内范围 m |
+|---|---:|---|---|
+| A（移动GO2前） | 25 | `(1.010748, -0.186983, -0.253594)` | x `1.004856–1.018368`; y `-0.197164–-0.174825`; z `-0.257233–-0.251401` |
+| B（仅人工移动GO2后） | 32 | `(1.023916, -0.192327, -0.258100)` | x `1.014261–1.033812`; y `-0.204903–-0.182808`; z `-0.261950–-0.255126` |
+
+- **A/B comparison:** 均值差为 `(dx,dy,dz)=(+0.013168,-0.005344,-0.004506) m`，三维欧氏差约 `0.0149 m`。在本次单次、同一静止目标、人工移动GO2的条件下，map坐标“基本稳定”。
+- **Runtime counters:** 整轮粗定位 `frames=2522, published=2347, invalid=175, publish_ratio=0.931`；`camera_target_to_map`最终日志为 `transformed=2347, failed=0`。Point-LIO完成IMU初始化，RViz显示map frame的注册点云与目标Marker。
+- **Cleanup note:** Ctrl-C后RealSense和RViz干净退出；现有Point-LIO在DDS publisher析构阶段以 `exit code -11`结束，Python节点/静态TF进程有SIGINT清理trace。该清理问题发生在数据采集之后，不改变A/B样本，但需后续单独处理。
+- **Evidence boundary:** 14.9 mm只是一轮功能性A/B结果，不是外参标定精度，也没有验证重复移动、纯旋转、不同距离/方位、SLAM回环或长期漂移。外参状态仍为 `PROVISIONAL / NOT CALIBRATED`，本轮未接FAR/WP5或导航消费端。日志位于 `/tmp/ros_log_d435_map_validation`、`/tmp/ros_log_d435_map_sample_a2_stats`、`/tmp/ros_log_d435_map_sample_b2_stats`，不在Git中。

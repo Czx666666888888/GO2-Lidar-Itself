@@ -40,6 +40,15 @@ Required future evidence:
 - independent validation targets;
 - versioned calibration file and hardware mounting identifier.
 
-Status: `Future integration / NOT IMPLEMENTED`.
+2026-09-29暂定安装值如下，仅用于首次TF链验证：
 
-No static TF from camera to GO2 is published in this phase, and no relation to the existing SLAM `map` frame is claimed.
+```text
+parent: vehicle
+child: camera_link
+x=0.36 m, y=0.00 m, z=0.12 m
+roll=0 deg, pitch=+30 deg, yaw=0 deg
+```
+
+RPY只应用到机械frame `camera_link`，不直接应用到 `camera_color_optical_frame`；optical约定继续由RealSense的 `camera_link -> camera_color_optical_frame` TF承担。参数保存在 `config/camera_target_to_map.yaml`。
+
+Status: `PROVISIONAL / NOT CALIBRATED`。单次人工移动A/B试验的map目标均值相差约14.9 mm，但没有外部测量真值、重复轨迹或旋转/多距离覆盖，不能作为外参标定残差。

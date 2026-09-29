@@ -1,0 +1,17 @@
+camera_target_to_map:
+  ros__parameters:
+    input_topic: /science/target_coarse_point
+    output_topic: /science/target_coarse_point_map
+    marker_topic: /science/target_coarse_point_map_marker
+    map_frame: map
+    vehicle_frame: vehicle
+    camera_link_frame: camera_link
+    camera_x_m: 0.36
+    camera_y_m: 0.00
+    camera_z_m: 0.12
+    camera_roll_deg: 0.0
+    camera_pitch_deg: 30.0
+    camera_yaw_deg: 0.0
+    transform_timeout_sec: 0.20
+    marker_scale_m: 0.12
+    marker_lifetime_sec: 0.5

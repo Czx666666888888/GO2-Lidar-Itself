@@ -12,6 +12,7 @@ setup(
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
         ("share/" + package_name + "/config", glob("config/*.yaml")),
+        ("share/" + package_name + "/rviz", glob("rviz/*.rviz")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
@@ -27,6 +28,7 @@ setup(
             "depth_viewer = go2_science_perception.depth_viewer:main",
             "blue_surface_center = go2_science_perception.blue_surface_center:main",
             "coarse_target_locator = go2_science_perception.coarse_target_locator:main",
+            "camera_target_to_map = go2_science_perception.camera_target_to_map:main",
         ],
     },
 )
