@@ -7,6 +7,9 @@ from go2_science_perception.blue_surface_center import (
     INVALID_REASONS,
     PlaneCandidate,
     aggregate_diagnostics,
+    adaptive_ransac_threshold,
+    classify_perception_quality,
+    dynamic_min_inliers,
     expected_horizontal_normal,
     plane_normal_error_deg,
     project_masked_depth,
@@ -14,6 +17,34 @@ from go2_science_perception.blue_surface_center import (
     robust_center,
     select_horizontal_plane,
 )
+
+
+def test_adaptive_ransac_threshold_uses_requested_distance_bands():
+    assert adaptive_ransac_threshold(0.999, 0.008, 0.012, 0.018) == 0.008
+    assert adaptive_ransac_threshold(1.0, 0.008, 0.012, 0.018) == 0.012
+    assert adaptive_ransac_threshold(1.5, 0.008, 0.012, 0.018) == 0.018
+    assert adaptive_ransac_threshold(2.0, 0.008, 0.012, 0.018) == 0.018
+
+
+def test_dynamic_min_inliers_uses_absolute_and_ratio_floors():
+    assert dynamic_min_inliers(500, 30, 0.03) == 30
+    assert dynamic_min_inliers(2000, 30, 0.03) == 60
+    assert dynamic_min_inliers(101, 1, 0.10) == 11
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ((1000, 0.8, 0.3, 10.0), "GOOD"),
+        ((500, 0.5, 0.1, 30.0), "MARGINAL"),
+        ((150, 0.9, 0.5, 5.0), "UNRELIABLE"),
+        ((1000, 0.8, 0.3, 40.0), "UNRELIABLE"),
+    ],
+)
+def test_classify_perception_quality_requires_every_measurement(values, expected):
+    good = (800, 0.65, 0.18, 20.0)
+    marginal = (200, 0.35, 0.08, 35.0)
+    assert classify_perception_quality(*values, good, marginal) == expected
 
 
 def test_aggregate_diagnostics_reports_all_invalid_reasons_and_statistics():

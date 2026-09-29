@@ -18,11 +18,22 @@ blue_surface_center:
     max_cloud_points: 12000
     ransac_max_planes: 4
     ransac_iterations: 120
-    ransac_distance_threshold_m: 0.008
-    ransac_min_inliers: 60
+    ransac_distance_threshold_near_m: 0.008
+    ransac_distance_threshold_mid_m: 0.012
+    ransac_distance_threshold_far_m: 0.018
+    ransac_min_inliers_absolute: 30
+    ransac_min_inliers_ratio: 0.03
     min_surface_inlier_ratio: 0.08
-    mount_pitch_deg: 45.0
+    mount_pitch_deg: 30.0
     max_normal_error_deg: 35.0
+    quality_good_min_mask_area_px: 800
+    quality_good_min_valid_depth_ratio: 0.65
+    quality_good_min_inlier_ratio: 0.18
+    quality_good_max_normal_error_deg: 20.0
+    quality_marginal_min_mask_area_px: 200
+    quality_marginal_min_valid_depth_ratio: 0.35
+    quality_marginal_min_inlier_ratio: 0.08
+    quality_marginal_max_normal_error_deg: 35.0
     max_rgb_depth_delta_sec: 0.20
     processing_rate_hz: 8.0
     show_debug: true

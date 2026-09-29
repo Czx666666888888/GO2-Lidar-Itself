@@ -114,3 +114,22 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **Selected/reference statistics:** normal error count 193，mean `49.402°`，median `53.946°`，max `88.798°`；inlier ratio count 193，mean `0.252`，median `0.085`。示例有效帧中，最大侧面候选法向误差 `85.860°`、内点1182；第二候选误差 `11.070°`、内点741，最终正确由第二候选进入发布流程。
 - **Interpretation boundary:** 该运行证明多平面提取和“先法向过滤”规则在实机数据上生效，并能避免部分最大侧面误选；27.5% VALID且仍以 `bad_normal` 为主要拒绝原因，不能称为稳定识别或精度验证。现场mask面积变化约482至数千像素，目标/视场并非严格固定，不能与上一轮0%直接作为受控算法优劣比较。
 - **Build/tests:** `colcon build --symlink-install --packages-select go2_science_perception` 完成安装；15项package tests通过，0 failures/errors。未接入TF/map、导航或GO2控制。
+
+## 2026-09-29 — Distance/scale-adaptive Three-range Validation
+
+- **Scope:** 独立D435蓝色目标检测；单一 `/camera/camera` wrapper，RGB/aligned-depth只读订阅。未启动或修改GO2、TF/map、导航和运动控制。
+- **Implementation:** 粗距离定义为完整目标mask内有效aligned-depth的中位数。RANSAC距离门槛分段为 `<1.0 m: 0.008 m`、`1.0–1.5 m: 0.012 m`、`>=1.5 m: 0.018 m`。动态最少内点为 `max(30, ceil(point_count * 0.03))`。
+- **Quality gate:** `perception_quality` 同时检查mask面积、有效深度比例、选中平面内点比例和法向误差。默认GOOD门槛为 `800 px / 0.65 / 0.18 / 20°`；MARGINAL门槛为 `200 px / 0.35 / 0.08 / 35°`。仅GOOD发布 `/science/blue_surface_center`；MARGINAL/UNRELIABLE保留2D mask和debug但不发布精确3D。
+- **Runtime parameters:** 本表三档实测时launch配置中的 `mount_pitch_deg=45.0` 生效。实测结束后经用户明确要求，源码default和运行YAML已统一为30.0°；因此下表是45°历史实验数据，当前30°配置仍需另行实测，不能把下表结果直接归属于30°。
+
+| 档位 | 粗距离范围 | RANSAC门槛 | 动态min inliers | mask面积 | 帧数 | 质量 | INVALID原因 | 精确3D发布 |
+|---|---:|---:|---:|---:|---:|---|---|---:|
+| 近 | 0.284–0.286 m | 0.008 m | 222–243 | 8775–8838 px | 49 | UNRELIABLE 49 | bad_normal 49 | 0 |
+| 中 | 1.194–1.215 m | 0.012 m | 30 | 728–750 px | 63 | MARGINAL 62; UNRELIABLE 1 | insufficient_quality 62; bad_normal 1 | 0 |
+| 远 | 1.795–1.877 m | 0.018 m | 30 | 276–294 px | 67 | MARGINAL 63; UNRELIABLE 4 | insufficient_quality 63; bad_normal 4 | 0 |
+
+- **Near interpretation:** mask和深度点充足，但候选法向误差65.650–78.092°，49帧全部被法向硬门限拒绝。这一场景不能复现此前“近距离好”，说明目标姿态/可见面的语义仍是主要变量。
+- **Middle interpretation:** 有效深度覆盖高，选中内点比例中位数0.722、法向误差中位数19.839°；mask面积始终低于GOOD的800 px门槛，因此62帧为MARGINAL并被禁止发布精确3D。
+- **Far interpretation:** mask缩小至约276–294 px，但有效深度和RANSAC支持仍高，内点比例中位数1.000、法向误差中位数23.282°；63帧为MARGINAL，4帧法向超过35°为UNRELIABLE，均未发布精确3D。
+- **Rejected setup sample:** 首次“中档”摆放实测仅0.969–0.994 m，仍触发0.008 m近档阈值，未计入中档表格。首次近档采样期间目标从约0.90 m移动到约0.28 m，也未作为受控结果使用。
+- **Evidence boundary:** 三档结果证明粗距离输出、分段阈值、动态最少内点和质量门控在该次实机数据上生效；所有档位GOOD为0，因此不能宣称精确3D中心已稳定。原始ROS日志位于本机 `/tmp/ros_log_d435_near`、`/tmp/ros_log_d435_mid_retry`、`/tmp/ros_log_d435_far`，不在Git中。

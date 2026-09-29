@@ -19,15 +19,25 @@ RealSense D435
   -> 3D position (Xc, Yc, Zc)
      in camera color optical frame          [IMPLEMENTED]
   -> complete target-mask local point cloud [IMPLEMENTED]
+  -> mask valid-depth median coarse distance [IMPLEMENTED]
+  -> piecewise distance-adaptive RANSAC threshold [IMPLEMENTED]
+  -> dynamic min inliers from absolute/ratio floor [IMPLEMENTED]
   -> sequential RANSAC, up to four planes   [IMPLEMENTED]
   -> 35deg normal filter, then support/fit ranking [IMPLEMENTED]
-  -> robust top-surface center PointStamped [IMPLEMENTED]
+  -> GOOD / MARGINAL / UNRELIABLE quality gate [IMPLEMENTED]
+  -> robust top-surface center PointStamped [GOOD only]
   -> TF2 transform                          [Future integration / NOT IMPLEMENTED]
   -> GO2 body/base frame                    [Future integration / NOT IMPLEMENTED]
   -> SLAM map frame                         [Future integration / NOT IMPLEMENTED]
 ```
 
 当前实现还包括独立的蓝色上表面中心测试节点；它只输出相机 optical frame 坐标，不接入 GO2 或 map。
+
+距离自适应以完整目标mask内有效深度的中位数为粗距离。默认RANSAC距离门槛为：小于1.0 m使用0.008 m，1.0至1.5 m使用0.012 m，1.5 m及以上使用0.018 m。RANSAC最少内点为 `max(ransac_min_inliers_absolute, ceil(point_count * ransac_min_inliers_ratio))`。
+
+`perception_quality` 同时检查 `mask_area`、`valid_depth_ratio`、`inlier_ratio` 和 `normal_error_deg`。四项均达到GOOD门槛才向 `/science/blue_surface_center` 发布精确3D中心；MARGINAL和UNRELIABLE仍保留mask、候选平面、质量和距离debug信息，但不发布中心。默认GOOD门槛为800 px、0.65、0.18、20°；MARGINAL门槛为200 px、0.35、0.08、35°。这些是首轮参数，需后续受控实验复核。
+
+源码default与运行YAML中的 `mount_pitch_deg` 当前统一为30.0°。2026-09-29三档实验是在统一前使用YAML的45.0°完成，其结果不能直接代表当前30.0°配置。
 
 ## Current Nodes
 

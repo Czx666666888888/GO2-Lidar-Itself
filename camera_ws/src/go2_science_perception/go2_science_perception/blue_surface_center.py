@@ -33,11 +33,15 @@ class FrameMetrics:
     top_roi_pixel_count: int = 0
     ransac_input_pixel_count: int = 0
     valid_depth_points: int = 0
+    target_distance_m: float = math.nan
+    ransac_distance_threshold_m: float = math.nan
+    dynamic_min_inliers: int = 0
     inlier_count: int = 0
     inlier_ratio: float = math.nan
     median_residual_m: float = math.nan
     normal_error_deg: float = math.nan
     plane_normal: Optional[np.ndarray] = None
+    perception_quality: str = "UNRELIABLE"
 
 
 INVALID_REASONS = (
@@ -47,8 +51,67 @@ INVALID_REASONS = (
     "no_plane",
     "low_inlier_ratio",
     "bad_normal",
+    "insufficient_quality",
     "timestamp_mismatch",
 )
+
+QUALITY_LEVELS = ("GOOD", "MARGINAL", "UNRELIABLE")
+
+
+def adaptive_ransac_threshold(
+    distance_m: float,
+    near_threshold_m: float,
+    mid_threshold_m: float,
+    far_threshold_m: float,
+) -> float:
+    """Select a piecewise RANSAC threshold from target median depth."""
+    if not math.isfinite(distance_m) or distance_m <= 0.0:
+        raise ValueError("Target distance must be a positive finite value")
+    if distance_m < 1.0:
+        return near_threshold_m
+    if distance_m < 1.5:
+        return mid_threshold_m
+    return far_threshold_m
+
+
+def dynamic_min_inliers(
+    point_count: int, min_absolute: int, min_ratio: float
+) -> int:
+    """Return the larger absolute or point-cloud-relative support floor."""
+    if point_count < 0 or min_absolute < 0 or min_ratio < 0.0:
+        raise ValueError("Inlier thresholds and point count must be non-negative")
+    return max(min_absolute, int(math.ceil(point_count * min_ratio)))
+
+
+def classify_perception_quality(
+    mask_area: int,
+    valid_depth_ratio: float,
+    inlier_ratio: float,
+    normal_error_deg: float,
+    good_thresholds: Sequence[float],
+    marginal_thresholds: Sequence[float],
+) -> str:
+    """Grade a frame only when all four quality measurements pass."""
+    measurements = (
+        float(mask_area), valid_depth_ratio, inlier_ratio, normal_error_deg
+    )
+    if not all(math.isfinite(value) for value in measurements):
+        return "UNRELIABLE"
+
+    def passes(thresholds: Sequence[float]) -> bool:
+        min_mask, min_depth, min_inliers, max_normal = thresholds
+        return (
+            mask_area >= min_mask
+            and valid_depth_ratio >= min_depth
+            and inlier_ratio >= min_inliers
+            and normal_error_deg <= max_normal
+        )
+
+    if passes(good_thresholds):
+        return "GOOD"
+    if passes(marginal_thresholds):
+        return "MARGINAL"
+    return "UNRELIABLE"
 
 
 def aggregate_diagnostics(
@@ -264,11 +327,22 @@ class BlueSurfaceCenter(Node):
             "max_cloud_points": 12000,
             "ransac_max_planes": 4,
             "ransac_iterations": 120,
-            "ransac_distance_threshold_m": 0.008,
-            "ransac_min_inliers": 60,
+            "ransac_distance_threshold_near_m": 0.008,
+            "ransac_distance_threshold_mid_m": 0.012,
+            "ransac_distance_threshold_far_m": 0.018,
+            "ransac_min_inliers_absolute": 30,
+            "ransac_min_inliers_ratio": 0.03,
             "min_surface_inlier_ratio": 0.08,
-            "mount_pitch_deg": 45.0,
+            "mount_pitch_deg": 30.0,
             "max_normal_error_deg": 35.0,
+            "quality_good_min_mask_area_px": 800,
+            "quality_good_min_valid_depth_ratio": 0.65,
+            "quality_good_min_inlier_ratio": 0.18,
+            "quality_good_max_normal_error_deg": 20.0,
+            "quality_marginal_min_mask_area_px": 200,
+            "quality_marginal_min_valid_depth_ratio": 0.35,
+            "quality_marginal_min_inlier_ratio": 0.08,
+            "quality_marginal_max_normal_error_deg": 35.0,
             "max_rgb_depth_delta_sec": 0.20,
             "processing_rate_hz": 8.0,
             "validation_duration_sec": 0.0,
@@ -455,11 +529,15 @@ class BlueSurfaceCenter(Node):
             f"top_roi_pixel_count={metrics.top_roi_pixel_count} "
             f"ransac_input_pixel_count={metrics.ransac_input_pixel_count} "
             f"valid_depth_points={metrics.valid_depth_points} "
+            f"target_distance_m={metrics.target_distance_m:.3f} "
+            f"ransac_threshold_m={metrics.ransac_distance_threshold_m:.3f} "
+            f"dynamic_min_inliers={metrics.dynamic_min_inliers} "
             f"inlier_count={metrics.inlier_count} "
             f"inlier_ratio={metrics.inlier_ratio:.5f} "
             f"median_residual_m={metrics.median_residual_m:.6f} "
             f"normal_error_deg={metrics.normal_error_deg:.3f} "
-            f"plane_normal={normal_text}"
+            f"plane_normal={normal_text} "
+            f"perception_quality={metrics.perception_quality}"
         )
         if now - self.last_metrics_log_time >= 5.0:
             ratio = self.valid_frames / float(self.processed_frames)
@@ -523,6 +601,10 @@ class BlueSurfaceCenter(Node):
         ransac_input_pixel_count: int = 0,
         valid_depth_points: int = 0,
         median_residual_m: Optional[float] = None,
+        target_distance_m: Optional[float] = None,
+        ransac_threshold_m: Optional[float] = None,
+        dynamic_min_inliers_value: int = 0,
+        perception_quality: str = "UNRELIABLE",
     ) -> None:
         if not bool(self.get_parameter("show_debug").value) or self.color is None:
             return
@@ -552,6 +634,12 @@ class BlueSurfaceCenter(Node):
             f"mask_area={mask_area} ransac_input_pixels={ransac_input_pixel_count}",
             f"valid_depth_points={valid_depth_points} ratio={valid_depth_ratio:.3f}",
             f"inlier_ratio={inlier_ratio:.3f} normal_error={error_text}",
+            f"distance={target_distance_m:.3f} m" if target_distance_m is not None
+            else "distance=n/a",
+            f"RANSAC threshold={ransac_threshold_m:.3f} m "
+            f"dynamic_min_inliers={dynamic_min_inliers_value}"
+            if ransac_threshold_m is not None else "RANSAC threshold=n/a",
+            f"quality={perception_quality}",
         ]
         if median_residual_m is not None:
             lines.append(f"median_residual={median_residual_m:.5f} m")
@@ -672,6 +760,8 @@ class BlueSurfaceCenter(Node):
         valid_count = points.shape[0]
         metrics.valid_depth_points = valid_count
         valid_depth_ratio = valid_count / float(mask_area)
+        if valid_count:
+            metrics.target_distance_m = float(np.median(points[:, 2]))
         min_points = int(self.get_parameter("min_depth_points").value)
         if valid_count < min_points:
             self._invalid(f"only {valid_count} valid target-mask depth points")
@@ -692,12 +782,25 @@ class BlueSurfaceCenter(Node):
             chosen = self.rng.choice(points.shape[0], max_points, replace=False)
             points = points[chosen]
             pixels = pixels[chosen]
+        ransac_threshold = adaptive_ransac_threshold(
+            metrics.target_distance_m,
+            float(self.get_parameter("ransac_distance_threshold_near_m").value),
+            float(self.get_parameter("ransac_distance_threshold_mid_m").value),
+            float(self.get_parameter("ransac_distance_threshold_far_m").value),
+        )
+        min_ransac_inliers = dynamic_min_inliers(
+            points.shape[0],
+            int(self.get_parameter("ransac_min_inliers_absolute").value),
+            float(self.get_parameter("ransac_min_inliers_ratio").value),
+        )
+        metrics.ransac_distance_threshold_m = ransac_threshold
+        metrics.dynamic_min_inliers = min_ransac_inliers
         candidates = ransac_multiple_planes(
             points,
             int(self.get_parameter("ransac_max_planes").value),
             int(self.get_parameter("ransac_iterations").value),
-            float(self.get_parameter("ransac_distance_threshold_m").value),
-            int(self.get_parameter("ransac_min_inliers").value),
+            ransac_threshold,
+            min_ransac_inliers,
             self.rng,
         )
         if not candidates:
@@ -711,6 +814,9 @@ class BlueSurfaceCenter(Node):
                 valid_depth_ratio=valid_depth_ratio,
                 ransac_input_pixel_count=mask_area,
                 valid_depth_points=valid_count,
+                target_distance_m=metrics.target_distance_m,
+                ransac_threshold_m=ransac_threshold,
+                dynamic_min_inliers_value=min_ransac_inliers,
             )
             return
 
@@ -731,7 +837,10 @@ class BlueSurfaceCenter(Node):
                 f"median_residual_m={candidate.median_residual_m:.6f} "
                 f"normal=({candidate.normal[0]:.5f},"
                 f"{candidate.normal[1]:.5f},{candidate.normal[2]:.5f}) "
-                f"normal_error_deg={error:.3f}"
+                f"normal_error_deg={error:.3f} "
+                f"target_distance_m={metrics.target_distance_m:.3f} "
+                f"ransac_threshold_m={ransac_threshold:.3f} "
+                f"dynamic_min_inliers={min_ransac_inliers}"
             )
         max_normal_error = float(
             self.get_parameter("max_normal_error_deg").value
@@ -770,6 +879,9 @@ class BlueSurfaceCenter(Node):
                 ransac_input_pixel_count=mask_area,
                 valid_depth_points=valid_count,
                 median_residual_m=closest.median_residual_m,
+                target_distance_m=metrics.target_distance_m,
+                ransac_threshold_m=ransac_threshold,
+                dynamic_min_inliers_value=min_ransac_inliers,
             )
             return
 
@@ -808,12 +920,61 @@ class BlueSurfaceCenter(Node):
                 ransac_input_pixel_count=mask_area,
                 valid_depth_points=valid_count,
                 median_residual_m=selected.median_residual_m,
+                target_distance_m=metrics.target_distance_m,
+                ransac_threshold_m=ransac_threshold,
+                dynamic_min_inliers_value=min_ransac_inliers,
             )
             return
+        good_thresholds = (
+            int(self.get_parameter("quality_good_min_mask_area_px").value),
+            float(self.get_parameter("quality_good_min_valid_depth_ratio").value),
+            float(self.get_parameter("quality_good_min_inlier_ratio").value),
+            float(self.get_parameter("quality_good_max_normal_error_deg").value),
+        )
+        marginal_thresholds = (
+            int(self.get_parameter("quality_marginal_min_mask_area_px").value),
+            float(self.get_parameter("quality_marginal_min_valid_depth_ratio").value),
+            float(self.get_parameter("quality_marginal_min_inlier_ratio").value),
+            float(self.get_parameter("quality_marginal_max_normal_error_deg").value),
+        )
+        quality = classify_perception_quality(
+            mask_area,
+            valid_depth_ratio,
+            inlier_ratio,
+            normal_error,
+            good_thresholds,
+            marginal_thresholds,
+        )
+        metrics.perception_quality = quality
         center = robust_center(surface_points)
         center_uv = tuple(
             np.rint(np.median(surface_pixels, axis=0)).astype(int).tolist()
         )
+        if quality != "GOOD":
+            self._invalid(
+                f"quality {quality}; retaining 2D detection without precise 3D publish"
+            )
+            self._record_outcome(False, metrics, "insufficient_quality")
+            self._draw_debug(
+                raw_mask, target_mask, contours,
+                candidate_pixels=candidate_pixels,
+                candidate_errors=candidate_errors,
+                inlier_pixels=surface_pixels,
+                center_pixel=center_uv,
+                mask_area=mask_area,
+                valid_depth_ratio=valid_depth_ratio,
+                inlier_ratio=inlier_ratio,
+                normal_error=normal_error,
+                plane_normal=selected.normal,
+                ransac_input_pixel_count=mask_area,
+                valid_depth_points=valid_count,
+                median_residual_m=selected.median_residual_m,
+                target_distance_m=metrics.target_distance_m,
+                ransac_threshold_m=ransac_threshold,
+                dynamic_min_inliers_value=min_ransac_inliers,
+                perception_quality=quality,
+            )
+            return
         point = PointStamped()
         point.header = self.depth_header
         point.header.frame_id = self.camera_frame
@@ -851,6 +1012,10 @@ class BlueSurfaceCenter(Node):
             ransac_input_pixel_count=mask_area,
             valid_depth_points=valid_count,
             median_residual_m=selected.median_residual_m,
+            target_distance_m=metrics.target_distance_m,
+            ransac_threshold_m=ransac_threshold,
+            dynamic_min_inliers_value=min_ransac_inliers,
+            perception_quality=quality,
         )
 
     def close_windows(self) -> None:
