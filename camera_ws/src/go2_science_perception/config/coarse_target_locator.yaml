@@ -1,0 +1,23 @@
+coarse_target_locator:
+  ros__parameters:
+    color_topic: /camera/camera/color/image_raw
+    aligned_depth_topic: /camera/camera/aligned_depth_to_color/image_raw
+    camera_info_topic: /camera/camera/color/camera_info
+    output_topic: /science/target_coarse_point
+    h_min: 90
+    h_max: 135
+    s_min: 80
+    v_min: 50
+    min_component_area_px: 100
+    morphology_kernel_px: 5
+    morphology_close_iterations: 1
+    morphology_open_iterations: 1
+    depth_erosion_kernel_px: 3
+    depth_erosion_iterations: 1
+    min_depth_m: 0.15
+    max_depth_m: 5.0
+    min_valid_depth_points: 20
+    max_rgb_depth_delta_sec: 0.20
+    processing_rate_hz: 8.0
+    validation_duration_sec: 0.0
+    show_debug: true

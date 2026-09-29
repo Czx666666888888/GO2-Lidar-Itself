@@ -133,3 +133,20 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **Far interpretation:** mask缩小至约276–294 px，但有效深度和RANSAC支持仍高，内点比例中位数1.000、法向误差中位数23.282°；63帧为MARGINAL，4帧法向超过35°为UNRELIABLE，均未发布精确3D。
 - **Rejected setup sample:** 首次“中档”摆放实测仅0.969–0.994 m，仍触发0.008 m近档阈值，未计入中档表格。首次近档采样期间目标从约0.90 m移动到约0.28 m，也未作为受控结果使用。
 - **Evidence boundary:** 三档结果证明粗距离输出、分段阈值、动态最少内点和质量门控在该次实机数据上生效；所有档位GOOD为0，因此不能宣称精确3D中心已稳定。原始ROS日志位于本机 `/tmp/ros_log_d435_near`、`/tmp/ros_log_d435_mid_retry`、`/tmp/ros_log_d435_far`，不在Git中。
+
+## 2026-09-29 — Coarse Target Locator Four-distance Validation
+
+- **Scope:** 新增并单独运行 `coarse_target_locator`；复用现有蓝色HSV/morphology/最大连通域规则，使用完整mask质心、腐蚀后有效aligned-depth中位数和实际color CameraInfo反投影。不执行RANSAC、平面法向或上表面判断；未修改 `blue_surface_center.py`，未接入GO2、TF/map、导航或运动控制。
+- **Output:** `/science/target_coarse_point`，`geometry_msgs/msg/PointStamped`，实测frame均为 `camera_color_optical_frame`。
+- **Runtime setup:** 四档均复用单一 `/camera/camera` RealSense wrapper，每档约15秒，debug窗口关闭但逐帧metrics保留。1.5 m首次尝试受隔离环境阻止ROS 2 socket创建而作废；随后在主机ROS环境重跑。期间一次误启动第二wrapper出现 `VIDIOC_S_FMT: Device or resource busy`，该重复实例立即停止，其输出未计入下表。
+
+| 标称距离 | 实测median Z | mask面积 | 质心u范围 | 质心v范围 | 有效深度点 | 帧数/发布/无效 | 发布率 |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.5 m | 0.487–0.488 m | 5914–5949 px | 508.66–509.97 | 210.76–212.43 | 5551–5646 | 37/37/0 | 1.000 |
+| 1.0 m | 0.941–0.954 m | 1182–1241 px | 436.44–436.99 | 95.25–95.67 | 1034–1090 | 61/60/1 | 0.984 |
+| 1.5 m | 1.467–1.513 m | 550–570 px | 401.24–401.63 | 47.09–47.35 | 463–483 | 38/38/0 | 1.000 |
+| 2.0 m | 1.918–1.998 m | 310–328 px | 386.58–386.86 | 23.35–23.63 | 248–263 | 64/64/0 | 1.000 |
+
+- **XYZ ranges:** 0.5 m档 `X=0.150–0.151, Y=-0.027–-0.025 m`；1.0 m档 `X=0.179–0.182, Y=-0.233–-0.230 m`；1.5 m档 `X=0.194–0.200, Y=-0.490–-0.474 m`；2.0 m档 `X=0.208–0.217, Y=-0.724–-0.695 m`。这些横纵坐标随本次目标在画面中的位置变化，不是距离精度指标。
+- **Invalid detail:** 1.0 m档有1帧RGB/aligned-depth/CameraInfo兼容性检查失败，随后恢复；其余三个计入档位无无效帧。
+- **Evidence boundary:** 该实验确认四个摆放距离下粗定位节点能从实机连续数据发布相机系粗点，并显示目标随距离增加而缩小。它不是测距标定：标称距离未使用外部量具同步记录，未评估真值误差、重复摆放、不同光照、遮挡或视场边缘表现。原始ROS日志位于本机 `/tmp/ros_log_d435_coarse_05`、`/tmp/ros_log_d435_coarse_10`、`/tmp/ros_log_d435_coarse_15_retry`、`/tmp/ros_log_d435_coarse_20`，不在Git中。

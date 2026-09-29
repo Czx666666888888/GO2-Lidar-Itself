@@ -26,6 +26,7 @@ setup(
             "camera_info_inspector = go2_science_perception.camera_info_inspector:main",
             "depth_viewer = go2_science_perception.depth_viewer:main",
             "blue_surface_center = go2_science_perception.blue_surface_center:main",
+            "coarse_target_locator = go2_science_perception.coarse_target_locator:main",
         ],
     },
 )

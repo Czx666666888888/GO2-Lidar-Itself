@@ -33,6 +33,8 @@ RealSense D435
 
 当前实现还包括独立的蓝色上表面中心测试节点；它只输出相机 optical frame 坐标，不接入 GO2 或 map。
 
+另有独立 `coarse_target_locator` 粗定位节点。它复用同一套HSV、形态学和最大连通域规则，但不调用precise节点，也不执行RANSAC、平面法向或上表面判断。节点使用完整目标mask的2D质心，在轻微腐蚀后的mask内取有效aligned-depth中位数，并用运行时color CameraInfo反投影；结果以 `PointStamped` 发布到 `/science/target_coarse_point`，frame保持 `camera_color_optical_frame`。该分支与precise算法并存，不能替代后续相机外参与map变换。
+
 距离自适应以完整目标mask内有效深度的中位数为粗距离。默认RANSAC距离门槛为：小于1.0 m使用0.008 m，1.0至1.5 m使用0.012 m，1.5 m及以上使用0.018 m。RANSAC最少内点为 `max(ransac_min_inliers_absolute, ceil(point_count * ransac_min_inliers_ratio))`。
 
 `perception_quality` 同时检查 `mask_area`、`valid_depth_ratio`、`inlier_ratio` 和 `normal_error_deg`。四项均达到GOOD门槛才向 `/science/blue_surface_center` 发布精确3D中心；MARGINAL和UNRELIABLE仍保留mask、候选平面、质量和距离debug信息，但不发布中心。默认GOOD门槛为800 px、0.65、0.18、20°；MARGINAL门槛为200 px、0.35、0.08、35°。这些是首轮参数，需后续受控实验复核。
@@ -47,6 +49,7 @@ RealSense D435
 | `camera_diagnostics` | RGB, aligned depth, color/depth CameraInfo | Log report | Read-only |
 | `camera_info_inspector` | Color CameraInfo | Intrinsics log | Read-only |
 | `blue_surface_center` | RGB, aligned depth, color CameraInfo | `/science/blue_surface_center`, debug window | Camera-frame perception only |
+| `coarse_target_locator` | RGB, aligned depth, color CameraInfo | `/science/target_coarse_point`, debug window | Coarse camera-frame perception only |
 
 No node publishes robot velocity, Sport API requests, navigation goals or SLAM data.
 
@@ -60,7 +63,7 @@ Two-dimensional image indices. `u` increases to the image right; `v` increases d
 
 Metric three-dimensional coordinates expressed in the optical frame named by the relevant message `header.frame_id`. ROS optical convention is normally `+X` right, `+Y` down, `+Z` forward. The runtime frame ID remains authoritative.
 
-For a rectified pinhole image and depth `Zc`, future code will use runtime `CameraInfo` values:
+For a rectified pinhole image and depth `Zc`, both current perception nodes use runtime `CameraInfo` values:
 
 ```text
 Xc = (u - cx) * Zc / fx
@@ -68,7 +71,7 @@ Yc = (v - cy) * Zc / fy
 Zc = aligned depth converted to metres
 ```
 
-This conversion is not implemented in the current phase.
+The resulting point remains in the source camera optical frame; no body/map conversion is implemented.
 
 ### GO2 body coordinates
 
