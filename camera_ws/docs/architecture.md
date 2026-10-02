@@ -29,6 +29,11 @@ RealSense D435
   -> parameterized vehicle -> camera_link   [PROVISIONAL / NOT CALIBRATED]
   -> timestamped TF2 transform              [IMPLEMENTED]
   -> SLAM map PointStamped + Marker         [IMPLEMENTED / NOT NAVIGATION-CONNECTED]
+  -> science_target_manager                 [IMPLEMENTED / VISUALIZATION ONLY]
+     -> per-frame XY association + median tracks
+     -> CANDIDATE -> CONFIRMED after 5 distinct frames
+     -> stable target IDs + all-target MarkerArray
+     -> nearest unvisited target + 0.4 m standoff visualization
 ```
 
 当前实现还包括独立的蓝色上表面中心测试节点；它只输出相机 optical frame 坐标，不接入 GO2 或 map。
@@ -51,8 +56,40 @@ RealSense D435
 | `blue_surface_center` | RGB, aligned depth, color CameraInfo | `/science/blue_surface_center`, debug window | Camera-frame perception only |
 | `coarse_target_locator` | RGB, aligned depth, color CameraInfo | 每目标一个`/science/target_coarse_point`, wall/target/centroid debug | Multi-target coarse camera-frame perception only |
 | `camera_target_to_map` | `/science/target_coarse_point`, TF | `/science/target_coarse_point_map`, Marker, `vehicle -> camera_link` static TF | Read-only map projection |
+| `science_target_manager` | `/science/target_coarse_point_map`, `/base_state_estimation`, optional `/science/visited_target_id` | confirmed/selected/standoff Point/MarkerArray topics | Target bookkeeping and visualization only; never publishes `/goal_point` or motion commands |
 
 No node publishes robot velocity, Sport API requests, navigation goals or SLAM data.
+
+### Science target manager
+
+`science_target_manager`把具有相同原始时间戳的连续
+`/science/target_coarse_point_map`消息作为同一帧处理。每帧执行一对一最近邻关联，
+默认只在map XY距离不超过`association_radius=0.20 m`时更新已有轨迹，且同一轨迹
+在一帧内最多累计一次。新轨迹从`CANDIDATE`开始，在5个不同帧中累计关联后成为
+`CONFIRMED`；位置取最近15次观测各坐标的median。ID从1单调分配，在节点本次生命
+周期内稳定。
+
+输出接口如下：
+
+- `/science/confirmed_targets` (`visualization_msgs/MarkerArray`)：同时显示全部已确认
+  目标，sphere和文字标签均使用稳定ID，避免单一`marker id=0`覆盖。
+- `/science/selected_target` (`geometry_msgs/PointStamped`)及
+  `/science/selected_target_marker`：从未访问确认目标中选取map XY距机身中心最近者。
+- `/science/standoff_goal` (`geometry_msgs/PointStamped`)及
+  `/science/standoff_goal_marker`：从目标朝GO2当前中心方向退0.40 m；z使用GO2当前
+  map高度。该点仅是可视化候选，不连接`/goal_point`。
+- `/science/visited_target_id` (`std_msgs/Int32`)：可选的状态输入；收到已确认ID后将其
+  标为visited并重新选择。当前阶段没有自动“到达即访问”判定。
+
+`/base_state_estimation`的源码事实是`base_odom_node`复制Point-LIO里程计header；
+Point-LIO当前发布`header.frame_id=camera_init`，不是`map`。管理器首次收到里程计时
+记录实际frame，并按消息时间戳通过TF转换到`map`；frame为空或TF不可用时拒绝更新
+机身位置，禁止直接把不同frame的数值混用。当前D435/SLAM验证launch显式提供
+`map -> camera_init`静态桥并启动`base_odom_node`。运行时实际frame与TF连续性仍需
+实机确认。
+
+安全边界：管理器没有`/goal_point` publisher，不启动FAR/WP5/local planner/path
+follower/safety gate，也不发布速度或GO2 Sport请求。
 
 ## Coordinate Systems
 

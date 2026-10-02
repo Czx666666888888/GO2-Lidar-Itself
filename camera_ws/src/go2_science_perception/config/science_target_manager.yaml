@@ -1,0 +1,17 @@
+science_target_manager:
+  ros__parameters:
+    target_topic: /science/target_coarse_point_map
+    base_odom_topic: /base_state_estimation
+    visited_target_topic: /science/visited_target_id
+    confirmed_marker_topic: /science/confirmed_targets
+    selected_target_topic: /science/selected_target
+    selected_marker_topic: /science/selected_target_marker
+    standoff_goal_topic: /science/standoff_goal
+    standoff_marker_topic: /science/standoff_goal_marker
+    map_frame: map
+    association_radius: 0.20
+    confirmation_count: 5
+    recent_window: 15
+    standoff_distance: 0.40
+    frame_batch_timeout_sec: 0.05
+    marker_scale_m: 0.16

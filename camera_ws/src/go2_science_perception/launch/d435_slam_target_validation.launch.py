@@ -67,6 +67,22 @@ def generate_launch_description():
         )],
         output="screen",
     )
+    base_odom = Node(
+        package="go2_keyboard_teleop",
+        executable="base_odom_node",
+        name="base_odom_node",
+        parameters=[{"sensor_offset_x": 0.3, "sensor_offset_y": 0.0}],
+        output="screen",
+    )
+    target_manager = Node(
+        package="go2_science_perception",
+        executable="science_target_manager",
+        name="science_target_manager",
+        parameters=[os.path.join(
+            package_share, "config", "science_target_manager.yaml"
+        )],
+        output="screen",
+    )
     rviz = Node(
         package="rviz2",
         executable="rviz2",
@@ -85,5 +101,7 @@ def generate_launch_description():
         static_tf("sensor_to_vehicle", "sensor", "vehicle", (-0.3, 0, 0)),
         coarse,
         target_to_map,
+        base_odom,
+        target_manager,
         rviz,
     ])

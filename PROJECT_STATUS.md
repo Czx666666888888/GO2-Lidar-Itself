@@ -155,6 +155,13 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 2026-10-02在固定目标下完成名义正面/左/右平移组及同一位置中间/左转/右转航向组复测。平移组位置均值最大XY差为94.0 mm，旋转组航向均值最大XY差为26.9 mm；人工摆位未用外部量具验证，且map转换存在3262次时间戳TF失败，仅成功发布样本进入统计。该结果表明暂定外参/map链仍有明显视角相关偏差，不支持导航接入；完整数表和边界见 `camera_ws/docs/experiments.md`。
 - 同日完成TF future-extrapolation专项：旧日志372条可解析样本的`point-latest TF`差为0.000229–6.590080 s。D435实机launch现显式设置Point-LIO `use_sim_time=false`，map转换对原始点时间戳执行最多8 s有界重试并逐次记录point/latest/delta，绝不替换为latest TF。固定目标五视角复测内部计数为3579/3579转换成功、0最终失败（1次启动期miss随后精确时间重试成功）；该结果不改变外参仍为`PROVISIONAL / NOT CALIBRATED`及暂不接导航的结论。
 - 本工作流仅包含蓝色区域测试检测，不包含通用目标分类、导航接入或 GO2 运动控制。
+- 2026-10-02新增`science_target_manager`导航侧第一阶段离线实现：按同帧多点做
+  map XY一对一关联（默认0.20 m），5帧确认，近期median位置和稳定ID；基于经TF
+  转到map的`/base_state_estimation`选择最近未访问目标并生成0.40 m standoff可视化。
+  confirmed/selected/standoff均有RViz输出，但没有`/goal_point`、FAR/WP5或运动命令
+  接口。源码确认`/base_state_estimation`继承Point-LIO的`camera_init` header，因此
+  管理器不会直接将其当作map。单元/静态验证已完成；真实ROS graph、连续TF和真机
+  多目标管理效果为`NOT VERIFIED`。
 
 ## Next Recommended Work
 

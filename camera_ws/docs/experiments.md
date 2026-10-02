@@ -251,3 +251,25 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **Tuning evidence:** 仅蓝墙首轮因图像覆盖范围`0.116`略低于初始门槛`0.12`而误发布，门槛改为`0.08`后同场景10 s零发布。三目标首轮出现同一组件内约8–11%支持度的异常深度小层，曾造成3–5个输出；加入`min_depth_cluster_ratio=0.15`后同一现场真值重测稳定为3。失败首轮不作为通过证据，但保留在日志中。
 - **Known limitation:** 与蓝墙近乎共面且同色的目标可能同时满足墙平面内点条件，无法仅凭HSV+aligned depth可靠分离；本实现会倾向将其随墙剔除。遮挡边缘、深度空洞、很小或低于最小像素/有效深度门槛的目标也可能漏检。本轮只是三种静态摆放，不证明动态、远距离、强反光或导航条件下有效。
 - **Cleanup/evidence:** D435和粗定位节点均干净退出，ROS graph无相关残留；原始CSV为`/tmp/d435_blue_wall_{only_retry,one_target,three_targets_retry}.csv`，ROS日志为`/tmp/ros_log_d435_blue_wall_multi_20261002`和`/tmp/ros_log_d435_blue_wall_multi_retry_20261002`，均不在Git中。
+
+## 2026-10-02 — Science Target Manager Offline Verification
+
+- **Scope/safety:** 仅实现和离线验证导航侧目标管理第一阶段；未启动GO2、D435、
+  FAR、WP5、local planner、path follower或safety gate，未发布任何运动命令。
+- **Source frame evidence:** Point-LIO `publish_odometry()`静态源码设置
+  `/state_estimation.header.frame_id="camera_init"`；`base_odom_node`原样复制header到
+  `/base_state_estimation`。因此管理器读取运行时header并按原时间戳TF到`map`，不把
+  两个frame的数值直接混用。运行时实际frame和TF连续性为`NOT VERIFIED`。
+- **Implemented behavior:** 相同时间戳输入批处理；map XY默认0.20 m的一对一关联；
+  每轨迹每帧最多计数一次；默认5帧由CANDIDATE转CONFIRMED；最近15次观测median；
+  单调稳定ID；最近未访问选择；从目标朝机器人方向0.40 m的standoff点。
+- **Interfaces:** confirmed targets使用`MarkerArray`同时显示sphere与`T<ID>`文字；
+  selected target和standoff goal各发布`PointStamped`与`MarkerArray`。可选
+  `/science/visited_target_id`只更新访问状态。节点没有`/goal_point`publisher。
+- **Tests:** package目录执行`/usr/bin/python3 -m pytest test -q`结果为38 passed、
+  2个既有工具弃用warning；新增6项覆盖median抗离群、同帧多目标一对一计数、
+  确认帧数、稳定ID/访问后重选、近期窗口及0.40 m几何。真机运行结果为
+  `NOT VERIFIED`。隔离`colcon build`成功并安装`science_target_manager`入口；完整
+  launch的`--show-args`解析成功。节点在受限环境中到达安全边界启动日志后由3秒
+  timeout停止；DDS socket因沙箱权限不可用，因此该项只算process-start证据，不算
+  ROS graph、topic数据或TF运行验证。

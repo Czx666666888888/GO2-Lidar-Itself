@@ -22,6 +22,21 @@ Visualization Manager:
       Topic:
         Value: /science/target_coarse_point_map_marker
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Confirmed Science Targets
+      Topic:
+        Value: /science/confirmed_targets
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Selected Science Target
+      Topic:
+        Value: /science/selected_target_marker
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Science Standoff Goal
+      Topic:
+        Value: /science/standoff_goal_marker
+      Value: true
     - Class: rviz_default_plugins/TF
       Name: TF
       Value: true

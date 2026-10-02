@@ -57,3 +57,8 @@
 - [ ] 在可交互桌面对近处/远处目标各执行一次人工点击并补录深度值；当前 `NOT VERIFIED`。
 - [ ] 排查本机 Python 大图像订阅吞吐（实测低于 30 Hz且有短暂 aligned-depth freshness 告警），完成持续速率验证。
 - [ ] map转换已完成只读原型验证；未来仅在外参正式标定和重复稳定性验证通过后，另行评审是否接入导航。
+- [x] 新增不接FAR、不运动的`science_target_manager`第一阶段：同帧多点聚类去重、
+  5帧确认、近期median、稳定ID、全部CONFIRMED MarkerArray、最近未访问目标和0.4 m
+  standoff可视化；机身中心严格按`/base_state_estimation`实际frame经TF转到map。
+- [ ] 在只读真机组合中验证`/base_state_estimation`实际frame、到map的连续TF、同帧
+  多目标确认/稳定ID及RViz显示；当前为`NOT VERIFIED`，且仍禁止连接`/goal_point`。

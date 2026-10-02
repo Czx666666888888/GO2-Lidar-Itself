@@ -13,8 +13,10 @@
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
@@ -25,6 +27,7 @@
   <exec_depend>point_lio_unilidar</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>transform_sensors</exec_depend>
+  <exec_depend>go2_keyboard_teleop</exec_depend>
 
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
