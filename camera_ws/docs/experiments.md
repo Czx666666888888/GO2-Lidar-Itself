@@ -214,3 +214,23 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **Final counters:** 整轮`input=3579, transformed=3579, failed=0, initial_miss=1, deferred_success=1, success_ratio=1.000000`，即`transformed/failed=3579/0`、成功率100%。唯一miss发生在启动瞬间，日志完整记录`point_timestamp=1790931533.881758789`，当时`camera_color_optical_frame`尚未进入buffer，因此`latest_tf_timestamp=unavailable, time_delta_sec=nan`；该点随后以同一原始时间戳重试成功。移动和旋转过程中没有新增miss或drop，因此本轮没有数值型失败delta可记录。
 - **Interpretation:** 这次结果证明在本次约10.8分钟、五个名义视角的运行中，wall-time一致化加精确时间戳有界重试消除了最终转换失败，且没有用latest TF掩盖问题。它不能单独区分改善来自wall-time配置、较低RViz负载还是运行时Point-LIO未再次出现上一轮同等级5–6 s积压；8 s以上的TF延迟仍会明确失败。也不证明外参、SLAM精度或导航可用。
 - **Cleanup/evidence:** 停止后ROS graph为空且目标map topic不存在；未发现D435、Point-LIO、转换、FAR/WP5或控制残留进程。Point-LIO和一个static TF进程在Ctrl-C析构时以`exit code -11`结束，不影响已完成计数。原始CSV位于`/tmp/d435_tf_fix_*.csv`；修复前日志为`/tmp/ros_log_d435_multiview_20261002`，修复后日志为`/tmp/ros_log_d435_tf_fix_20261002_run2`，均不在Git中。
+
+## 2026-10-02 — Post-TF-fix Quick Map Stability Retest
+
+- **Scope/safety:** 用户确认蓝色目标全程固定，GO2由用户人工完成正面、左侧平移、右侧平移、原地左转和原地右转摆位。只启动Point-LIO、D435、`coarse_target_locator`、`camera_target_to_map`和TF桥；采样前关闭RViz。未启动FAR、WP5、local planner、path follower或safety gate，未发布运动命令。本轮没有修改代码逻辑、感知算法或外参。
+- **Configuration:** `vehicle -> camera_link`保持`x=0.36, y=0, z=0.12 m, roll=0, pitch=30 deg, yaw=0`，状态仍为`PROVISIONAL / NOT CALIBRATED`。实测`/laserMapping use_sim_time=False`；`/science/target_coarse_point_map`类型为`geometry_msgs/msg/PointStamped`且唯一发布者为`camera_target_to_map`。
+- **Method:** 每个稳定位置从`/science/target_coarse_point_map`采集约13.5–13.9 s CSV。下表`std`使用总体标准差（`ddof=0`）；`x/y range`同时给出`[min,max]`及跨度。右侧平移段作为原地旋转组的中间航向基准。
+
+| 分组 | n | mean `(x,y,z)` m | std `(x,y,z)` m | x range m（跨度） | y range m（跨度） |
+|---|---:|---|---|---|---|
+| 正面 | 107 | `(0.936451, 0.331417, -0.208984)` | `(0.004173, 0.005373, 0.001594)` | `[0.924585,0.946677]`（0.022092） | `[0.316224,0.344194]`（0.027970） |
+| 左侧平移 | 94 | `(0.923408, 0.333871, -0.203792)` | `(0.004856, 0.006137, 0.001991)` | `[0.912386,0.936110]`（0.023724） | `[0.315571,0.350754]`（0.035183） |
+| 右侧平移 / 中间航向 | 101 | `(0.948073, 0.330087, -0.212247)` | `(0.004183, 0.006358, 0.002065)` | `[0.936837,0.960043]`（0.023206） | `[0.316627,0.345139]`（0.028511） |
+| 原地左转 | 92 | `(0.947752, 0.316190, -0.205562)` | `(0.005048, 0.004838, 0.001793)` | `[0.934221,0.957758]`（0.023537） | `[0.305532,0.328773]`（0.023241） |
+| 原地右转 | 94 | `(0.951451, 0.341693, -0.215285)` | `(0.004936, 0.005351, 0.001993)` | `[0.936993,0.962441]`（0.025448） | `[0.325300,0.351976]`（0.026676） |
+
+- **平移组均值XY距离:** 正面↔左侧`13.27 mm`，正面↔右侧`11.70 mm`，左侧↔右侧`24.95 mm`；最大值为`24.95 mm`（左侧↔右侧）。
+- **旋转组均值XY距离:** 中间航向↔左转`13.90 mm`，中间航向↔右转`12.09 mm`，左转↔右转`25.77 mm`；最大值为`25.77 mm`（左转↔右转）。
+- **Map transform counters:** 节点最终守恒计数为`input=3817, transformed=3816, failed=1, initial_miss=1, deferred_success=0`，即`transformed/failed=3816/1`、成功率`99.9738%`。唯一miss发生在启动阶段：`point_timestamp=1790932607.428428467`，当时`latest_tf_timestamp=1790932607.535202503`，`time_delta_sec=point-latest_tf=-0.106774036 s`。该点早于buffer中最早可用TF，精确时间查询等待8 s后仍不可能恢复，最终记录`pending_timeout`；超时时最新TF为`1790932615.586625099`、delta为`-8.158196632 s`。没有改查latest TF或以latest TF发布该点。
+- **Interpretation:** 本轮平移与旋转的最大组间均值XY差均约`2.5–2.6 cm`，因此在这次固定目标、五个名义视角的快速复测中，**没有观察到约5–10 cm级多视角map偏差**。但这只是一次人工摆位复测，实际平移距离、旋转角度与几何纯度没有外部量具或独立定位真值，不能据此宣称外参已标定或长期稳定性已验证。
+- **Cleanup/evidence:** 停止后ROS graph为空，未发现D435、Point-LIO、粗定位、map转换或TF桥残留进程。Point-LIO在Ctrl-C析构时以`exit code -11`结束，`transform_everything`以SIGINT/KeyboardInterrupt退出；均发生在采集和最终计数之后。原始CSV位于`/tmp/d435_quick_retest_{front,left,right,rot_left,rot_right}.csv`，ROS日志位于`/tmp/ros_log_d435_quick_retest_20261002`，均不在Git中。
