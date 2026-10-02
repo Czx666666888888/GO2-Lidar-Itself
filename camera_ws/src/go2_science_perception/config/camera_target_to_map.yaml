@@ -12,6 +12,11 @@ camera_target_to_map:
     camera_roll_deg: 0.0
     camera_pitch_deg: 30.0
     camera_yaw_deg: 0.0
-    transform_timeout_sec: 0.20
+    # Preserve each point's source stamp. If Point-LIO TF is briefly behind,
+    # queue and retry that exact timestamp instead of substituting latest TF.
+    transform_timeout_sec: 0.0
+    pending_timeout_sec: 8.0
+    pending_queue_size: 128
+    retry_period_sec: 0.02
     marker_scale_m: 0.12
     marker_lifetime_sec: 0.5

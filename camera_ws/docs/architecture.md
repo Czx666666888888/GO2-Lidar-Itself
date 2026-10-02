@@ -84,6 +84,8 @@ map -> camera_init -> aft_mapped -> sensor -> vehicle
 
 其中 `vehicle -> camera_link` 参数默认平移为 `(0.36, 0.00, 0.12) m`，RPY为 `(0, +30, 0) deg`；最后一段由RealSense wrapper已有TF提供。`camera_target_to_map`订阅 `/science/target_coarse_point`，发布 `/science/target_coarse_point_map` 和 `/science/target_coarse_point_map_marker`。这些外参是暂定值，不等于完成标定。
 
+`camera_target_to_map`始终按输入PointStamped的原始相机时间戳查询TF，不允许用“最新TF”替代。若Point-LIO动态TF尚未覆盖该时间戳，节点记录point timestamp、buffer中latest TF timestamp和`point-latest_tf`时间差，并将原消息放入有界队列；默认每20 ms重试、最长8 s、最多128点。只有同一原始时间戳的TF随后可用才发布，超时、队列溢出或关闭时仍未完成的点计为failed。D435实机组合launch显式向Point-LIO传`use_sim_time=false`；Point-LIO原launch默认仍为`true`，保留rosbag/replay用途。
+
 ### GO2 body coordinates
 
 Robot-fixed coordinates defined by the future mounting/extrinsic convention. They are not camera optical coordinates. The authoritative GO2 body/base frame and axis convention require an explicit integration decision and measured rigid transform.

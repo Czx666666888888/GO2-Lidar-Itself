@@ -7,7 +7,9 @@ import pytest
 
 from go2_science_perception.camera_target_to_map import (
     make_static_transform,
+    point_minus_tf_seconds,
     quaternion_from_rpy,
+    stamp_to_nanoseconds,
 )
 
 
@@ -31,3 +33,20 @@ def test_static_extrinsic_targets_camera_link_not_optical_frame():
     assert transform.transform.rotation.y == pytest.approx(
         math.sin(math.radians(15.0))
     )
+
+
+def test_stamp_to_nanoseconds_preserves_full_precision():
+    stamp = Time(sec=12, nanosec=345678901)
+    assert stamp_to_nanoseconds(stamp) == 12345678901
+
+
+def test_positive_delta_means_point_is_newer_than_latest_tf():
+    point_stamp = Time(sec=20, nanosec=250000000)
+    tf_stamp = Time(sec=19, nanosec=900000000)
+    assert point_minus_tf_seconds(point_stamp, tf_stamp) == pytest.approx(0.35)
+
+
+def test_negative_delta_means_tf_is_newer_than_point():
+    point_stamp = Time(sec=20, nanosec=100000000)
+    tf_stamp = Time(sec=20, nanosec=175000000)
+    assert point_minus_tf_seconds(point_stamp, tf_stamp) == pytest.approx(-0.075)

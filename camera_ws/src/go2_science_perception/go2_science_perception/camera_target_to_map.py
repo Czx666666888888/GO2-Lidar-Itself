@@ -2,6 +2,8 @@
 """Transform coarse camera targets into the SLAM map frame."""
 
 import math
+from collections import deque
+from dataclasses import dataclass
 from typing import Sequence, Tuple
 
 from geometry_msgs.msg import PointStamped, TransformStamped
@@ -13,6 +15,26 @@ from tf2_geometry_msgs import do_transform_point
 from tf2_ros import Buffer, StaticTransformBroadcaster, TransformException
 from tf2_ros.transform_listener import TransformListener
 from visualization_msgs.msg import Marker
+
+
+def stamp_to_nanoseconds(stamp) -> int:
+    """Convert a ROS builtin time message to integer nanoseconds."""
+    return int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)
+
+
+def point_minus_tf_seconds(point_stamp, tf_stamp) -> float:
+    """Return positive seconds when a point is newer than available TF."""
+    return (
+        stamp_to_nanoseconds(point_stamp) - stamp_to_nanoseconds(tf_stamp)
+    ) * 1e-9
+
+
+@dataclass
+class PendingPoint:
+    """A point awaiting the transform at its original source timestamp."""
+
+    point: PointStamped
+    received_ns: int
 
 
 def quaternion_from_rpy(
@@ -76,7 +98,10 @@ class CameraTargetToMap(Node):
             "camera_roll_deg": 0.0,
             "camera_pitch_deg": 30.0,
             "camera_yaw_deg": 0.0,
-            "transform_timeout_sec": 0.20,
+            "transform_timeout_sec": 0.0,
+            "pending_timeout_sec": 8.0,
+            "pending_queue_size": 128,
+            "retry_period_sec": 0.02,
             "marker_scale_m": 0.12,
             "marker_lifetime_sec": 0.5,
         }
@@ -101,7 +126,14 @@ class CameraTargetToMap(Node):
         )
         self.transformed_count = 0
         self.failed_count = 0
-        self.last_warning_ns = -10**18
+        self.input_count = 0
+        self.initial_miss_count = 0
+        self.deferred_success_count = 0
+        self.pending_points = deque()
+        self.create_timer(
+            float(self.get_parameter("retry_period_sec").value),
+            self._retry_pending,
+        )
         self._publish_camera_extrinsic()
 
     def _publish_camera_extrinsic(self) -> None:
@@ -128,38 +160,49 @@ class CameraTargetToMap(Node):
             "camera optical rotation remains owned by RealSense TF."
         )
 
-    def _warn_throttled(self, message: str) -> None:
-        now_ns = self.get_clock().now().nanoseconds
-        if now_ns - self.last_warning_ns >= 2_000_000_000:
-            self.get_logger().warning(message)
-            self.last_warning_ns = now_ns
-
-    def _point_callback(self, point: PointStamped) -> None:
-        if not point.header.frame_id:
-            self.failed_count += 1
-            self._warn_throttled("Rejected point with empty source frame")
-            return
+    def _latest_tf_diagnostic(self, point: PointStamped) -> str:
+        """Describe point time against the latest transform in the buffer."""
+        point_text = (
+            f"{point.header.stamp.sec}."
+            f"{point.header.stamp.nanosec:09d}"
+        )
         try:
-            transform = self.tf_buffer.lookup_transform(
+            latest = self.tf_buffer.lookup_transform(
                 self.map_frame,
                 point.header.frame_id,
-                rclpy.time.Time.from_msg(point.header.stamp),
-                timeout=Duration(
-                    seconds=float(
-                        self.get_parameter("transform_timeout_sec").value
-                    )
-                ),
+                rclpy.time.Time(),
+                timeout=Duration(seconds=0.0),
             )
-            mapped = do_transform_point(point, transform)
         except TransformException as exc:
-            self.failed_count += 1
-            self._warn_throttled(
-                f"TF unavailable at source timestamp "
-                f"{point.header.stamp.sec}.{point.header.stamp.nanosec:09d}: "
-                f"{point.header.frame_id} -> {self.map_frame}: {exc}"
+            return (
+                f"point_timestamp={point_text} "
+                "latest_tf_timestamp=unavailable time_delta_sec=nan "
+                f"latest_lookup_error={exc}"
             )
-            return
+        latest_text = (
+            f"{latest.header.stamp.sec}."
+            f"{latest.header.stamp.nanosec:09d}"
+        )
+        delta = point_minus_tf_seconds(
+            point.header.stamp, latest.header.stamp
+        )
+        return (
+            f"point_timestamp={point_text} "
+            f"latest_tf_timestamp={latest_text} "
+            f"time_delta_sec={delta:+.9f}"
+        )
 
+    def _transform_and_publish(
+        self, point: PointStamped, timeout_sec: float
+    ) -> None:
+        """Transform and publish only at the point's exact source time."""
+        transform = self.tf_buffer.lookup_transform(
+            self.map_frame,
+            point.header.frame_id,
+            rclpy.time.Time.from_msg(point.header.stamp),
+            timeout=Duration(seconds=max(0.0, timeout_sec)),
+        )
+        mapped = do_transform_point(point, transform)
         mapped.header.stamp = point.header.stamp
         mapped.header.frame_id = self.map_frame
         self.point_publisher.publish(mapped)
@@ -169,7 +212,81 @@ class CameraTargetToMap(Node):
             f"MAP_TARGET source_frame={point.header.frame_id} "
             f"x={mapped.point.x:.3f} y={mapped.point.y:.3f} "
             f"z={mapped.point.z:.3f} transformed={self.transformed_count} "
-            f"failed={self.failed_count}"
+            f"failed={self.failed_count} pending={len(self.pending_points)}"
+        )
+
+    def _drop_pending(self, pending: PendingPoint, reason: str) -> None:
+        """Count and record a point that can no longer be transformed."""
+        self.failed_count += 1
+        self.get_logger().warning(
+            f"TF_POINT_DROPPED reason={reason} "
+            f"{self._latest_tf_diagnostic(pending.point)}"
+        )
+
+    def _retry_pending(self) -> None:
+        """Retry queued points without replacing their source timestamps."""
+        if not self.pending_points:
+            return
+        now_ns = self.get_clock().now().nanoseconds
+        max_age_ns = int(
+            float(self.get_parameter("pending_timeout_sec").value) * 1e9
+        )
+        retained = deque()
+        while self.pending_points:
+            pending = self.pending_points.popleft()
+            if now_ns - pending.received_ns > max_age_ns:
+                self._drop_pending(pending, "pending_timeout")
+                continue
+            try:
+                self._transform_and_publish(pending.point, 0.0)
+                self.deferred_success_count += 1
+            except TransformException:
+                retained.append(pending)
+        self.pending_points = retained
+
+    def _point_callback(self, point: PointStamped) -> None:
+        self.input_count += 1
+        if not point.header.frame_id:
+            self.failed_count += 1
+            self.get_logger().warning("Rejected point with empty source frame")
+            return
+        try:
+            self._transform_and_publish(
+                point,
+                float(self.get_parameter("transform_timeout_sec").value),
+            )
+        except TransformException as exc:
+            self.initial_miss_count += 1
+            self.get_logger().warning(
+                f"TF_LOOKUP_DEFERRED source={point.header.frame_id} "
+                f"target={self.map_frame} "
+                f"{self._latest_tf_diagnostic(point)} error={exc}"
+            )
+            self.pending_points.append(PendingPoint(
+                point=point,
+                received_ns=self.get_clock().now().nanoseconds,
+            ))
+            max_size = int(self.get_parameter("pending_queue_size").value)
+            while len(self.pending_points) > max_size:
+                self._drop_pending(
+                    self.pending_points.popleft(), "queue_overflow"
+                )
+            return
+
+    def close(self) -> None:
+        """Account for pending points and emit final conversion counters."""
+        while self.pending_points:
+            self._drop_pending(self.pending_points.popleft(), "shutdown")
+        ratio = (
+            self.transformed_count / self.input_count
+            if self.input_count else 0.0
+        )
+        self.get_logger().info(
+            f"FINAL_MAP_TRANSFORM input={self.input_count} "
+            f"transformed={self.transformed_count} failed={self.failed_count} "
+            f"initial_miss={self.initial_miss_count} "
+            f"deferred_success={self.deferred_success_count} "
+            f"success_ratio={ratio:.6f}"
         )
 
     def _make_marker(self, point: PointStamped) -> Marker:
@@ -203,6 +320,7 @@ def main(args=None) -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        node.close()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

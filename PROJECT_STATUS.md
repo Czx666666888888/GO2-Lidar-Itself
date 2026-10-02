@@ -153,6 +153,7 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 新增独立 `camera_target_to_map`，按输入PointStamped原始时间戳查询TF2，发布 `/science/target_coarse_point_map` 与RViz Marker。暂定 `vehicle -> camera_link` 外参为 `(0.36,0,0.12) m`、RPY `(0,+30,0) deg`，并复用RealSense的camera_link到optical TF；`coarse_target_locator`未修改。
 - 只读实机组合明确未启动FAR/WP5/local planner/path follower。有效A/B试验中蓝色目标静止、GO2由用户人工移动，map目标均值三维差约14.9 mm（25与32样本）；整轮2347次转换、TF失败0。该单次结果支持“本场景基本稳定”，但外参仍为 `PROVISIONAL / NOT CALIBRATED`，不能作为导航接入或标定精度证据。
 - 2026-10-02在固定目标下完成名义正面/左/右平移组及同一位置中间/左转/右转航向组复测。平移组位置均值最大XY差为94.0 mm，旋转组航向均值最大XY差为26.9 mm；人工摆位未用外部量具验证，且map转换存在3262次时间戳TF失败，仅成功发布样本进入统计。该结果表明暂定外参/map链仍有明显视角相关偏差，不支持导航接入；完整数表和边界见 `camera_ws/docs/experiments.md`。
+- 同日完成TF future-extrapolation专项：旧日志372条可解析样本的`point-latest TF`差为0.000229–6.590080 s。D435实机launch现显式设置Point-LIO `use_sim_time=false`，map转换对原始点时间戳执行最多8 s有界重试并逐次记录point/latest/delta，绝不替换为latest TF。固定目标五视角复测内部计数为3579/3579转换成功、0最终失败（1次启动期miss随后精确时间重试成功）；该结果不改变外参仍为`PROVISIONAL / NOT CALIBRATED`及暂不接导航的结论。
 - 本工作流仅包含蓝色区域测试检测，不包含通用目标分类、导航接入或 GO2 运动控制。
 
 ## Next Recommended Work

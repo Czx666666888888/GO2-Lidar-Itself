@@ -34,7 +34,10 @@ def generate_launch_description():
         AnyLaunchDescriptionSource(
             os.path.join(point_lio_share, "launch", "mapping_utlidar.launch")
         ),
-        launch_arguments={"rviz": "false"}.items(),
+        launch_arguments={
+            "rviz": "false",
+            "use_sim_time": "false",
+        }.items(),
     )
     camera = IncludeLaunchDescription(
         AnyLaunchDescriptionSource(
