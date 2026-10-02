@@ -234,3 +234,20 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **Map transform counters:** 节点最终守恒计数为`input=3817, transformed=3816, failed=1, initial_miss=1, deferred_success=0`，即`transformed/failed=3816/1`、成功率`99.9738%`。唯一miss发生在启动阶段：`point_timestamp=1790932607.428428467`，当时`latest_tf_timestamp=1790932607.535202503`，`time_delta_sec=point-latest_tf=-0.106774036 s`。该点早于buffer中最早可用TF，精确时间查询等待8 s后仍不可能恢复，最终记录`pending_timeout`；超时时最新TF为`1790932615.586625099`、delta为`-8.158196632 s`。没有改查latest TF或以latest TF发布该点。
 - **Interpretation:** 本轮平移与旋转的最大组间均值XY差均约`2.5–2.6 cm`，因此在这次固定目标、五个名义视角的快速复测中，**没有观察到约5–10 cm级多视角map偏差**。但这只是一次人工摆位复测，实际平移距离、旋转角度与几何纯度没有外部量具或独立定位真值，不能据此宣称外参已标定或长期稳定性已验证。
 - **Cleanup/evidence:** 停止后ROS graph为空，未发现D435、Point-LIO、粗定位、map转换或TF桥残留进程。Point-LIO在Ctrl-C析构时以`exit code -11`结束，`transform_everything`以SIGINT/KeyboardInterrupt退出；均发生在采集和最终计数之后。原始CSV位于`/tmp/d435_quick_retest_{front,left,right,rot_left,rot_right}.csv`，ROS日志位于`/tmp/ros_log_d435_quick_retest_20261002`，均不在Git中。
+
+## 2026-10-02 — Multi-blue-target and Blue-wall Static Validation
+
+- **Scope/safety:** 只启动D435 wrapper和`coarse_target_locator`，未启动Point-LIO、`camera_target_to_map`、FAR、WP5、local planner、path follower或safety gate，未发布运动命令。保留既有HSV候选与`/science/target_coarse_point`接口；没有修改`camera_target_to_map`。
+- **Implementation:** 全部蓝色aligned-depth像素反投影到3D；RANSAC主平面仅在支持点数、蓝色点支持比例、图像覆盖范围及相对重力方向的竖直误差同时达标时判为蓝墙。墙内点剔除后，剩余有效深度像素按2D连通组件和`0.08 m`深度间隔聚类。同一2D组件内占比小于`0.15`的深度层作为边界/深度噪声丢弃；独立组件仍允许不同像素面积，不使用固定方块物理尺寸。每个目标分别记录centroid、median depth、camera XYZ，并在同一原始深度时间戳下连续发布。
+- **Debug:** annotated画面以红色显示wall/rejected，以循环颜色显示valid target components，并对各目标绘制centroid十字；四宫格同时显示原HSV mask、wall mask和remaining/target masks。
+- **Synthetic tests:** 6项通过，包括“仅蓝墙→0目标”、“蓝墙+1方块→1目标”、“蓝墙+不同大小方块→全部保留”及同一颜色连通区按明显深度间隔拆分。源树全量package tests为`32 passed, 2 warnings`；`python3 setup.py build --build-base /tmp/go2_science_pkg_build`成功。既有`colcon --symlink-install`在本机setuptools的`symlink_data`阶段持续停滞，已中止，故本轮colcon完整构建标记为`NOT VERIFIED`。
+
+| 静态场景 | 最终观测窗口 | 蓝墙结果 | 目标结果 |
+|---|---|---|---|
+| 仅蓝墙 | 10 s | 支持度`0.999–1.000`，竖直误差约`3.8–6.3 deg`，rejected | topic CSV `0`行，不发布目标 |
+| 蓝墙+1个方块 | 10 s | 支持度约`0.848–0.850`，持续rejected | CSV `38`点；有效帧均`targets_in_frame=1`；median depth约`0.473–0.475 m`，XYZ约`(-0.077,-0.019,0.474) m` |
+| 蓝墙+3个不同大小方块 | 10 s重测 | 支持度约`0.860–0.863`，持续rejected | CSV `111`点，约37帧×3；有效窗口持续`targets_in_frame=3`；mask约`1.2k/5.7k/2.4k px`，median depth约`0.628/0.474/0.545 m` |
+
+- **Tuning evidence:** 仅蓝墙首轮因图像覆盖范围`0.116`略低于初始门槛`0.12`而误发布，门槛改为`0.08`后同场景10 s零发布。三目标首轮出现同一组件内约8–11%支持度的异常深度小层，曾造成3–5个输出；加入`min_depth_cluster_ratio=0.15`后同一现场真值重测稳定为3。失败首轮不作为通过证据，但保留在日志中。
+- **Known limitation:** 与蓝墙近乎共面且同色的目标可能同时满足墙平面内点条件，无法仅凭HSV+aligned depth可靠分离；本实现会倾向将其随墙剔除。遮挡边缘、深度空洞、很小或低于最小像素/有效深度门槛的目标也可能漏检。本轮只是三种静态摆放，不证明动态、远距离、强反光或导航条件下有效。
+- **Cleanup/evidence:** D435和粗定位节点均干净退出，ROS graph无相关残留；原始CSV为`/tmp/d435_blue_wall_{only_retry,one_target,three_targets_retry}.csv`，ROS日志为`/tmp/ros_log_d435_blue_wall_multi_20261002`和`/tmp/ros_log_d435_blue_wall_multi_retry_20261002`，均不在Git中。
