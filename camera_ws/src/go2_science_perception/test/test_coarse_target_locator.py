@@ -8,6 +8,7 @@ from go2_science_perception.coarse_target_locator import (
     blue_candidate_mask,
     detect_blue_wall,
     erode_target_mask,
+    locate_target_candidates,
     locate_targets,
     mask_centroid,
     median_mask_depth,
@@ -29,6 +30,7 @@ def wall_result(depth, mask):
         mount_pitch_deg=0.0,
         max_vertical_error_deg=10.0,
         max_ransac_points=12000,
+        rejection_band_m=0.08,
         rng=np.random.default_rng(7),
     )
 
@@ -45,6 +47,9 @@ def targets_after_wall(depth, mask, wall):
         min_depth_cluster_ratio=0.15,
         erosion_kernel_px=1,
         erosion_iterations=0,
+        wall_normal=wall.normal,
+        wall_offset=wall.offset,
+        min_wall_separation_m=0.10,
     )
 
 
@@ -68,6 +73,43 @@ def test_static_only_blue_wall_publishes_no_targets():
     assert wall.detected
     assert wall.support_ratio == pytest.approx(1.0)
     assert targets_after_wall(depth, mask, wall) == []
+
+
+def test_wall_rejection_band_removes_non_ransac_wall_residuals():
+    """The wall mask must cover all blue points inside the wider plane band."""
+    mask = np.full((120, 160), 255, dtype=np.uint8)
+    depth = np.full(mask.shape, 2.0, dtype=np.float32)
+    depth[20:35, 20:35] = 1.94
+    wall = wall_result(depth, mask)
+    assert wall.detected
+    assert wall.rejected_points > wall.support_points
+    assert np.all(wall.mask[20:35, 20:35] == 255)
+
+
+def test_cluster_too_close_to_wall_is_rejected_with_distance_diagnostics():
+    """A residual beyond the wall band must still pass cluster separation."""
+    mask = np.full((120, 160), 255, dtype=np.uint8)
+    depth = np.full(mask.shape, 2.0, dtype=np.float32)
+    depth[20:35, 20:35] = 1.91
+    depth[65:85, 105:135] = 1.4
+    wall = wall_result(depth, mask)
+    remaining = mask.copy()
+    remaining[wall.mask > 0] = 0
+    candidates = locate_target_candidates(
+        depth, remaining, INTRINSICS, 0.15, 5.0,
+        40, 20, 0.08, 0.15, 1, 0,
+        wall.normal, wall.offset, 0.10,
+    )
+    assert len(candidates) == 2
+    rejected = [item for item in candidates if not item.accepted]
+    accepted = [item for item in candidates if item.accepted]
+    assert len(rejected) == 1
+    assert rejected[0].reason == "wall_separation_below_threshold"
+    assert rejected[0].wall_distance_median_m == pytest.approx(0.09, abs=1e-5)
+    assert rejected[0].wall_distance_min_m == pytest.approx(0.09, abs=1e-5)
+    assert rejected[0].wall_distance_max_m == pytest.approx(0.09, abs=1e-5)
+    assert len(accepted) == 1
+    assert accepted[0].median_depth_m == pytest.approx(1.4)
 
 
 def test_static_blue_wall_plus_one_cube_returns_one_target():

@@ -51,6 +51,9 @@
 - [x] 增加mask有效深度中位数粗距离、分段RANSAC阈值、动态最少内点和三级感知质量；完成近/中/远三档各15秒受控实测，质量不足时不发布精确3D中心。
 - [x] 保留precise/backup节点不变，新增独立HSV mask质心+median depth粗定位节点和 `/science/target_coarse_point`；完成0.5/1.0/1.5/2.0 m四档实机记录。
 - [x] 将粗定位扩展为多蓝色目标与3D蓝墙过滤；完成仅蓝墙、蓝墙+1目标、蓝墙+3个不同大小目标的静态实机验证，同一帧沿既有topic连续发布每目标PointStamped。
+- [x] 将蓝墙剔除从仅RANSAC inlier扩展为参数化全平面距离带，并增加cluster墙距
+  median/min/max诊断和门控；固定3目标+1蓝墙现场两个独立35秒窗口均严格每帧3点，
+  manager confirmed稳定为3个ID。近共面目标仍需单独验证。
 - [x] 新增参数化 `vehicle -> camera_link` 暂定外参、按原PointStamped时间戳转换到map的节点和RViz Marker；仅启动SLAM+D435+RViz完成一次静止目标/人工移动GO2 A/B验证（均值差约14.9 mm），未接FAR/WP5。
 - [ ] 使用外部测量真值完成camera外参正式标定，并重复纯平移、纯旋转、多距离/方位及SLAM长期漂移试验；当前外参仅为 `PROVISIONAL / NOT CALIBRATED`。
 - [ ] 多平面版本30秒实测VALID 56/204（27.5%），主要失败仍为 `bad_normal=118`；需在固定目标/固定相机/固定光照条件下采集受控对比数据后再决定优化方向。

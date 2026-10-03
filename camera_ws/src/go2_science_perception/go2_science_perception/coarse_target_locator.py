@@ -25,6 +25,9 @@ class WallResult:
     support_ratio: float = 0.0
     image_fraction: float = 0.0
     vertical_error_deg: float = math.nan
+    rejected_points: int = 0
+    normal: Optional[np.ndarray] = None
+    offset: float = math.nan
 
 
 @dataclass
@@ -36,6 +39,11 @@ class TargetResult:
     median_depth_m: float
     valid_depth_points: int
     xyz: np.ndarray
+    wall_distance_median_m: float = math.nan
+    wall_distance_min_m: float = math.nan
+    wall_distance_max_m: float = math.nan
+    accepted: bool = True
+    reason: str = "accepted"
 
 
 def blue_candidate_mask(image, hsv_lower, hsv_upper, kernel_px, close_n, open_n):
@@ -138,7 +146,7 @@ def detect_blue_wall(
     depth_m, blue_mask, intrinsics, min_depth_m, max_depth_m,
     distance_threshold_m, ransac_iterations, min_inliers,
     min_support_ratio, min_image_fraction, mount_pitch_deg,
-    max_vertical_error_deg, max_ransac_points, rng,
+    max_vertical_error_deg, max_ransac_points, rejection_band_m, rng,
 ):
     """Detect a dominant, broad, well-supported vertical blue plane."""
     empty = np.zeros_like(blue_mask)
@@ -193,11 +201,18 @@ def detect_blue_wall(
         and vertical_error <= max_vertical_error_deg
     )
     wall_mask = empty.copy()
+    rejected_points = 0
     if detected:
-        wall_mask[support_pixels[:, 1], support_pixels[:, 0]] = 255
+        rejection_ids = np.flatnonzero(
+            np.abs(points @ normal + offset) <= rejection_band_m
+        )
+        rejection_pixels = pixels[rejection_ids]
+        wall_mask[rejection_pixels[:, 1], rejection_pixels[:, 0]] = 255
+        rejected_points = int(rejection_ids.size)
     return WallResult(
         wall_mask, detected, int(best.size), support_ratio,
-        image_fraction, vertical_error
+        image_fraction, vertical_error, rejected_points,
+        normal if detected else None, offset if detected else math.nan
     )
 
 
@@ -235,12 +250,13 @@ def cluster_target_masks(
     return clusters
 
 
-def locate_targets(
+def locate_target_candidates(
     depth_m, remaining_mask, intrinsics, min_depth_m, max_depth_m,
     min_component_area_px, min_valid_depth_points, cluster_depth_gap_m,
     min_depth_cluster_ratio, erosion_kernel_px, erosion_iterations,
+    wall_normal=None, wall_offset=math.nan, min_wall_separation_m=0.0,
 ):
-    """Return one coarse result for every valid remaining cluster."""
+    """Evaluate every remaining cluster, including wall-separation rejects."""
     results: List[TargetResult] = []
     masks = cluster_target_masks(
         depth_m, remaining_mask, min_depth_m, max_depth_m,
@@ -255,11 +271,41 @@ def locate_targets(
         )
         if valid_count < min_valid_depth_points:
             continue
+        wall_median = wall_min = wall_max = math.nan
+        accepted = True
+        reason = "accepted"
+        if wall_normal is not None and math.isfinite(wall_offset):
+            cluster_points, _ = project_masked_depth(
+                depth_m, mask, intrinsics, min_depth_m, max_depth_m
+            )
+            distances = np.abs(cluster_points @ wall_normal + wall_offset)
+            wall_median = float(np.median(distances))
+            wall_min = float(np.min(distances))
+            wall_max = float(np.max(distances))
+            if wall_median < min_wall_separation_m:
+                accepted = False
+                reason = "wall_separation_below_threshold"
         results.append(TargetResult(
             mask, centroid, median_depth, valid_count,
-            back_project_pixel(*centroid, median_depth, intrinsics)
+            back_project_pixel(*centroid, median_depth, intrinsics),
+            wall_median, wall_min, wall_max, accepted, reason,
         ))
     return sorted(results, key=lambda result: result.centroid[0])
+
+
+def locate_targets(
+    depth_m, remaining_mask, intrinsics, min_depth_m, max_depth_m,
+    min_component_area_px, min_valid_depth_points, cluster_depth_gap_m,
+    min_depth_cluster_ratio, erosion_kernel_px, erosion_iterations,
+    wall_normal=None, wall_offset=math.nan, min_wall_separation_m=0.0,
+):
+    """Return only accepted coarse targets for compatibility with callers."""
+    return [candidate for candidate in locate_target_candidates(
+        depth_m, remaining_mask, intrinsics, min_depth_m, max_depth_m,
+        min_component_area_px, min_valid_depth_points, cluster_depth_gap_m,
+        min_depth_cluster_ratio, erosion_kernel_px, erosion_iterations,
+        wall_normal, wall_offset, min_wall_separation_m,
+    ) if candidate.accepted]
 
 
 class CoarseTargetLocator(Node):
@@ -285,6 +331,7 @@ class CoarseTargetLocator(Node):
             "cluster_depth_gap_m": 0.08,
             "min_depth_cluster_ratio": 0.15,
             "wall_distance_threshold_m": 0.025,
+            "wall_rejection_band_m": 0.08,
             "wall_ransac_iterations": 100,
             "wall_max_ransac_points": 12000,
             "wall_min_inliers": 500,
@@ -292,6 +339,7 @@ class CoarseTargetLocator(Node):
             "wall_min_image_fraction": 0.08,
             "wall_mount_pitch_deg": 30.0,
             "wall_max_vertical_error_deg": 20.0,
+            "target_min_wall_separation_m": 0.10,
             "random_seed": 7,
             "max_rgb_depth_delta_sec": 0.20,
             "processing_rate_hz": 8.0,
@@ -397,15 +445,18 @@ class CoarseTargetLocator(Node):
             f"invalid={self.invalid_frames} frame_publish_ratio={ratio:.3f}"
         )
 
-    def _draw_debug(self, raw, wall, remaining, targets):
+    def _draw_debug(self, raw, wall, remaining, candidates):
         if not bool(self.get_parameter("show_debug").value) or self.color is None:
             return
         annotated = self.color.copy()
         annotated[wall.mask > 0] = (0, 0, 255)
         target_panel = np.zeros_like(annotated)
         colors = [(0, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 0)]
-        for index, target in enumerate(targets):
-            color = colors[index % len(colors)]
+        accepted_count = 0
+        for index, target in enumerate(candidates):
+            color = (0, 128, 255) if not target.accepted else colors[
+                accepted_count % len(colors)]
+            accepted_count += int(target.accepted)
             contours, _ = cv2.findContours(
                 target.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
             )
@@ -416,7 +467,7 @@ class CoarseTargetLocator(Node):
         cv2.putText(
             annotated,
             f"wall={'YES' if wall.detected else 'NO'} "
-            f"support={wall.support_ratio:.2f} targets={len(targets)}",
+            f"support={wall.support_ratio:.2f} targets={accepted_count}",
             (10, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.55,
             (255, 255, 255), 2, cv2.LINE_AA
         )
@@ -477,11 +528,12 @@ class CoarseTargetLocator(Node):
             float(get("wall_mount_pitch_deg").value),
             float(get("wall_max_vertical_error_deg").value),
             int(get("wall_max_ransac_points").value),
+            float(get("wall_rejection_band_m").value),
             self.rng,
         )
         remaining = blue.copy()
         remaining[wall.mask > 0] = 0
-        targets = locate_targets(
+        candidates = locate_target_candidates(
             self.depth_m, remaining, self.intrinsics,
             float(get("min_depth_m").value), float(get("max_depth_m").value),
             int(get("min_component_area_px").value),
@@ -490,7 +542,23 @@ class CoarseTargetLocator(Node):
             float(get("min_depth_cluster_ratio").value),
             int(get("depth_erosion_kernel_px").value),
             int(get("depth_erosion_iterations").value),
+            wall.normal, wall.offset,
+            float(get("target_min_wall_separation_m").value),
         )
+        targets = [candidate for candidate in candidates if candidate.accepted]
+        for index, candidate in enumerate(candidates):
+            self.get_logger().info(
+                f"COARSE_CANDIDATE index={index} "
+                f"area={np.count_nonzero(candidate.mask)} "
+                f"centroid_u={candidate.centroid[0]:.2f} "
+                f"centroid_v={candidate.centroid[1]:.2f} "
+                f"median_depth_m={candidate.median_depth_m:.3f} "
+                f"wall_distance_median_m={candidate.wall_distance_median_m:.3f} "
+                f"wall_distance_min_m={candidate.wall_distance_min_m:.3f} "
+                f"wall_distance_max_m={candidate.wall_distance_max_m:.3f} "
+                f"decision={'ACCEPT' if candidate.accepted else 'REJECT'} "
+                f"reason={candidate.reason}"
+            )
         for index, target in enumerate(targets):
             point = PointStamped()
             point.header = self.depth_header
@@ -511,6 +579,7 @@ class CoarseTargetLocator(Node):
             f"COARSE_FRAME blue_pixels={np.count_nonzero(blue)} "
             f"wall_detected={int(wall.detected)} "
             f"wall_points={wall.support_points} "
+            f"wall_rejected_points={wall.rejected_points} "
             f"wall_support={wall.support_ratio:.3f} "
             f"wall_image_fraction={wall.image_fraction:.3f} "
             f"wall_vertical_error_deg={wall.vertical_error_deg:.2f} "
@@ -519,7 +588,7 @@ class CoarseTargetLocator(Node):
         if not targets:
             self._warn("no valid targets after wall rejection and clustering")
         self._record(len(targets))
-        self._draw_debug(raw, wall, remaining, targets)
+        self._draw_debug(raw, wall, remaining, candidates)
 
     def close_windows(self):
         """Log counters and close the debug window."""

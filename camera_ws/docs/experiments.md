@@ -308,3 +308,47 @@ No target detection, map transform or robot motion belongs in this experiment.
   Python/静态TF节点出现SIGINT清理trace；发生在采样完成后。停止后ROS graph为空，
   未发现D435、Point-LIO、目标节点、RViz、规划器或控制进程残留。运行日志位于
   `/tmp/ros_log_science_marker_validation`，不在Git中。
+
+## 2026-10-03 — Blue-wall Residual Band Rejection
+
+- **Ground truth/safety:** 现场固定为3个真实蓝色科学目标和1面蓝色墙。只做D435粗
+  定位以及随后Point-LIO/map/`science_target_manager`只读复核；未修改manager逻辑，
+  未启动FAR、WP5、local planner、path follower或safety gate，未发布运动命令。
+- **Root cause:** 旧实现以`wall_distance_threshold_m=0.025`完成RANSAC拟合后，只从
+  HSV蓝色mask删除同一窄阈值下的wall inlier。墙平面附近但未进入inlier集合的有效
+  深度点仍进入连通域/深度聚类，因而能形成墙残片target。没有通过提高
+  `min_component_area_px`规避问题。
+- **Implementation:** RANSAC拟合、支持率、图像覆盖和竖直法向判定保持不变；墙判定
+  成功后，对全部蓝色有效深度点计算到最终wall plane的绝对距离，并以参数
+  `wall_rejection_band_m=0.08 m`删除整条带宽。每个剩余cluster再计算wall distance的
+  median/min/max；参数`target_min_wall_separation_m=0.10 m`按median执行二次门控。
+  每个候选日志现包含area、centroid、median depth、wall distance median/min/max及
+  `ACCEPT`或`REJECT reason`。topic、frame、消息类型、目标聚类尺寸门槛及manager均
+  未修改。
+- **Build/tests:** `colcon build --symlink-install --packages-select
+  go2_science_perception`成功；package tests为`41 tests, 0 errors, 0 failures,
+  0 skipped`，另有2条既有`SelectableGroups`弃用warning。新增合成测试证明：(1)距墙
+  `0.06 m`、不属于`0.025 m` RANSAC inlier的残片会被`0.08 m`墙带删除；(2)距墙
+  `0.09 m`、位于墙带之外的cluster被`0.10 m`median门槛拒绝；(3)更远的不同尺寸
+  目标仍保留。
+- **D435-only live window:** 相机启动并稳定后连续采集35 s，CSV共402点，按原始
+  timestamp严格分为134帧，每帧均为3点，无第4个墙残片。三个真实目标wall-distance
+  median约为`0.28 / 0.54 / 0.58 m`；最靠墙目标在末段逐帧min约`0.13–0.18 m`，未被
+  `0.10 m` median门槛误删。稳定帧中墙RANSAC support约`0.899–0.904`，窄inlier约
+  `58.2k–58.5k`，宽带实际删除约`58.4k–58.6k`蓝色点。
+- **Startup evidence:** D435-only整轮（包含自动曝光/深度稳定前的启动段）为282帧、
+  887次发布，前几帧曾有7–13个候选；因此402点/134帧结论明确限定为随后连续35 s
+  稳定窗口，不把启动瞬态隐藏为全程通过。完整链末值为799帧、2310次发布，包含
+  启动期和采样器外时段。
+- **Manager live window:** 完整只读链的独立35 s稳定窗口收到480个map点，严格为
+  160帧×3。新manager进程最终confirmed集合仅为T3、T4、T5，窗口前后未增长；单调
+  ID表明启动期创建过T1/T2两个未达到5帧确认的瞬态track，总创建量至多5个，没有
+  再增长到十几个ID。该结果来自前端修复，manager没有增加屏蔽规则。
+- **Known limits/cleanup:** 当前`0.08/0.10 m`只由这一固定现场验证；真实目标若与墙
+  近共面，仍可能被墙带或cluster门槛删除，需要另做受控距离试验。停止时仍出现既有
+  Point-LIO `exit code -11`和若干SIGINT清理trace，均发生在数据采集后。停止后ROS
+  graph为空，未发现D435、Point-LIO、perception、manager、RViz、规划器或控制进程
+  残留。原始CSV为`/tmp/wall_band_008_010_targets.csv`和
+  `/tmp/wall_band_manager_map_targets.csv`；ROS日志位于
+  `/tmp/ros_log_wall_band_validation_008_010`与
+  `/tmp/ros_log_wall_band_manager_validation`，均不在Git中。

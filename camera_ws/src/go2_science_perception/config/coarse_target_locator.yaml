@@ -20,6 +20,7 @@ coarse_target_locator:
     cluster_depth_gap_m: 0.08
     min_depth_cluster_ratio: 0.15
     wall_distance_threshold_m: 0.025
+    wall_rejection_band_m: 0.08
     wall_ransac_iterations: 100
     wall_max_ransac_points: 12000
     wall_min_inliers: 500
@@ -27,6 +28,7 @@ coarse_target_locator:
     wall_min_image_fraction: 0.08
     wall_mount_pitch_deg: 30.0
     wall_max_vertical_error_deg: 20.0
+    target_min_wall_separation_m: 0.10
     random_seed: 7
     max_rgb_depth_delta_sec: 0.20
     processing_rate_hz: 8.0
