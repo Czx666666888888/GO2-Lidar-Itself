@@ -273,3 +273,38 @@ No target detection, map transform or robot motion belongs in this experiment.
   launch的`--show-args`解析成功。节点在受限环境中到达安全边界启动日志后由3秒
   timeout停止；DDS socket因沙箱权限不可用，因此该项只算process-start证据，不算
   ROS graph、topic数据或TF运行验证。
+
+## 2026-10-03 — Science Target Manager RViz Palette Runtime Validation
+
+- **Scope/safety:** 仅修改`science_target_manager`的RViz Marker配色和selected球体
+  尺寸；topic、target ID、关联/确认、选择、visited状态、standoff几何及导航接口均未
+  修改。实机链只启动Point-LIO、D435、`coarse_target_locator`、
+  `camera_target_to_map`、`base_odom_node`、`science_target_manager`和RViz；ROS graph
+  中不存在`/goal_point`，未启动FAR、WP5、local planner、path follower或safety
+  gate，未发布运动命令。
+- **Implementation:** CONFIRMED改为亮青`(0.0,1.0,1.0)`，SELECTED改为亮红
+  `(1.0,0.0,0.0)`，STANDOFF改为亮黄`(1.0,1.0,0.0)`，VISITED改为浅灰
+  `(0.65,0.65,0.65)`；文字保持白色。普通球体直径保持`0.16 m`，selected由原
+  `1.35x`调整为`1.5x`，实测消息直径为`0.24 m`。
+- **Build/tests:** 在宿主ROS 2环境执行
+  `colcon build --symlink-install --packages-select go2_science_perception`成功；随后
+  package tests为`39 tests, 0 errors, 0 failures, 0 skipped`。2条stderr warning为
+  既有`SelectableGroups`弃用提示。受限沙箱内首次build曾在setuptools
+  `symlink_data`阶段无输出停滞并被中止；宿主重跑成功，未将中止尝试计为通过。
+- **Runtime marker evidence:** RViz成功启动并订阅`/science/confirmed_targets`。
+  同一实机MarkerArray样本同时包含T4、T5、T6、T9、T10、T11、T13至T18等多个
+  confirmed目标；sphere均为亮青、直径`0.16 m`，对应`T<ID>`为白色。selected
+  样本为T6，亮红、直径`0.24 m`；standoff样本同为ID 6，亮黄、直径`0.16 m`。
+  namespace和ID组合保持分离，未观察到Marker ID互相覆盖或异常闪烁。
+- **Visited/reselection:** 通过既有`/science/visited_target_id`一次性发布`data: 6`。
+  后续confirmed样本中T6为浅灰`(0.65,0.65,0.65)`，selected从T6切换为T9，T6
+  未继续被选中。selected和standoff每次更新均先包含各自namespace的
+  `DELETEALL(action=3)`再`ADD(action=0)`，本轮未观察到旧红色/黄色Marker残留。
+- **Runtime bounds/known issues:** 约2分钟运行中粗定位为`frames=593`、
+  `frames_with_targets=550`、`published_targets=3192`；map转换为`3108/3108`成功、
+  `failed=0`。现场蓝色候选较多且目标轨迹ID增长到至少T18，说明当前检测/关联在
+  该场景可能累积额外confirmed轨迹；这是本轮配色修改之外的既有算法行为，尚未
+  证明每个ID都对应独立真实目标。停止时Point-LIO仍出现既有`exit code -11`，部分
+  Python/静态TF节点出现SIGINT清理trace；发生在采样完成后。停止后ROS graph为空，
+  未发现D435、Point-LIO、目标节点、RViz、规划器或控制进程残留。运行日志位于
+  `/tmp/ros_log_science_marker_validation`，不在Git中。

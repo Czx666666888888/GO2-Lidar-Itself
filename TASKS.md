@@ -60,5 +60,7 @@
 - [x] 新增不接FAR、不运动的`science_target_manager`第一阶段：同帧多点聚类去重、
   5帧确认、近期median、稳定ID、全部CONFIRMED MarkerArray、最近未访问目标和0.4 m
   standoff可视化；机身中心严格按`/base_state_estimation`实际frame经TF转到map。
-- [ ] 在只读真机组合中验证`/base_state_estimation`实际frame、到map的连续TF、同帧
-  多目标确认/稳定ID及RViz显示；当前为`NOT VERIFIED`，且仍禁止连接`/goal_point`。
+- [x] 在只读真机组合中验证`/base_state_estimation`实际frame、到map的连续TF、同帧
+  多目标Marker及RViz显示；2026-10-03已确认`camera_init -> map`转换、多个confirmed、
+  selected/standoff及visited重选，且未连接`/goal_point`。现场候选累计到至少T18，
+  每个ID是否对应独立真实目标仍需受控真值实验。

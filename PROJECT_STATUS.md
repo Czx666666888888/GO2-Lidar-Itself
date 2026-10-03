@@ -161,7 +161,10 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
   confirmed/selected/standoff均有RViz输出，但没有`/goal_point`、FAR/WP5或运动命令
   接口。源码确认`/base_state_estimation`继承Point-LIO的`camera_init` header，因此
   管理器不会直接将其当作map。单元/静态验证已完成；真实ROS graph、连续TF和真机
-  多目标管理效果为`NOT VERIFIED`。
+  多目标Marker运行链已于2026-10-03完成约2分钟只读实机验证：RViz同时收到多个
+  confirmed、selected、standoff及visited重选更新，未接`/goal_point`或运动链。
+  现场候选较多并累积到至少T18，因此每个稳定ID是否都对应独立真实目标仍为
+  `NOT VERIFIED`。
 
 ## Next Recommended Work
 

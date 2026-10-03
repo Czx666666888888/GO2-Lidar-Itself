@@ -5,7 +5,13 @@ import math
 import pytest
 
 from go2_science_perception.science_target_manager import (
+    CONFIRMED_COLOR,
+    LABEL_COLOR,
+    SELECTED_COLOR,
+    SELECTED_SCALE_FACTOR,
+    STANDOFF_COLOR,
     TargetTracker,
+    VISITED_COLOR,
     median_point,
     standoff_point,
 )
@@ -57,3 +63,12 @@ def test_standoff_is_point_four_tenths_from_target_toward_robot():
     goal = standoff_point((0.0, 0.0, 0.1), (1.0, 1.0, 0.5), 0.4)
     assert math.hypot(goal[0] - 1.0, goal[1] - 1.0) == pytest.approx(0.4)
     assert goal[2] == pytest.approx(0.1)
+
+
+def test_rviz_marker_palette_and_selected_scale_are_distinct():
+    assert CONFIRMED_COLOR == (0.0, 1.0, 1.0)
+    assert SELECTED_COLOR == (1.0, 0.0, 0.0)
+    assert STANDOFF_COLOR == (1.0, 1.0, 0.0)
+    assert VISITED_COLOR == (0.65, 0.65, 0.65)
+    assert LABEL_COLOR == (1.0, 1.0, 1.0)
+    assert SELECTED_SCALE_FACTOR > 1.0

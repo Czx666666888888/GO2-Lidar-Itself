@@ -22,6 +22,13 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 Point3 = Tuple[float, float, float]
 
+CONFIRMED_COLOR = (0.0, 1.0, 1.0)
+SELECTED_COLOR = (1.0, 0.0, 0.0)
+STANDOFF_COLOR = (1.0, 1.0, 0.0)
+VISITED_COLOR = (0.65, 0.65, 0.65)
+LABEL_COLOR = (1.0, 1.0, 1.0)
+SELECTED_SCALE_FACTOR = 1.5
+
 
 def xy_distance(left: Sequence[float], right: Sequence[float]) -> float:
     """Return planar Euclidean distance."""
@@ -306,7 +313,7 @@ class ScienceTargetManager(Node):
         confirmed = [track for track in self.tracker.tracks if track.confirmed]
         markers = self._delete_all("science_confirmed").markers
         for track in confirmed:
-            color = (0.15, 0.85, 0.25) if not track.visited else (0.4, 0.4, 0.4)
+            color = VISITED_COLOR if track.visited else CONFIRMED_COLOR
             markers.append(self._sphere_marker(
                 track.target_id, "science_confirmed", track.position, color, scale))
             label = Marker()
@@ -320,7 +327,8 @@ class ScienceTargetManager(Node):
                 z=track.position[2] + scale)
             label.pose.orientation.w = 1.0
             label.scale.z = scale
-            label.color.r = label.color.g = label.color.b = label.color.a = 1.0
+            label.color.r, label.color.g, label.color.b = LABEL_COLOR
+            label.color.a = 1.0
             label.text = f"T{track.target_id}"
             markers.append(label)
         self.confirmed_markers.publish(MarkerArray(markers=markers))
@@ -336,7 +344,7 @@ class ScienceTargetManager(Node):
         selected_markers = self._delete_all("science_selected").markers
         selected_markers.append(self._sphere_marker(
             selected.target_id, "science_selected", selected.position,
-            (1.0, 0.75, 0.0), scale * 1.35))
+            SELECTED_COLOR, scale * SELECTED_SCALE_FACTOR))
         self.selected_markers.publish(MarkerArray(markers=selected_markers))
 
         goal = standoff_point(
@@ -346,7 +354,7 @@ class ScienceTargetManager(Node):
         standoff_markers = self._delete_all("science_standoff").markers
         standoff_markers.append(self._sphere_marker(
             selected.target_id, "science_standoff", goal,
-            (0.75, 0.1, 1.0), scale))
+            STANDOFF_COLOR, scale))
         self.standoff_markers.publish(MarkerArray(markers=standoff_markers))
 
 
