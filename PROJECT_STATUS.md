@@ -171,6 +171,11 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
   confirmed、selected、standoff及visited重选更新，未接`/goal_point`或运动链。
   现场候选较多并累积到至少T18，因此每个稳定ID是否都对应独立真实目标仍为
   `NOT VERIFIED`。
+- 2026-10-03在3个固定真实目标、GO2人工前后/左右/原地转向/斜移条件下完成8个
+  15秒稳定窗口。原始T1–T3的最大跨阶段均值XY差为34.62 mm，存在厘米级视角相关
+  偏差；旋转/斜移又产生T6/T11/T14/T17，最终7个confirmed ID对应3个真值，且
+  selected转向额外track T14。standoff几何仍保持距selected 0.40 m，但目标语义不再
+  可靠；当前结论仍为不得接入FAR或运动控制。
 
 ## Next Recommended Work
 

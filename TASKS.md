@@ -67,3 +67,8 @@
   多目标Marker及RViz显示；2026-10-03已确认`camera_init -> map`转换、多个confirmed、
   selected/standoff及visited重选，且未连接`/goal_point`。现场候选累计到至少T18，
   每个ID是否对应独立真实目标仍需受控真值实验。
+- [x] 完成3个固定真实目标、GO2前后/左右/原地左右转/斜移的map稳定性实验：原始
+  T1–T3最大跨阶段均值XY差34.62 mm，但旋转/斜移后最终增长为7个confirmed ID，
+  selected误选额外track T14；详细统计见`camera_ws/docs/experiments.md`。
+- [ ] 在任何FAR接入前，定位视角变化产生重复confirmed track的来源，并评审前端误检、
+  关联半径、轨迹合并/老化策略；不得用manager简单屏蔽前端误检。
