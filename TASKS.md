@@ -70,5 +70,7 @@
 - [x] 完成3个固定真实目标、GO2前后/左右/原地左右转/斜移的map稳定性实验：原始
   T1–T3最大跨阶段均值XY差34.62 mm，但旋转/斜移后最终增长为7个confirmed ID，
   selected误选额外track T14；详细统计见`camera_ws/docs/experiments.md`。
-- [ ] 在任何FAR接入前，定位视角变化产生重复confirmed track的来源，并评审前端误检、
-  关联半径、轨迹合并/老化策略；不得用manager简单屏蔽前端误检。
+- [x] 不改前端或0.20 m关联半径，为manager增加candidate/confirmed/stale老化、删除、
+  连续多帧近邻合并及active-confirmed-only选择；2026-10-06三固定目标8阶段重跑的每个
+  稳定窗口均收敛为3个ACTIVE CONFIRMED，standoff为0.400 m。实机未触发MERGED，
+  合并实机触发仍为`NOT VERIFIED`，且54.02–64.28 mm视角偏差/暂定外参仍禁止FAR接入。

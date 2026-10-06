@@ -5,7 +5,7 @@ import math
 from collections import deque
 from dataclasses import dataclass, field
 from statistics import median
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from geometry_msgs.msg import Point, PointStamped
 from nav_msgs.msg import Odometry
@@ -28,6 +28,9 @@ STANDOFF_COLOR = (1.0, 1.0, 0.0)
 VISITED_COLOR = (0.65, 0.65, 0.65)
 LABEL_COLOR = (1.0, 1.0, 1.0)
 SELECTED_SCALE_FACTOR = 1.5
+CANDIDATE = "CANDIDATE"
+CONFIRMED = "CONFIRMED"
+STALE = "STALE"
 
 
 def xy_distance(left: Sequence[float], right: Sequence[float]) -> float:
@@ -55,6 +58,18 @@ def standoff_point(robot: Point3, target: Point3, distance_m: float) -> Point3:
     return target[0] + dx * scale, target[1] + dy * scale, robot[2]
 
 
+def deletion_markers(map_frame: str, namespaces: Iterable[str]) -> MarkerArray:
+    """Create namespace clears so removed track spheres and labels cannot linger."""
+    markers = []
+    for namespace in namespaces:
+        marker = Marker()
+        marker.header.frame_id = map_frame
+        marker.ns = namespace
+        marker.action = Marker.DELETEALL
+        markers.append(marker)
+    return MarkerArray(markers=markers)
+
+
 @dataclass
 class TargetTrack:
     """Persistent target state, updated at most once per source frame."""
@@ -62,8 +77,10 @@ class TargetTrack:
     target_id: int
     observations: deque
     observation_count: int = 1
-    confirmed: bool = False
+    state: str = CANDIDATE
     visited: bool = False
+    first_seen: int = 0
+    last_seen: int = 0
     last_stamp_ns: int = 0
     position: Point3 = field(init=False)
 
@@ -73,27 +90,50 @@ class TargetTrack:
     def update(self, point: Point3, stamp_ns: int) -> None:
         self.observations.append(point)
         self.observation_count += 1
+        self.last_seen = stamp_ns
         self.last_stamp_ns = stamp_ns
         self.position = median_point(self.observations)
+
+    @property
+    def confirmed(self) -> bool:
+        """Compatibility view used by existing callers and tests."""
+        return self.state == CONFIRMED
 
 
 class TargetTracker:
     """One-to-one, per-frame nearest-neighbour target association."""
 
     def __init__(self, association_radius: float, confirmation_count: int,
-                 recent_window: int) -> None:
+                 recent_window: int, candidate_timeout_sec: float = 1.0,
+                 confirmed_stale_timeout_sec: float = 2.0,
+                 remove_timeout_sec: float = 10.0,
+                 merge_radius: float = 0.10,
+                 merge_confirmation_count: int = 5) -> None:
         if association_radius <= 0.0:
             raise ValueError("association_radius must be positive")
         if confirmation_count <= 0 or recent_window <= 0:
             raise ValueError("counts must be positive")
+        if candidate_timeout_sec <= 0.0 or confirmed_stale_timeout_sec <= 0.0:
+            raise ValueError("lifecycle timeouts must be positive")
+        if remove_timeout_sec <= confirmed_stale_timeout_sec:
+            raise ValueError("remove_timeout_sec must exceed stale timeout")
+        if merge_radius <= 0.0 or merge_confirmation_count <= 0:
+            raise ValueError("merge settings must be positive")
         self.association_radius = float(association_radius)
         self.confirmation_count = int(confirmation_count)
         self.recent_window = int(recent_window)
+        self.candidate_timeout_ns = int(candidate_timeout_sec * 1e9)
+        self.confirmed_stale_timeout_ns = int(confirmed_stale_timeout_sec * 1e9)
+        self.remove_timeout_ns = int(remove_timeout_sec * 1e9)
+        self.merge_radius = float(merge_radius)
+        self.merge_confirmation_count = int(merge_confirmation_count)
         self.tracks: List[TargetTrack] = []
         self.next_id = 1
+        self.merge_counts: Dict[Tuple[int, int], int] = {}
 
-    def update_frame(self, points: Iterable[Point3], stamp_ns: int) -> None:
+    def update_frame(self, points: Iterable[Point3], stamp_ns: int) -> List[str]:
         """Associate all observations from one frame without track reuse."""
+        events = self.expire(stamp_ns)
         observations = list(points)
         candidates = []
         for observation_index, point in enumerate(observations):
@@ -109,8 +149,14 @@ class TargetTracker:
                 continue
             track = self.tracks[track_index]
             track.update(observations[observation_index], stamp_ns)
-            if track.observation_count >= self.confirmation_count:
-                track.confirmed = True
+            events.append(f"ASSOCIATED id={track.target_id}")
+            if track.state == STALE:
+                track.state = CONFIRMED
+                events.append(f"CONFIRMED id={track.target_id} reactivated=true")
+            if (track.state == CANDIDATE and
+                    track.observation_count >= self.confirmation_count):
+                track.state = CONFIRMED
+                events.append(f"CONFIRMED id={track.target_id}")
             used_observations.add(observation_index)
             used_tracks.add(track_index)
 
@@ -120,19 +166,94 @@ class TargetTracker:
             track = TargetTrack(
                 target_id=self.next_id,
                 observations=deque([point], maxlen=self.recent_window),
+                first_seen=stamp_ns,
+                last_seen=stamp_ns,
                 last_stamp_ns=stamp_ns,
-                confirmed=self.confirmation_count <= 1,
+                state=(CONFIRMED if self.confirmation_count <= 1 else CANDIDATE),
             )
             self.next_id += 1
             self.tracks.append(track)
+            events.append(f"NEW_TRACK id={track.target_id}")
+            if track.state == CONFIRMED:
+                events.append(f"CONFIRMED id={track.target_id}")
+        events.extend(self._merge_confirmed())
+        return events
+
+    def expire(self, now_ns: int) -> List[str]:
+        """Apply lifecycle timeouts and return auditable transition events."""
+        events = []
+        kept = []
+        for track in self.tracks:
+            age_ns = max(0, now_ns - track.last_seen)
+            if track.state == CANDIDATE and age_ns >= self.candidate_timeout_ns:
+                events.append(f"REMOVED id={track.target_id} state={CANDIDATE}")
+                continue
+            if track.state == CONFIRMED and age_ns >= self.confirmed_stale_timeout_ns:
+                track.state = STALE
+                events.append(f"STALE id={track.target_id}")
+            if track.state == STALE and age_ns >= self.remove_timeout_ns:
+                events.append(f"REMOVED id={track.target_id} state={STALE}")
+                continue
+            kept.append(track)
+        self.tracks = kept
+        active_ids = {track.target_id for track in kept}
+        self.merge_counts = {
+            pair: count for pair, count in self.merge_counts.items()
+            if pair[0] in active_ids and pair[1] in active_ids
+        }
+        return events
+
+    @staticmethod
+    def _keep_rank(track: TargetTrack) -> Tuple[int, int, int, int]:
+        state_rank = {CANDIDATE: 0, STALE: 1, CONFIRMED: 2}[track.state]
+        return state_rank, track.observation_count, -track.first_seen, -track.target_id
+
+    def _merge_confirmed(self) -> List[str]:
+        confirmed = [track for track in self.tracks if track.state == CONFIRMED]
+        close_pairs = set()
+        for left_index, left in enumerate(confirmed):
+            for right in confirmed[left_index + 1:]:
+                pair = tuple(sorted((left.target_id, right.target_id)))
+                if xy_distance(left.position, right.position) < self.merge_radius:
+                    close_pairs.add(pair)
+                    self.merge_counts[pair] = self.merge_counts.get(pair, 0) + 1
+        self.merge_counts = {
+            pair: count for pair, count in self.merge_counts.items()
+            if pair in close_pairs
+        }
+        events = []
+        ready = sorted(pair for pair, count in self.merge_counts.items()
+                       if count >= self.merge_confirmation_count)
+        for pair in ready:
+            by_id = {track.target_id: track for track in self.tracks}
+            if pair[0] not in by_id or pair[1] not in by_id:
+                continue
+            left, right = by_id[pair[0]], by_id[pair[1]]
+            kept = max((left, right), key=self._keep_rank)
+            old = right if kept is left else left
+            combined = list(kept.observations) + list(old.observations)
+            kept.observations = deque(combined, maxlen=self.recent_window)
+            kept.observation_count += old.observation_count
+            kept.first_seen = min(kept.first_seen, old.first_seen)
+            kept.last_seen = max(kept.last_seen, old.last_seen)
+            kept.last_stamp_ns = max(kept.last_stamp_ns, old.last_stamp_ns)
+            kept.visited = kept.visited or old.visited
+            kept.position = median_point(kept.observations)
+            self.tracks.remove(old)
+            events.append(f"MERGED {old.target_id} -> {kept.target_id}")
+            self.merge_counts = {
+                key: value for key, value in self.merge_counts.items()
+                if old.target_id not in key and kept.target_id not in key
+            }
+        return events
 
     def confirmed_unvisited(self) -> List[TargetTrack]:
         return [track for track in self.tracks
-                if track.confirmed and not track.visited]
+                if track.state == CONFIRMED and not track.visited]
 
     def mark_visited(self, target_id: int) -> bool:
         for track in self.tracks:
-            if track.target_id == target_id and track.confirmed:
+            if track.target_id == target_id and track.state == CONFIRMED:
                 track.visited = True
                 return True
         return False
@@ -161,6 +282,11 @@ class ScienceTargetManager(Node):
             "association_radius": 0.20,
             "confirmation_count": 5,
             "recent_window": 15,
+            "candidate_timeout_sec": 1.0,
+            "confirmed_stale_timeout_sec": 2.0,
+            "remove_timeout_sec": 10.0,
+            "merge_radius": 0.10,
+            "merge_confirmation_count": 5,
             "standoff_distance": 0.40,
             "frame_batch_timeout_sec": 0.05,
             "marker_scale_m": 0.16,
@@ -173,6 +299,11 @@ class ScienceTargetManager(Node):
             float(self.get_parameter("association_radius").value),
             int(self.get_parameter("confirmation_count").value),
             int(self.get_parameter("recent_window").value),
+            float(self.get_parameter("candidate_timeout_sec").value),
+            float(self.get_parameter("confirmed_stale_timeout_sec").value),
+            float(self.get_parameter("remove_timeout_sec").value),
+            float(self.get_parameter("merge_radius").value),
+            int(self.get_parameter("merge_confirmation_count").value),
         )
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -181,6 +312,7 @@ class ScienceTargetManager(Node):
         self.batch_stamp_ns: Optional[int] = None
         self.batch_points: List[Point3] = []
         self.batch_updated_ns = 0
+        self.selected_id: Optional[int] = None
 
         self.confirmed_markers = self.create_publisher(
             MarkerArray, self.get_parameter("confirmed_marker_topic").value, 10)
@@ -225,6 +357,10 @@ class ScienceTargetManager(Node):
         self.batch_updated_ns = self.get_clock().now().nanoseconds
 
     def _flush_expired_batch(self) -> None:
+        events = self.tracker.expire(self.get_clock().now().nanoseconds)
+        if events:
+            self._log_events(events)
+            self._publish_outputs()
         if self.batch_stamp_ns is None:
             return
         timeout_ns = int(float(self.get_parameter(
@@ -235,10 +371,15 @@ class ScienceTargetManager(Node):
     def _flush_batch(self) -> None:
         if self.batch_stamp_ns is None:
             return
-        self.tracker.update_frame(self.batch_points, self.batch_stamp_ns)
+        events = self.tracker.update_frame(self.batch_points, self.batch_stamp_ns)
+        self._log_events(events)
         self.batch_stamp_ns = None
         self.batch_points = []
         self._publish_outputs()
+
+    def _log_events(self, events: Iterable[str]) -> None:
+        for event in events:
+            self.get_logger().info(event)
 
     def _odom_callback(self, message: Odometry) -> None:
         source_frame = message.header.frame_id
@@ -302,16 +443,14 @@ class ScienceTargetManager(Node):
         return marker
 
     def _delete_all(self, namespace: str) -> MarkerArray:
-        marker = Marker()
-        marker.header.frame_id = self.map_frame
-        marker.ns = namespace
-        marker.action = Marker.DELETEALL
-        return MarkerArray(markers=[marker])
+        return deletion_markers(self.map_frame, [namespace])
 
     def _publish_outputs(self) -> None:
         scale = float(self.get_parameter("marker_scale_m").value)
-        confirmed = [track for track in self.tracker.tracks if track.confirmed]
+        confirmed = [track for track in self.tracker.tracks
+                     if track.state == CONFIRMED]
         markers = self._delete_all("science_confirmed").markers
+        markers.extend(self._delete_all("science_confirmed_labels").markers)
         for track in confirmed:
             color = VISITED_COLOR if track.visited else CONFIRMED_COLOR
             markers.append(self._sphere_marker(
@@ -335,6 +474,11 @@ class ScienceTargetManager(Node):
 
         selected = (self.tracker.nearest_unvisited(self.robot_position)
                     if self.robot_position is not None else None)
+        new_selected_id = selected.target_id if selected is not None else None
+        if new_selected_id != self.selected_id:
+            self.get_logger().info(
+                f"SELECTED_CHANGED {self.selected_id} -> {new_selected_id}")
+            self.selected_id = new_selected_id
         if selected is None:
             self.selected_markers.publish(self._delete_all("science_selected"))
             self.standoff_markers.publish(self._delete_all("science_standoff"))

@@ -66,15 +66,24 @@ No node publishes robot velocity, Sport API requests, navigation goals or SLAM d
 `/science/target_coarse_point_map`消息作为同一帧处理。每帧执行一对一最近邻关联，
 默认只在map XY距离不超过`association_radius=0.20 m`时更新已有轨迹，且同一轨迹
 在一帧内最多累计一次。新轨迹从`CANDIDATE`开始，在5个不同帧中累计关联后成为
-`CONFIRMED`；位置取最近15次观测各坐标的median。ID从1单调分配，在节点本次生命
-周期内稳定。
+`CONFIRMED`；位置取最近15次观测各坐标的median。每条track记录`first_seen`、
+`last_seen`、`observation_count`和`CANDIDATE / CONFIRMED / STALE`状态。默认1 s未更新
+的candidate删除，confirmed默认2 s未更新转为STALE、10 s未更新删除；STALE重新关联
+后恢复CONFIRMED，但处于STALE期间不能被selected。ID从1单调分配。
+
+两个active confirmed只有连续5帧的XY距离均小于`merge_radius=0.10 m`才合并；任一帧
+不再满足就清零该pair计数。保留状态更稳定、观测更多、首次出现更早（最后以较小ID
+打破平局）的track，合并两者当前观测窗口后重新计算median，并删除旧track。RViz
+每次发布先对confirmed sphere和label两个namespace发送`DELETEALL`，因此老化或合并
+掉的ID不会留下旧marker。该机制独立于`association_radius`，后者仍保持0.20 m。
 
 输出接口如下：
 
 - `/science/confirmed_targets` (`visualization_msgs/MarkerArray`)：同时显示全部已确认
   目标，sphere和文字标签均使用稳定ID，避免单一`marker id=0`覆盖。
 - `/science/selected_target` (`geometry_msgs/PointStamped`)及
-  `/science/selected_target_marker`：从未访问确认目标中选取map XY距机身中心最近者。
+  `/science/selected_target_marker`：只从active、`CONFIRMED`且未访问目标中选取map XY
+  距机身中心最近者；STALE、已删除/合并和visited目标均不参与。
 - `/science/standoff_goal` (`geometry_msgs/PointStamped`)及
   `/science/standoff_goal_marker`：从目标朝GO2当前中心方向退0.40 m；z使用GO2当前
   map高度。该点仅是可视化候选，不连接`/goal_point`。

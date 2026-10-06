@@ -12,6 +12,11 @@ science_target_manager:
     association_radius: 0.20
     confirmation_count: 5
     recent_window: 15
+    candidate_timeout_sec: 1.0
+    confirmed_stale_timeout_sec: 2.0
+    remove_timeout_sec: 10.0
+    merge_radius: 0.10
+    merge_confirmation_count: 5
     standoff_distance: 0.40
     frame_batch_timeout_sec: 0.05
     marker_scale_m: 0.16

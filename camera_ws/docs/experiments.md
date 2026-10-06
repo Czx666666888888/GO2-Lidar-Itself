@@ -425,3 +425,64 @@ No target detection, map transform or robot motion belongs in this experiment.
   或采集进程残留。原始CSV为`/tmp/science_motion_{baseline,forward,backward,left,
   right,rotate_left,rotate_right,diagonal}.csv`，ROS日志位于
   `/tmp/ros_log_science_motion_stability*`，均不在Git中。
+
+## 2026-10-06 — Target Lifecycle / Duplicate-ID Convergence
+
+- **Scope/safety:** 仅修改`science_target_manager`、其参数和单元测试；蓝色检测、蓝墙
+  过滤、`coarse_target_locator`与`camera_target_to_map`未改。实机只启动Point-LIO、
+  D435、上述只读感知/map链、`base_odom_node`、manager和RViz。运行时node清单不含
+  FAR、WP5、local planner、path follower或safety gate，`/goal_point`为Unknown topic；
+  Codex未发布运动命令，GO2全部位移由用户人工执行。
+- **Implementation:** track增加`first_seen`、`last_seen`、`observation_count`及
+  `CANDIDATE / CONFIRMED / STALE`；默认`candidate_timeout_sec=1.0`、
+  `confirmed_stale_timeout_sec=2.0`、`remove_timeout_sec=10.0`。STALE不参与selected，
+  再次关联可恢复CONFIRMED。confirmed pair必须连续5帧小于`merge_radius=0.10 m`才
+  合并，短暂接近会清零计数；保留状态/观测数/首次出现时间更优的ID，合并当前历史
+  窗口并重算median。`association_radius`保持0.20 m。日志包含`NEW_TRACK`、
+  `ASSOCIATED`、`CONFIRMED`、`STALE`、`REMOVED`、`MERGED old -> kept`及
+  `SELECTED_CHANGED`。confirmed sphere与label namespace均先DELETEALL，防止旧marker
+  残留。
+- **Build/tests:** `colcon build --symlink-install --packages-select
+  go2_science_perception`成功。package目录以系统Python和显式`PYTHONPATH`执行
+  `/usr/bin/python3 -m pytest test -q`为`48 passed`、2条既有SelectableGroups弃用
+  warning。新增测试覆盖candidate删除、confirmed转STALE、STALE不参与selected、
+  STALE最终删除、持续近邻合并、短暂近邻不合并、稳定ID保留、合并median、sphere与
+  label marker清除及既有0.40 m standoff。首次在`source /opt/ros/humble/setup.bash`
+  后直接运行pytest触发环境中的Python `types`模块冲突，未计为测试结果；按项目既有
+  系统Python方法重跑通过。
+- **Interrupted run:** 首轮forward采样期间用户报告意外关机；检查发现旧进程仍在，
+  且随后日志出现约`x=4997, y=15248, z=43866 m`的明显失效SLAM/map坐标。因此该轮
+  baseline/forward全部作废。Codex先Ctrl-C停止旧launch并同时确认OS进程与ROS graph
+  为空，再从新的Point-LIO/map原点完整重跑，绝不把失效窗口混入下表。
+- **Method:** 三个蓝色目标全程固定。新run前端/SLAM/map基准不重启；用户依次人工
+  完成baseline、forward、backward、left、right、rotate_left、rotate_right和
+  diagonal，每次用户确认停稳后采集15 s。表中位置为该稳定窗口confirmed sphere的
+  map均值；每个窗口均恰有3个active confirmed。
+
+| stage | active confirmed IDs | mean XY m（按空间目标：upper / near / lower） | selected | standoff XY |
+|---|---|---|---|---:|
+| baseline | T3,T4,T5 | (0.6928,0.1939) / (0.4645,-0.1002) / (0.6948,-0.1527) | T4 | 0.400 m |
+| forward | T3,T5,T26 | (0.7039,0.1862) / (0.4791,-0.1049) / (0.7058,-0.1610) | T26 | 0.400 m |
+| backward | T3,T5,T26 | (0.7245,0.2121) / (0.4871,-0.0872) / (0.7229,-0.1437) | T26 | 0.400 m |
+| left | T3,T5,T26 | (0.7178,0.1970) / (0.4834,-0.0956) / (0.7157,-0.1494) | T26 | 0.400 m |
+| right | T3,T5,T26 | (0.7392,0.1782) / (0.5036,-0.1179) / (0.7265,-0.1748) | T26 | 0.400 m |
+| rotate_left | T3,T5,T26 | (0.7428,0.1536) / (0.5005,-0.1398) / (0.7262,-0.1967) | T26 | 0.400 m |
+| rotate_right | T95,T26,T5 | (0.7317,0.2150) / (0.4959,-0.0895) / (0.7266,-0.1451) | T26 | 0.400 m |
+| diagonal | T105,T106,T5 | (0.7431,0.2125) / (0.5026,-0.0953) / (0.7385,-0.1509) | T106 | 0.400 m |
+
+- **Acceptance evidence:** 三个空间目标跨阶段均值最大两两XY差分别为upper
+  `64.28 mm`、near `54.32 mm`、lower `54.02 mm`，属于厘米级但仍有明确视角偏差，
+  不代表外参已标定。所有8个稳定窗口最终ACTIVE CONFIRMED均为3，未永久累积到7；
+  selected只引用当窗3个active confirmed之一，旧T4/T3/T26在STALE/删除后未继续被
+  选中。实机日志统计106个`NEW_TRACK`、14263次`ASSOCIATED`、21次`CONFIRMED`、
+  18次`STALE`、103次`REMOVED`和12次`SELECTED_CHANGED`，说明允许瞬态track且最终
+  收敛。本场景没有`MERGED`实机事件；持续合并只由单元测试验证，标记为
+  `NOT VERIFIED` for live merge trigger。各窗口standoff均为0.400 m。
+- **Runtime/cleanup:** 有效run前端最终`frames=5176, frames_with_targets=4914,
+  published_targets=14792, invalid=262`；map转换`14768/14768`成功、0失败。停止后
+  manager、前端和map转换干净退出；Point-LIO仍有既有Ctrl-C析构`exit code -11`，
+  `transform_everything`/`base_odom_node`仍有既有SIGINT/shutdown trace，均发生在采样
+  完成后。最终同时确认ROS node list为空且相关OS进程不存在。CSV位于
+  `/tmp/science_lifecycle_restart_{baseline,forward,backward,left,right,rotate_left,
+  rotate_right,diagonal}.csv`，日志位于
+  `/tmp/ros_log_science_lifecycle_restart_20261006`，均不在Git中。

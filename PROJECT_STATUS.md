@@ -1,6 +1,6 @@
 # Project Status
 
-更新日期：2026-10-02
+更新日期：2026-10-06
 状态来源：当前仓库静态阅读、根 `README.md` 的既有记录和 Git 历史。除非特别说明，本文件不代表本轮重新完成了真机构建或运行验证。
 
 ## Project Goal
@@ -176,6 +176,14 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
   偏差；旋转/斜移又产生T6/T11/T14/T17，最终7个confirmed ID对应3个真值，且
   selected转向额外track T14。standoff几何仍保持距selected 0.40 m，但目标语义不再
   可靠；当前结论仍为不得接入FAR或运动控制。
+- 2026-10-06仅为`science_target_manager`增加candidate/confirmed/stale生命周期、
+  超时删除、连续多帧confirmed合并和active-confirmed-only选择；关联半径仍为0.20 m，
+  FAR/WP5/规划/控制接口均未接入。48项package tests通过且独立build成功。三固定目标
+  的8阶段人工移动重跑中，每个15秒稳定窗口均收敛为3个ACTIVE CONFIRMED，selected
+  未引用STALE/已删除ID，standoff持续0.400 m；三个空间目标跨阶段均值最大XY差为
+  54.02–64.28 mm。实机发生STALE/REMOVED但未触发MERGED，因此合并实机触发仍为
+  `NOT VERIFIED`；完整证据见`camera_ws/docs/experiments.md`。外参仍为
+  `PROVISIONAL / NOT CALIBRATED`，仍不得接FAR或运动控制。
 
 ## Next Recommended Work
 
