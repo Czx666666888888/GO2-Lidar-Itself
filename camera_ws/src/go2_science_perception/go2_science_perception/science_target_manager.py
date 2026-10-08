@@ -13,7 +13,7 @@ import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from std_msgs.msg import Int32
+from std_msgs.msg import Empty, Int32
 from tf2_geometry_msgs import do_transform_point
 from tf2_ros import Buffer, TransformException
 from tf2_ros.transform_listener import TransformListener
@@ -108,7 +108,8 @@ class TargetTracker:
                  confirmed_stale_timeout_sec: float = 2.0,
                  remove_timeout_sec: float = 10.0,
                  merge_radius: float = 0.10,
-                 merge_confirmation_count: int = 5) -> None:
+                 merge_confirmation_count: int = 5,
+                 visited_radius: float = 0.15) -> None:
         if association_radius <= 0.0:
             raise ValueError("association_radius must be positive")
         if confirmation_count <= 0 or recent_window <= 0:
@@ -119,6 +120,8 @@ class TargetTracker:
             raise ValueError("remove_timeout_sec must exceed stale timeout")
         if merge_radius <= 0.0 or merge_confirmation_count <= 0:
             raise ValueError("merge settings must be positive")
+        if visited_radius <= 0.0:
+            raise ValueError("visited_radius must be positive")
         self.association_radius = float(association_radius)
         self.confirmation_count = int(confirmation_count)
         self.recent_window = int(recent_window)
@@ -127,6 +130,8 @@ class TargetTracker:
         self.remove_timeout_ns = int(remove_timeout_sec * 1e9)
         self.merge_radius = float(merge_radius)
         self.merge_confirmation_count = int(merge_confirmation_count)
+        self.visited_radius = float(visited_radius)
+        self.visited_positions: List[Point3] = []
         self.tracks: List[TargetTrack] = []
         self.next_id = 1
         self.merge_counts: Dict[Tuple[int, int], int] = {}
@@ -249,12 +254,36 @@ class TargetTracker:
 
     def confirmed_unvisited(self) -> List[TargetTrack]:
         return [track for track in self.tracks
-                if track.state == CONFIRMED and not track.visited]
+                if track.state == CONFIRMED and
+                self.visited_match(track.position) is None]
+
+    def visited_match(self, position: Point3) -> Optional[Tuple[int, float]]:
+        """Return the closest visited position strictly inside the XY radius."""
+        matches = [(index, xy_distance(position, visited))
+                   for index, visited in enumerate(self.visited_positions)]
+        if not matches:
+            return None
+        index, distance = min(matches, key=lambda item: item[1])
+        inside = (distance < self.visited_radius and
+                  not math.isclose(distance, self.visited_radius,
+                                   rel_tol=0.0, abs_tol=1e-9))
+        return (index, distance) if inside else None
+
+    def add_visited_position(
+            self, position: Point3) -> Tuple[bool, int, float]:
+        """Add a spatial visit or merge it with an existing nearby visit."""
+        match = self.visited_match(position)
+        if match is not None:
+            index, distance = match
+            return False, index, distance
+        self.visited_positions.append(tuple(float(value) for value in position))
+        return True, len(self.visited_positions) - 1, 0.0
 
     def mark_visited(self, target_id: int) -> bool:
         for track in self.tracks:
             if track.target_id == target_id and track.state == CONFIRMED:
                 track.visited = True
+                self.add_visited_position(track.position)
                 return True
         return False
 
@@ -273,6 +302,7 @@ class ScienceTargetManager(Node):
             "target_topic": "/science/target_coarse_point_map",
             "base_odom_topic": "/base_state_estimation",
             "visited_target_topic": "/science/visited_target_id",
+            "mark_selected_visited_topic": "/science/mark_selected_visited",
             "confirmed_marker_topic": "/science/confirmed_targets",
             "selected_target_topic": "/science/selected_target",
             "selected_marker_topic": "/science/selected_target_marker",
@@ -287,6 +317,7 @@ class ScienceTargetManager(Node):
             "remove_timeout_sec": 10.0,
             "merge_radius": 0.10,
             "merge_confirmation_count": 5,
+            "visited_radius": 0.15,
             "standoff_distance": 0.40,
             "frame_batch_timeout_sec": 0.05,
             "marker_scale_m": 0.16,
@@ -304,6 +335,7 @@ class ScienceTargetManager(Node):
             float(self.get_parameter("remove_timeout_sec").value),
             float(self.get_parameter("merge_radius").value),
             int(self.get_parameter("merge_confirmation_count").value),
+            float(self.get_parameter("visited_radius").value),
         )
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -313,6 +345,7 @@ class ScienceTargetManager(Node):
         self.batch_points: List[Point3] = []
         self.batch_updated_ns = 0
         self.selected_id: Optional[int] = None
+        self.logged_visited_matches = set()
 
         self.confirmed_markers = self.create_publisher(
             MarkerArray, self.get_parameter("confirmed_marker_topic").value, 10)
@@ -333,6 +366,9 @@ class ScienceTargetManager(Node):
         self.create_subscription(
             Int32, self.get_parameter("visited_target_topic").value,
             self._visited_callback, 10)
+        self.create_subscription(
+            Empty, self.get_parameter("mark_selected_visited_topic").value,
+            self._mark_selected_visited_callback, 10)
         self.create_timer(0.02, self._flush_expired_batch)
         self.get_logger().info(
             "Science target manager is visualization-only: it does not publish "
@@ -412,12 +448,38 @@ class ScienceTargetManager(Node):
         self._publish_outputs()
 
     def _visited_callback(self, message: Int32) -> None:
-        if self.tracker.mark_visited(int(message.data)):
-            self.get_logger().info(f"Marked target id={message.data} visited")
+        track = next((item for item in self.tracker.tracks
+                      if item.target_id == int(message.data) and
+                      item.state == CONFIRMED), None)
+        if track is not None:
+            self._store_visited(track.position)
+            track.visited = True
             self._publish_outputs()
         else:
             self.get_logger().warning(
                 f"Cannot mark unknown or unconfirmed target id={message.data} visited")
+
+    def _mark_selected_visited_callback(self, _message: Empty) -> None:
+        track = next((item for item in self.tracker.tracks
+                      if item.target_id == self.selected_id and
+                      item.state == CONFIRMED), None)
+        if track is None:
+            self.get_logger().warning(
+                "Cannot mark selected visited: no ACTIVE CONFIRMED selection")
+            return
+        self._store_visited(track.position)
+        track.visited = True
+        self._publish_outputs()
+
+    def _store_visited(self, position: Point3) -> None:
+        added, index, distance = self.tracker.add_visited_position(position)
+        if added:
+            self.get_logger().info(
+                f"VISITED_ADDED x={position[0]:.3f} y={position[1]:.3f} "
+                f"visited_index={index}")
+        else:
+            self.get_logger().info(
+                f"VISITED_DUPLICATE visited_index={index} distance={distance:.3f}")
 
     def _point_message(self, position: Point3) -> PointStamped:
         message = PointStamped()
@@ -452,7 +514,15 @@ class ScienceTargetManager(Node):
         markers = self._delete_all("science_confirmed").markers
         markers.extend(self._delete_all("science_confirmed_labels").markers)
         for track in confirmed:
-            color = VISITED_COLOR if track.visited else CONFIRMED_COLOR
+            match = self.tracker.visited_match(track.position)
+            color = VISITED_COLOR if match is not None else CONFIRMED_COLOR
+            if match is not None:
+                key = (track.target_id, match[0])
+                if key not in self.logged_visited_matches:
+                    self.get_logger().info(
+                        f"VISITED_MATCH track={track.target_id} "
+                        f"visited_index={match[0]} distance={match[1]:.3f}")
+                    self.logged_visited_matches.add(key)
             markers.append(self._sphere_marker(
                 track.target_id, "science_confirmed", track.position, color, scale))
             label = Marker()
@@ -468,8 +538,13 @@ class ScienceTargetManager(Node):
             label.scale.z = scale
             label.color.r, label.color.g, label.color.b = LABEL_COLOR
             label.color.a = 1.0
-            label.text = f"T{track.target_id}"
+            label.text = (f"T{track.target_id} visited/ignored"
+                          if match is not None else f"T{track.target_id}")
             markers.append(label)
+        for index, position in enumerate(self.tracker.visited_positions):
+            markers.append(self._sphere_marker(
+                index, "science_visited_positions", position,
+                VISITED_COLOR, scale * 0.75))
         self.confirmed_markers.publish(MarkerArray(markers=markers))
 
         selected = (self.tracker.nearest_unvisited(self.robot_position)

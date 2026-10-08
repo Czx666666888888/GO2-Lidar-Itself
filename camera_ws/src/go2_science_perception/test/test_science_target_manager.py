@@ -122,6 +122,56 @@ def test_confirmed_track_is_removed_after_remove_timeout():
     assert "REMOVED id=1 state=STALE" in events
 
 
+def test_marked_target_is_excluded_by_spatial_visit():
+    tracker = make_tracker(confirmation_count=1)
+    tracker.update_frame([(1.0, 0.0, 0.0), (2.0, 0.0, 0.0)], 1)
+    assert tracker.mark_visited(1)
+    assert tracker.nearest_unvisited((0.0, 0.0, 0.0)).target_id == 2
+
+
+def test_new_id_near_visited_position_is_still_excluded():
+    tracker = make_tracker(confirmation_count=1, visited_radius=0.15)
+    tracker.update_frame([(1.0, 0.0, 0.0)], 0)
+    tracker.add_visited_position(tracker.tracks[0].position)
+    tracker.expire(5 * NS)
+    tracker.update_frame([(1.10, 0.0, 0.0), (2.0, 0.0, 0.0)], 6 * NS)
+    assert [track.target_id for track in tracker.confirmed_unvisited()] == [3]
+
+
+def test_target_outside_visited_radius_remains_eligible():
+    tracker = make_tracker(confirmation_count=1, visited_radius=0.15)
+    tracker.add_visited_position((1.0, 0.0, 0.0))
+    tracker.update_frame([(1.15, 0.0, 0.0)], 1)
+    assert tracker.nearest_unvisited((0.0, 0.0, 0.0)).target_id == 1
+
+
+def test_multiple_visited_positions_filter_all_nearby_tracks():
+    tracker = make_tracker(confirmation_count=1)
+    tracker.add_visited_position((1.0, 0.0, 0.0))
+    tracker.add_visited_position((3.0, 0.0, 0.0))
+    tracker.update_frame([
+        (1.02, 0.0, 0.0), (2.0, 0.0, 0.0), (3.03, 0.0, 0.0)], 1)
+    assert [track.target_id for track in tracker.confirmed_unvisited()] == [2]
+
+
+def test_visited_positions_are_not_duplicated_inside_radius():
+    tracker = make_tracker(visited_radius=0.15)
+    first = tracker.add_visited_position((1.0, 2.0, 0.1))
+    duplicate = tracker.add_visited_position((1.10, 2.0, 9.0))
+    assert first == (True, 0, 0.0)
+    assert duplicate[0:2] == (False, 0)
+    assert duplicate[2] == pytest.approx(0.10)
+    assert tracker.visited_positions == [(1.0, 2.0, 0.1)]
+
+
+def test_nearest_unvisited_target_is_selected():
+    tracker = make_tracker(confirmation_count=1)
+    tracker.add_visited_position((1.0, 0.0, 0.0))
+    tracker.update_frame([
+        (1.02, 0.0, 0.0), (4.0, 0.0, 0.0), (2.0, 0.0, 0.0)], 1)
+    assert tracker.nearest_unvisited((0.0, 0.0, 0.0)).target_id == 3
+
+
 def test_close_confirmed_tracks_merge_only_after_consecutive_frames():
     tracker = make_tracker(confirmation_count=1, merge_confirmation_count=3)
     for stamp in range(1, 4):

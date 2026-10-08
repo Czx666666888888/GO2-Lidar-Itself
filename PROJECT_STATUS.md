@@ -184,6 +184,12 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
   54.02–64.28 mm。实机发生STALE/REMOVED但未触发MERGED，因此合并实机触发仍为
   `NOT VERIFIED`；完整证据见`camera_ws/docs/experiments.md`。外参仍为
   `PROVISIONAL / NOT CALIBRATED`，仍不得接FAR或运动控制。
+- 2026-10-08将manager完成语义改为实时track加map空间访问记忆：新增
+  `visited_positions`、默认`visited_radius=0.15 m`及
+  `/science/mark_selected_visited` Empty触发；新track ID只要位于visited半径内仍被
+  selected排除。54项package tests和隔离build通过；固定3目标的`3 -> 2 -> 1 -> 0`
+  真机验收因`enp12s0 NO-CARRIER`、无GO2 map输入而为`NOT VERIFIED`。D435仅确认USB
+  枚举存在。蓝色检测、蓝墙过滤、camera_to_map及无运动边界未改。
 
 ## Next Recommended Work
 

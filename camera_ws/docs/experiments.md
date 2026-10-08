@@ -486,3 +486,38 @@ No target detection, map transform or robot motion belongs in this experiment.
   `/tmp/science_lifecycle_restart_{baseline,forward,backward,left,right,rotate_left,
   rotate_right,diagonal}.csv`，日志位于
   `/tmp/ros_log_science_lifecycle_restart_20261006`，均不在Git中。
+
+## 2026-10-08 — Real-time Tracks with Visited Spatial Memory
+
+- **Scope/safety:** 仅修改`science_target_manager`、参数、测试和文档；蓝色检测、蓝墙
+  过滤、`coarse_target_locator`及`camera_target_to_map`未改。不接FAR、WP5、local
+  planner、path follower、safety gate或`/goal_point`，不发布任何运动命令。
+- **Implementation:** 保留`CANDIDATE / CONFIRMED / STALE / REMOVED`短期track生命周期，
+  不再以保持persistent ID作为完成目标。新增进程内`visited_positions` map位置集合和
+  参数`visited_radius=0.15 m`。`/science/mark_selected_visited` (`std_msgs/Empty`)把
+  当前selected的map位置加入集合；小于半径的重复位置合并。selected仅从active
+  confirmed且与所有visited位置XY距离均不小于半径的track中选择。旧
+  `/science/visited_target_id`保留为兼容入口，但也转换为空间位置记录。
+- **RViz/logging:** `/science/confirmed_targets`继续显示全部active confirmed；空间上已
+  访问的track改为灰色并标注`visited/ignored`，历史visited点使用
+  `science_visited_positions` namespace显示；selected红色只高亮真正未访问目标。
+  日志包含`VISITED_ADDED x=... y=...`、`VISITED_MATCH track=... visited_index=...
+  distance=...`、`VISITED_DUPLICATE`和`SELECTED_CHANGED`。
+- **Offline verification:** package目录执行
+  `PYTHONPATH="$PWD:$PYTHONPATH" /usr/bin/python3 -m pytest test -q`为`54 passed`，
+  另有2条既有`SelectableGroups`弃用warning。新增测试覆盖：访问A后排除、A换新ID且
+  靠近旧位置仍排除、半径边界及半径外目标可选、多个visited位置过滤、visited去重、
+  最近未访问目标选择；既有0.40 m standoff测试继续通过。隔离colcon build成功，
+  1个package完成。
+- **Process-start check:** 从隔离install overlay在宿主启动manager，节点到达
+  visualization-only安全边界日志；3 s外部`timeout`结束时出现既有
+  `ExternalShutdownException` traceback。随后确认ROS node list为空且无manager OS
+  进程。该项只证明进程能加载参数并启动，不证明topic、TF、marker或实机数据链。
+- **Three-target live acceptance:** `NOT VERIFIED`。2026-10-08只读前置检查确认D435
+  `8086:0b07`及`/dev/video0`至`/dev/video5`存在，但GO2有线接口`enp12s0`为
+  `NO-CARRIER`且无IP，ROS graph为空，无法获得UTLiDAR/Point-LIO/map输入。待固定3个
+  蓝色目标并保持只读链运行，
+  依次人工触发3次`/science/mark_selected_visited`，在人工移动GO2/改变视角且允许track
+  ID变化时记录eligible/unvisited数量`3 -> 2 -> 1 -> 0`、每个visited map位置、新旧
+  track ID、匹配距离、误过滤及重复selected。验收不要求原始相机检测数量下降；原始
+  检测仍应允许持续看到3个目标。

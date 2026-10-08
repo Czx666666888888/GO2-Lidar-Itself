@@ -56,7 +56,7 @@ RealSense D435
 | `blue_surface_center` | RGB, aligned depth, color CameraInfo | `/science/blue_surface_center`, debug window | Camera-frame perception only |
 | `coarse_target_locator` | RGB, aligned depth, color CameraInfo | 每目标一个`/science/target_coarse_point`, wall/target/centroid debug | Multi-target coarse camera-frame perception only |
 | `camera_target_to_map` | `/science/target_coarse_point`, TF | `/science/target_coarse_point_map`, Marker, `vehicle -> camera_link` static TF | Read-only map projection |
-| `science_target_manager` | `/science/target_coarse_point_map`, `/base_state_estimation`, optional `/science/visited_target_id` | confirmed/selected/standoff Point/MarkerArray topics | Target bookkeeping and visualization only; never publishes `/goal_point` or motion commands |
+| `science_target_manager` | `/science/target_coarse_point_map`, `/base_state_estimation`, `/science/mark_selected_visited`, optional legacy `/science/visited_target_id` | confirmed/visited/selected/standoff Point/MarkerArray topics | Target bookkeeping and visualization only; never publishes `/goal_point` or motion commands |
 
 No node publishes robot velocity, Sport API requests, navigation goals or SLAM data.
 
@@ -80,15 +80,26 @@ No node publishes robot velocity, Sport API requests, navigation goals or SLAM d
 输出接口如下：
 
 - `/science/confirmed_targets` (`visualization_msgs/MarkerArray`)：同时显示全部已确认
-  目标，sphere和文字标签均使用稳定ID，避免单一`marker id=0`覆盖。
+  目标，sphere和文字标签均使用track ID，避免单一`marker id=0`覆盖。位于访问半径内
+  的track显示为灰色`visited/ignored`；历史访问map点使用独立
+  `science_visited_positions` namespace显示。
 - `/science/selected_target` (`geometry_msgs/PointStamped`)及
   `/science/selected_target_marker`：只从active、`CONFIRMED`且未访问目标中选取map XY
-  距机身中心最近者；STALE、已删除/合并和visited目标均不参与。
+  距机身中心最近者；STALE、已删除/合并以及与任一历史visited位置XY距离小于
+  `visited_radius=0.15 m`的目标均不参与。track ID允许变化，排除依据是map空间位置。
 - `/science/standoff_goal` (`geometry_msgs/PointStamped`)及
   `/science/standoff_goal_marker`：从目标朝GO2当前中心方向退0.40 m；z使用GO2当前
   map高度。该点仅是可视化候选，不连接`/goal_point`。
-- `/science/visited_target_id` (`std_msgs/Int32`)：可选的状态输入；收到已确认ID后将其
-  标为visited并重新选择。当前阶段没有自动“到达即访问”判定。
+- `/science/mark_selected_visited` (`std_msgs/Empty`)：人工完成当前selected目标后触发；
+  将该track当前map位置写入`visited_positions`，若与已有位置小于0.15 m则合并，随后
+  立即重新选择。人工触发命令为：
+  `ros2 topic pub --once /science/mark_selected_visited std_msgs/msg/Empty '{}'`。
+- `/science/visited_target_id` (`std_msgs/Int32`)：兼容旧操作方式；收到active confirmed
+  ID后同样把该track当前位置写入空间记忆，不再以ID visited flag作为主要过滤逻辑。
+
+`visited_positions`是节点进程内空间记忆；manager重启后清空，当前未做磁盘持久化。
+日志包含`VISITED_ADDED`、`VISITED_MATCH`、`VISITED_DUPLICATE`和
+`SELECTED_CHANGED`，用于记录访问位置、新旧track命中距离及重选过程。
 
 `/base_state_estimation`的源码事实是`base_odom_node`复制Point-LIO里程计header；
 Point-LIO当前发布`header.frame_id=camera_init`，不是`map`。管理器首次收到里程计时

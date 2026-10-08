@@ -74,3 +74,9 @@
   连续多帧近邻合并及active-confirmed-only选择；2026-10-06三固定目标8阶段重跑的每个
   稳定窗口均收敛为3个ACTIVE CONFIRMED，standoff为0.400 m。实机未触发MERGED，
   合并实机触发仍为`NOT VERIFIED`，且54.02–64.28 mm视角偏差/暂定外参仍禁止FAR接入。
+- [x] 将访问状态改为不依赖track ID的map空间记忆：默认0.15 m半径、Empty触发完成当前
+  selected、visited/ignored与历史点RViz marker、空间过滤及兼容旧ID入口；54项package
+  tests和隔离build通过。
+- [ ] 用3个固定蓝色目标完成visited空间记忆真机验收：人工移动/转动视角并允许ID变化，
+  记录eligible/unvisited数量`3 -> 2 -> 1 -> 0`、匹配距离、误过滤和重复selected；
+  当前`NOT VERIFIED`，且仍禁止FAR和运动命令。
