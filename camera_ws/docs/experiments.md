@@ -521,3 +521,47 @@ No target detection, map transform or robot motion belongs in this experiment.
   ID变化时记录eligible/unvisited数量`3 -> 2 -> 1 -> 0`、每个visited map位置、新旧
   track ID、匹配距离、误过滤及重复selected。验收不要求原始相机检测数量下降；原始
   检测仍应允许持续看到3个目标。
+
+## 2026-11-03 — Three-target Map, Visited Memory and FAR Dry-run Gate
+
+- **Scope/safety:** GO2仅由用户人工移动并确认停稳；Codex未发送运动、武装、Sport或
+  safety-gate命令。FAR阶段未启动WP5和safety gate。`pathFollower`只到
+  `/cmd_vel_raw`；没有本机节点发布`/api/sport/request`。GO2 DDS中可见的9个bare-DDS
+  Sport request端点不是本轮本机启动节点。
+- **Stage 1 — PASS with accepted limitation:** 完整TF链为
+  `camera_color_optical_frame -> camera_link -> vehicle -> sensor -> aft_mapped ->
+  camera_init -> map`，不是只替换frame_id。初始15 s为50/50帧3目标、150个map点、TF
+  失败0；后退恢复窗口67/67帧3目标，旋转窗口85/85帧3目标。人工前进时近处目标离开
+  视野，55/55帧只剩2目标；后退后以新ID恢复。用户明确接受“导航到最近目标后重新
+  识别”的刷新语义。旋转后相对初始XY变化约43.0、39.7、56.6 mm；selected与
+  standoff距离约0.402 m。该结果只支持目标可见时的厘米级map标记，不是外参标定。
+- **Stage 2 — PASS with false-positive limitation:** 最终干净manager的T1/T2/T3依次访问，
+  日志为`VISITED_ADDED`后`SELECTED_CHANGED 2->1->3->None`，eligible完成
+  `3 -> 2 -> 1 -> 0`。RViz一帧确认3个track均为灰色`visited/ignored`，并有3个独立
+  `science_visited_positions` marker。遮挡原T2直到active marker消失，再露出后生成
+  T70；`VISITED_MATCH track=70 visited_index=0 distance=0.028`，selected保持None，证明
+  0.15 m空间记忆不依赖track ID。无遮挡恢复后连续12 s无新增confirmed或selected
+  切换。遮挡物进入画面时曾造成短暂额外蓝色track/selected切换，必须记录为限制。
+- **Runtime incident:** 第一轮Point-LIO的`transform_everything`在运行约9分41秒后
+  `exit -11`，导致state/registered cloud停止而原始UTLiDAR仍约15 Hz。仅重启transform
+  造成map坐标跳变和大量新track，该数据全部作废；随后完整重启SLAM并重新建立干净
+  manager。有效visited结果来自完整重启后的同一map基准。
+- **Stage 3 implementation:** 新增`science_goal_bridge`，订阅
+  `/science/standoff_goal`，只接受有限的`map` frame点，锁定首个有效点并仅向
+  `/goal_point`发布一次，忽略后续selected变化。D435 RViz增加`/path`显示。包目录测试
+  `56 passed`（2条既有SelectableGroups warning），独立symlink build成功。
+- **Stage 3 runtime — NOT PASSED:** 复用现有
+  `system_real_robot_with_route_planner.launch`启动Point-LIO、terrain、FAR、localPlanner、
+  pathFollower和graph decoder；定位约14.8 Hz。WP5、安全门、自动武装均未启动。FAR
+  RViz Goal Tool会注册第二个`/goal_point` publisher，因此将该RViz停止并改用D435 RViz
+  看`/path`。启动污染轮bridge曾发布`map (0.507,0.049,0.021)`，但当时manager同时确认
+  多个启动误检，该轮明确作废。清理manager/bridge后，干净轮先确认T1/T2/T3并选择
+  T3，随后又确认额外T6且selected从T3切到T6；因此在重新启动bridge前按安全规则停止。
+  有效科学目标是否被FAR接收、`/way_point`、`/path`和`/cmd_vel_raw`均为
+  `NOT VERIFIED`，没有生成可验收规划路径。
+- **Cleanup:** 所有D435、Point-LIO、target、FAR、terrain、localPlanner、pathFollower、
+  bridge和RViz进程最终均不存在。停止阶段Point-LIO仍出现既有`exit -11`，localPlanner、
+  pathFollower及terrain进程出现`exit -6`；均发生于Ctrl-C清理，需后续单独调查。
+  主要日志在`/tmp/science_stage2_*_20261103`、`/tmp/science_far_nav_20261103`、
+  `/tmp/science_far_perception_20261103_run2`、`/tmp/science_far_manager_clean_20261103`及
+  `/tmp/science_far_upstream_restart_20261103`，不在Git中。

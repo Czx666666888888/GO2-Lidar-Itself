@@ -37,6 +37,11 @@ Visualization Manager:
       Topic:
         Value: /science/standoff_goal_marker
       Value: true
+    - Class: rviz_default_plugins/Path
+      Name: Planned Local Path
+      Topic:
+        Value: /path
+      Value: true
     - Class: rviz_default_plugins/TF
       Name: TF
       Value: true

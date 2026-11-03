@@ -57,8 +57,11 @@ RealSense D435
 | `coarse_target_locator` | RGB, aligned depth, color CameraInfo | 每目标一个`/science/target_coarse_point`, wall/target/centroid debug | Multi-target coarse camera-frame perception only |
 | `camera_target_to_map` | `/science/target_coarse_point`, TF | `/science/target_coarse_point_map`, Marker, `vehicle -> camera_link` static TF | Read-only map projection |
 | `science_target_manager` | `/science/target_coarse_point_map`, `/base_state_estimation`, `/science/mark_selected_visited`, optional legacy `/science/visited_target_id` | confirmed/visited/selected/standoff Point/MarkerArray topics | Target bookkeeping and visualization only; never publishes `/goal_point` or motion commands |
+| `science_goal_bridge` | `/science/standoff_goal` | `/goal_point` | Optional one-shot FAR dry-run adapter; locks the first finite `map` goal and ignores later selected changes |
 
-No node publishes robot velocity, Sport API requests, navigation goals or SLAM data.
+The perception and manager nodes do not publish robot velocity, Sport API requests or
+SLAM data. `science_goal_bridge` is the only optional navigation-goal publisher and is
+not part of the normal D435 validation launch.
 
 ### Science target manager
 
@@ -89,7 +92,8 @@ No node publishes robot velocity, Sport API requests, navigation goals or SLAM d
   `visited_radius=0.15 m`的目标均不参与。track ID允许变化，排除依据是map空间位置。
 - `/science/standoff_goal` (`geometry_msgs/PointStamped`)及
   `/science/standoff_goal_marker`：从目标朝GO2当前中心方向退0.40 m；z使用GO2当前
-  map高度。该点仅是可视化候选，不连接`/goal_point`。
+  map高度。正常感知launch中该点仅是可视化候选；仅在显式启动
+  `science_goal_bridge`的FAR dry-run中，首个有效map-frame点会被一次性转发。
 - `/science/mark_selected_visited` (`std_msgs/Empty`)：人工完成当前selected目标后触发；
   将该track当前map位置写入`visited_positions`，若与已有位置小于0.15 m则合并，随后
   立即重新选择。人工触发命令为：
@@ -109,7 +113,9 @@ Point-LIO当前发布`header.frame_id=camera_init`，不是`map`。管理器首�
 实机确认。
 
 安全边界：管理器没有`/goal_point` publisher，不启动FAR/WP5/local planner/path
-follower/safety gate，也不发布速度或GO2 Sport请求。
+follower/safety gate，也不发布速度或GO2 Sport请求。可选bridge只发布一次
+`PointStamped /goal_point`，拒绝非map frame及非有限数值，并锁定首个目标；它不发布
+`/way_point`、`/path`、`/cmd_vel_raw`或GO2 Sport请求。
 
 ## Coordinate Systems
 

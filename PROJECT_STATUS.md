@@ -190,6 +190,17 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
   selected排除。54项package tests和隔离build通过；固定3目标的`3 -> 2 -> 1 -> 0`
   真机验收因`enp12s0 NO-CARRIER`、无GO2 map输入而为`NOT VERIFIED`。D435仅确认USB
   枚举存在。蓝色检测、蓝墙过滤、camera_to_map及无运动边界未改。
+- 2026-11-03完成3个固定目标实机复测。用户接受视野变化导致目标短暂刷新；可见稳定
+  窗口中map变换连续且standoff为0.400–0.402 m。visited人工触发完成
+  `3 -> 2 -> 1 -> 0`；原T2遮挡后以新ID T70重新确认，并在距历史visited位置
+  0.028 m处继续显示`visited/ignored`，证明过滤不依赖track ID。遮挡和启动瞬间仍会
+  产生蓝色误检，属于已知限制。
+- 同日增加最小一次性`science_goal_bridge`，只接受有限`map` frame standoff并锁定首个
+  目标转发到`/goal_point`。56项package tests和独立build通过。FAR/terrain/localPlanner/
+  pathFollower在不启动WP5、安全门、武装或Sport输出的条件下启动；FAR自带RViz因注册
+  第二个`/goal_point` publisher而被停止。启动污染轮的一次goal发布已作废，干净轮因
+  额外T6确认并抢占selected而在bridge启动前停止。因此有效FAR收目标、`/way_point`、
+  `/path`及`/cmd_vel_raw`均仍为`NOT VERIFIED`。
 
 ## Next Recommended Work
 

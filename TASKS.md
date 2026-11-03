@@ -77,6 +77,10 @@
 - [x] 将访问状态改为不依赖track ID的map空间记忆：默认0.15 m半径、Empty触发完成当前
   selected、visited/ignored与历史点RViz marker、空间过滤及兼容旧ID入口；54项package
   tests和隔离build通过。
-- [ ] 用3个固定蓝色目标完成visited空间记忆真机验收：人工移动/转动视角并允许ID变化，
-  记录eligible/unvisited数量`3 -> 2 -> 1 -> 0`、匹配距离、误过滤和重复selected；
-  当前`NOT VERIFIED`，且仍禁止FAR和运动命令。
+- [x] 用3个固定蓝色目标完成visited空间记忆真机验收：2026-11-03人工触发后eligible
+  `3 -> 2 -> 1 -> 0`；遮挡原T2后重新出现为T70，仍以map XY距离0.028 m命中旧visited
+  位置并保持排除。遮挡动作曾造成短暂蓝色误检，恢复稳定12 s后selected持续为空。
+- [ ] FAR science goal dry-run：已增加一次性`science_goal_bridge`并完成56项package tests、
+  独立build和接口审计；现场启动污染轮曾把`(0.507,0.049,0.021)`发给FAR，但该轮因
+  启动误检作废。干净重试又确认额外T6并导致selected切换，按安全门槛停止，尚未获得
+  有效科学目标的`/goal_point -> /way_point -> /path -> /cmd_vel_raw`完整证据。
