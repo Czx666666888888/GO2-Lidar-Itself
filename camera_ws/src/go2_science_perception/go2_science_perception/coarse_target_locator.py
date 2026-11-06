@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass
 import math
+import json
 from typing import List, Optional, Tuple
 
 import cv2
@@ -13,6 +14,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import CameraInfo, Image
+from std_msgs.msg import String
 
 
 @dataclass
@@ -348,6 +350,10 @@ class CoarseTargetLocator(Node):
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
+        self.debug_publisher = self.create_publisher(String, '/science/detection_debug', 10)
+        self.mask_publisher = self.create_publisher(Image, '/science/detection_mask', 1)
+        self.color_header = None
+        self.last_invalid_reason = ''
         self.bridge = CvBridge()
         self.color: Optional[np.ndarray] = None
         self.depth_m: Optional[np.ndarray] = None
@@ -393,6 +399,7 @@ class CoarseTargetLocator(Node):
         try:
             self.color = self.bridge.imgmsg_to_cv2(msg, "bgr8").copy()
             self.color_stamp = self._stamp_seconds(msg.header.stamp)
+            self.color_header = msg.header
         except CvBridgeError as exc:
             self._warn(f"RGB conversion failed: {exc}")
 
@@ -416,6 +423,7 @@ class CoarseTargetLocator(Node):
         self.camera_size = (msg.width, msg.height)
 
     def _warn(self, reason):
+        self.last_invalid_reason = reason
         now = self.get_clock().now().nanoseconds * 1e-9
         if now - self.last_warning_time >= 2.0:
             self.get_logger().warning(f"INVALID: {reason}")
@@ -446,6 +454,32 @@ class CoarseTargetLocator(Node):
         )
 
     def _draw_debug(self, raw, wall, remaining, candidates):
+        # Reuse this exact detector result; recorder does not run another HSV detector.
+        detections = []
+        for target in candidates:
+            contours, _ = cv2.findContours(
+                target.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            detections.append({
+                'accepted': bool(target.accepted),
+                'center': [float(v) for v in target.centroid],
+                'area': int(np.count_nonzero(target.mask)),
+                'valid_depth_points': int(target.valid_depth_points),
+                'depth_m': float(target.median_depth_m),
+                'contours': [cv2.approxPolyDP(c, 1.5, True).reshape(-1, 2).tolist()
+                             for c in contours],
+            })
+        self.debug_publisher.publish(String(data=json.dumps({
+            'color_stamp_ns': int(round(self.color_stamp*1e9)),
+            'depth_stamp_ns': int(round(self.depth_stamp*1e9)),
+            'received_ns': self.get_clock().now().nanoseconds,
+            'reason': self.last_invalid_reason, 'targets': detections,
+            'raw_mask_pixels': int(np.count_nonzero(raw)),
+            'wall_detected': bool(wall.detected),
+        })))
+        if self.color_header is not None:
+            mask_msg = self.bridge.cv2_to_imgmsg(raw, encoding='mono8')
+            mask_msg.header = self.color_header
+            self.mask_publisher.publish(mask_msg)
         if not bool(self.get_parameter("show_debug").value) or self.color is None:
             return
         annotated = self.color.copy()
@@ -490,6 +524,7 @@ class CoarseTargetLocator(Node):
         if self.depth_stamp == self.last_processed_stamp:
             return
         self.last_processed_stamp = self.depth_stamp
+        self.last_invalid_reason = ''
         empty = np.zeros(self.color.shape[:2], dtype=np.uint8)
         if (
             self.color.shape[:2] != self.depth_m.shape

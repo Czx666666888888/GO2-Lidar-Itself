@@ -198,3 +198,15 @@ observed_ns、first_seen_ns、visited），原接口保持兼容。接近控制�
 FAR/WP5/localPlanner/pathFollower不参与此实验。阶段一因误选伪目标尚未通过；
 用户后续授权两次实机，方向及视觉丢失后实际停车由用户确认；0.80 m定距停车与实际
 速度上限仍NOT VERIFIED。远程相机Foxy配置、启动和验证边界见 `science_target_approach.md`。
+
+## MAP锚点相机原点模式（858f75a后续）
+
+接近节点现以短窗口中位数建立MAP锚点；锁定ID只作标识，后续观测按初始锚点与当前锚点
+双重空间门槛关联并平滑修正。track删除/刷新不删除锚点。VISUAL使用新鲜观测修正，ODOM
+持有锚点、仍依实时Point-LIO及map->camera_link TF闭环。终点为相机原点MAP XY距离≤0.10 m。
+原body_center模式仅保留兼容。允许真实ODOM但有时间/实测路径边界，定位/TF异常仍停止。
+
+coarse_target_locator新增只读`/science/detection_debug` String及`/science/detection_mask`
+Image；算法不变。approach_video_recorder消费实际RGB和该检测结果及控制status，输出MP4+
+JSONL并发布`/science/approach/recording`健康状态；控制器可要求录像健康。默认launch为
+预览+录像，显式运行脚本才经原gate执行一次，并默认打开只读日志终端。见运行说明与实验记录。

@@ -3,12 +3,20 @@
 from collections import deque
 from dataclasses import dataclass
 import math
+from statistics import median
 
 
 @dataclass
 class Settings:
     """Experiment limits; the adapter exposes every field as a ROS parameter."""
 
+    stop_reference: str = 'body_center'
+    stop_xy_tolerance: float = 0.10
+    anchor_window_sec: float = 2.0
+    anchor_min_observations: int = 5
+    anchor_max_spread: float = 0.08
+    anchor_association_radius: float = 0.20
+    anchor_alpha: float = 0.15
     stop_distance: float = 0.8
     distance_tolerance: float = 0.03
     kp_linear: float = 0.5
@@ -38,11 +46,17 @@ class Settings:
     def __post_init__(self):
         """Reject invalid limits rather than silently weakening safety bounds."""
         for name, value in vars(self).items():
-            if name != 'allow_odom' and (not math.isfinite(value) or value <= 0):
+            if (name not in ('allow_odom', 'stop_reference') and
+                    (not math.isfinite(value) or value <= 0)):
                 raise ValueError(f'{name} must be finite and positive')
         if self.max_linear_speed > 0.3 or self.max_angular_speed > 0.3:
             raise ValueError('experiment speed cap is 0.30')
-        if self.stop_distance < 0.6 or self.distance_tolerance >= self.stop_distance:
+        if self.stop_reference not in ('body_center', 'camera_origin'):
+            raise ValueError('unknown stop reference')
+        if self.anchor_alpha > 1:
+            raise ValueError('anchor_alpha must be <= 1')
+        if self.stop_reference == 'body_center' and (
+                self.stop_distance < 0.6 or self.distance_tolerance >= self.stop_distance):
             raise ValueError('unsafe standoff/tolerance')
 
 
@@ -71,6 +85,14 @@ class ApproachControl:
         self.actual_speed = self.closing_speed = self.vx = 0.0
         self.pose_history = deque()
         self.initial_distance = None
+        self.camera = None
+        self.camera_time = -math.inf
+        self.camera_history = deque()
+        self.camera_speed = self.camera_closing_speed = 0.0
+        self.anchor_initial = self.anchor_lock_camera = None
+        self.histories = {}
+        self.anchor_stamp = -math.inf
+        self.anchor_updates = self.anchor_rejections = 0
 
     def fault(self, reason):
         """Latch a fault; never restart on data recovery."""
@@ -108,30 +130,83 @@ class ApproachControl:
                     distance * (now - t0), 1e-9)
         self.robot, self.odom_time = (x, y, yaw), now
 
+    def camera_pose(self, x, y, now):
+        """Consume the actual timestamped map-to-camera TF translation."""
+        if not all(math.isfinite(v) for v in (x, y, now)):
+            self.fault('invalid camera TF')
+            return
+        self.camera, self.camera_time = (x, y), now
+        self.camera_history.append((now, x, y))
+        while (len(self.camera_history) > 2 and
+               self.camera_history[1][0] <= now - self.p.speed_window_sec):
+            self.camera_history.popleft()
+        t0, x0, y0 = self.camera_history[0]
+        if now > t0:
+            self.camera_speed = math.hypot(x-x0, y-y0) / (now-t0)
+            if self.target is not None:
+                dx, dy = self.target[0]-x, self.target[1]-y
+                self.camera_closing_speed = ((x-x0)*dx + (y-y0)*dy) / max(
+                    math.hypot(dx, dy)*(now-t0), 1e-9)
+
+    def reference(self):
+        """Return the selected stopping reference in map XY."""
+        return self.camera if self.p.stop_reference == 'camera_origin' else (
+            self.robot[:2] if self.robot is not None else None)
+
     def observations(self, tracks, now):
-        """Consume ID, position, state, visited and original observation age."""
-        self.tracks = tracks
-        self.snapshot_time = now
+        """Keep a spatial anchor across missing, merged or changed track IDs."""
+        self.tracks, self.snapshot_time = tracks, now
+        for t in tracks:
+            if (t['state'] != 'CONFIRMED' or t['visited'] or
+                    not 0 <= t['age'] <= self.p.visual_timeout):
+                continue
+            observed = now - t['age']
+            history = self.histories.setdefault(t['id'], deque(maxlen=40))
+            if not history or observed > history[-1][0] + 0.001:
+                history.append((observed, tuple(t['position'][:2])))
+            while history and now-history[0][0] > self.p.anchor_window_sec:
+                history.popleft()
         if self.lock_id is None or self.state in ('STOP', 'FAULT'):
             return
-        track = next((t for t in tracks if t['id'] == self.lock_id), None)
-        if track is None:
-            # Removal/merge cannot silently reassign the locked identity.
-            self.fault('locked target removed or merged')
-            return
-        if track['visited']:
-            self.fault('locked target marked visited')
-            return
-        if track['state'] == 'CONFIRMED' and 0 <= track['age'] <= self.p.visual_timeout:
-            point = track['position']
-            jump = math.hypot(point[0] - self.target[0], point[1] - self.target[1])
-            if jump > self.p.target_jump_m:
+        if self.p.stop_reference == 'body_center':
+            old = next((t for t in tracks if t['id'] == self.lock_id), None)
+            if old is None:
+                self.fault('locked target removed or merged')
+                return
+            if math.dist(tuple(old['position'][:2]), self.target) > self.p.target_jump_m:
                 self.fault('target position jump')
                 return
-            self.target = tuple(point[:2])
-            self.visual_time = now - track['age']
-            self.lost_at = None
-            self.odom_travel = 0.0
+        near = []
+        for t in tracks:
+            if t['state'] != 'CONFIRMED' or not 0 <= t['age'] <= self.p.visual_timeout:
+                continue
+            point = tuple(t['position'][:2])
+            if t['visited']:
+                if t['id'] == self.lock_id:
+                    self.fault('locked target marked visited')
+                continue
+            initial = self.anchor_initial or self.target
+            if (math.dist(point, initial) > self.p.anchor_association_radius or
+                    math.dist(point, self.target) > self.p.target_jump_m):
+                if t['id'] == self.lock_id:
+                    self.anchor_rejections += 1
+                continue
+            near.append(t)
+        # Ambiguous reacquisition never chooses a different physical target.
+        if len(near) != 1:
+            return
+        t = near[0]
+        observed = now-t['age']
+        if observed <= self.anchor_stamp + 0.001:
+            return
+        alpha = self.p.anchor_alpha
+        self.target = tuple((1-alpha)*old + alpha*new
+                            for old, new in zip(self.target, t['position'][:2]))
+        self.anchor_stamp = observed
+        self.visual_time = observed
+        self.anchor_updates += 1
+        self.lost_at = None
+        self.odom_travel = 0.0
 
     def candidate(self, now):
         """Preview the nearest eligible target; refuse an unstable nearest ID."""
@@ -156,47 +231,89 @@ class ApproachControl:
         if (t is None or t.get('lifetime', 0.0) < self.p.lock_stability_sec or
                 (target_id is not None and target_id != t['id'])):
             return False
-        self.lock_id, self.target = t['id'], tuple(t['position'][:2])
+        reference = self.reference()
+        if reference is None:
+            return False
+        if self.p.stop_reference == 'camera_origin':
+            history = [point for stamp, point in self.histories.get(t['id'], [])
+                       if now-stamp <= self.p.anchor_window_sec]
+            if len(history) < self.p.anchor_min_observations:
+                return False
+            point = tuple(median(p[i] for p in history) for i in (0, 1))
+            if max(math.dist(p, point) for p in history) > self.p.anchor_max_spread:
+                return False
+        else:
+            point = tuple(t['position'][:2])
+        self.lock_id, self.target = t['id'], point
+        self.anchor_initial = point
+        self.anchor_lock_camera = reference
+        self.anchor_stamp = self.snapshot_time-t['age']
         self.visual_time = self.snapshot_time - t['age']
-        self.state, self.started = 'LOCK_TARGET', now
-        self.initial_distance = math.hypot(self.target[0] - self.robot[0],
-                                           self.target[1] - self.robot[1])
+        self.state = 'LOCK_TARGET'
+        self.started = now if self.p.stop_reference == 'body_center' else None
+        self.initial_distance = math.hypot(self.target[0] - reference[0],
+                                           self.target[1] - reference[1])
+        return True
+
+    def start(self, now):
+        """Start a previously reviewed camera anchor only on a second manual command."""
+        if (self.state != 'LOCK_TARGET' or self.started is not None or
+                now-self.odom_time > self.p.odom_timeout or
+                now-self.camera_time > self.p.odom_timeout or
+                now-self.feedback_time > self.p.feedback_timeout):
+            return False
+        self.started = now
         return True
 
     def step(self, now):
         """Return telemetry plus bounded desired velocity; terminal states stay zero."""
         dt = 1 / self.p.control_rate_hz if self.last_tick is None else now - self.last_tick
         self.last_tick = now
-        active = self.state not in ('IDLE', 'STOP', 'FAULT')
+        active = self.state not in ('IDLE', 'STOP', 'FAULT') and self.started is not None
         if active:
             if dt <= 0 or dt > self.p.odom_timeout:
                 self.fault('control loop deadline')
             elif now - self.odom_time > self.p.odom_timeout:
                 self.fault('localization timeout')
+            elif (self.p.stop_reference == 'camera_origin' and
+                  now-self.camera_time > self.p.odom_timeout):
+                self.fault('camera TF timeout')
             elif now - self.feedback_time > self.p.feedback_timeout:
                 self.fault('GO2 feedback timeout')
             elif now - self.started > self.p.max_run_time:
                 self.fault('run timeout')
         out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'wz': 0.0,
                'target_id': self.lock_id, 'target': self.target, 'robot': self.robot,
-               'actual_speed': self.actual_speed, 'eta': None,
+               'actual_speed': self.actual_speed, 'camera_speed': self.camera_speed,
+               'camera': self.camera, 'target_map_anchor': self.target,
+               'anchor_initial': self.anchor_initial, 'anchor_updates': self.anchor_updates,
+               'anchor_rejections': self.anchor_rejections,
+               'visual_age': now-self.visual_time if math.isfinite(self.visual_time) else None,
+               'visual_visible': now-self.visual_time <= self.p.visual_timeout, 'eta': None,
                'initial_distance': self.initial_distance,
                'elapsed': now - self.started if self.started is not None else 0.0,
                'visual_lost_at': self.lost_at,
                'candidate': self.candidate(now) if self.state == 'IDLE' else None}
-        if self.robot is None or self.target is None:
+        reference = self.reference()
+        if self.robot is None or self.target is None or reference is None:
             return out
-        dx, dy = self.target[0] - self.robot[0], self.target[1] - self.robot[1]
+        dx, dy = self.target[0] - reference[0], self.target[1] - reference[1]
         distance = math.hypot(dx, dy)
-        remaining = max(0.0, distance - self.p.stop_distance)
+        camera_mode = self.p.stop_reference == 'camera_origin'
+        stop_distance = 0.0 if camera_mode else self.p.stop_distance
+        tolerance = self.p.stop_xy_tolerance if camera_mode else self.p.distance_tolerance
+        remaining = max(0.0, distance - stop_distance)
+        speed = self.camera_speed if camera_mode else self.actual_speed
+        closing = self.camera_closing_speed if camera_mode else self.closing_speed
         error = angle(math.atan2(dy, dx) - self.robot[2])
-        brake = (self.actual_speed ** 2 / (2 * self.p.max_deceleration)
-                 + self.actual_speed * self.p.braking_latency)
+        brake = (speed ** 2 / (2 * self.p.max_deceleration)
+                 + speed * self.p.braking_latency)
         out.update(distance=distance, remaining=remaining, yaw_error=error,
-                   distance_error=distance - self.p.stop_distance,
+                   distance_error=distance - stop_distance,
+                   camera_distance_xy=distance if camera_mode else None,
                    braking_distance=brake,
-                   eta=remaining / self.closing_speed if self.closing_speed > 0.01 else None)
-        if self.state not in ('IDLE', 'STOP', 'FAULT'):
+                   eta=remaining / closing if closing > 0.01 else None)
+        if active and self.state not in ('STOP', 'FAULT'):
             if distance > self.p.max_target_range:
                 self.fault('target out of range')
             elif now - self.visual_time > self.p.visual_timeout:
@@ -211,21 +328,27 @@ class ApproachControl:
                 else:
                     self.state = 'APPROACH_ODOM'
             if self.state != 'FAULT':
-                if remaining <= self.p.distance_tolerance:
-                    self.state, self.reason = 'STOP', 'standoff reached'
+                if remaining <= tolerance:
+                    self.state = 'STOP'
+                    self.reason = 'camera XY aligned' if camera_mode else 'standoff reached'
+                elif (camera_mode and self.anchor_lock_camera is not None and
+                      sum((self.target[i]-reference[i]) *
+                          (self.anchor_initial[i]-self.anchor_lock_camera[i])
+                          for i in (0, 1)) < 0):
+                    self.fault('passed target plane outside XY tolerance')
                 else:
                     visual = now - self.visual_time <= self.p.visual_timeout
                     self.state = ('ALIGN' if abs(error) > self.p.align_yaw_threshold
                                   else 'APPROACH_VISUAL' if visual else 'APPROACH_ODOM')
                     # Solve v^2/(2a)+latency*v <= remaining minus tolerance.
-                    clearance = max(0.0, remaining - self.p.distance_tolerance / 2)
+                    clearance = max(0.0, remaining - tolerance / 2)
                     a, latency = self.p.max_deceleration, self.p.braking_latency
                     safe = math.sqrt((a * latency) ** 2 + 2 * a * clearance) - a * latency
                     desired = min(self.p.max_linear_speed, self.p.kp_linear * remaining, safe)
                     if abs(error) > self.p.align_yaw_threshold:
                         desired = 0.0
                     if brake >= clearance:
-                        desired = min(desired, max(0.0, self.actual_speed - a * dt))
+                        desired = min(desired, max(0.0, speed - a * dt))
                     self.vx = min(desired, self.vx + self.p.max_acceleration * dt)
                     out.update(vx=self.vx, wz=max(-self.p.max_angular_speed,
                                min(self.p.max_angular_speed, self.p.kp_angular * error)))

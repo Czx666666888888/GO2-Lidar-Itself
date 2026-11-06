@@ -31,7 +31,8 @@ class ScienceTargetApproach(Node):
         for field in fields(defaults):
             self.declare_parameter(field.name, getattr(defaults, field.name))
         for name, value in {'dry_run': True, 'map_frame': 'map',
-                            'future_tolerance': 0.10,
+                            'future_tolerance': 0.10, 'camera_frame': 'camera_link',
+                            'require_recording': False, 'recording_timeout': 2.0,
                             'log_directory': '/tmp'}.items():
             self.declare_parameter(name, value)
         self.core = ApproachControl(Settings(**{
@@ -39,10 +40,14 @@ class ScienceTargetApproach(Node):
         self.dry_run = self.get_parameter('dry_run').value
         self.map_frame = self.get_parameter('map_frame').value
         self.future_tolerance = self.get_parameter('future_tolerance').value
-        if not self.dry_run and self.core.p.allow_odom:
-            raise ValueError('live APPROACH_ODOM is gated pending stage 2 acceptance')
+        self.camera_frame = self.get_parameter('camera_frame').value
+        self.recording_at = -math.inf
+        self.recording_info = {}
+        self.sport_velocity = None
+        self.sport_state_info = {}
         log_dir = self.get_parameter('log_directory').value
         self.log_path = os.path.join(log_dir, f'science_approach_{time.time_ns()}.jsonl')
+        os.makedirs(log_dir, exist_ok=True)
         self.log_file = open(self.log_path, 'x', buffering=1)
         self.log_file.write(json.dumps({'parameters': vars(self.core.p),
                                         'dry_run': self.dry_run}) + '\n')
@@ -67,6 +72,8 @@ class ScienceTargetApproach(Node):
                                  qos_profile_sensor_data)
         self.create_subscription(SportModeState, '/lf/sportmodestate', self._feedback,
                                  qos_profile_sensor_data)
+        self.create_subscription(Empty, '/science/approach/start', self._start, 1)
+        self.create_subscription(String, '/science/approach/recording', self._recording, 10)
         self.create_subscription(Empty, '/science/approach/confirm', self._confirm, 1)
         self.create_subscription(
             Int32, '/science/approach/confirm_target_id', self._confirm_id, 1)
@@ -158,13 +165,52 @@ class ScienceTargetApproach(Node):
                 raise ValueError('invalid orientation quaternion')
             yaw = math.atan2(2*(q.w*q.z + q.x*q.y), 1-2*(q.y*q.y + q.z*q.z))
             # Sample time, not callback frequency, determines measured velocity.
-            self.core.pose(p.x, p.y, yaw, time.monotonic() - age)
+            sample_time = time.monotonic()-age
+            if self.core.p.stop_reference == 'camera_origin':
+                camera_tf = self.tf_buffer.lookup_transform(
+                    self.map_frame, self.camera_frame,
+                    rclpy.time.Time.from_msg(msg.header.stamp))
+                c = camera_tf.transform.translation
+                self.core.camera_pose(c.x, c.y, sample_time)
+            self.core.pose(p.x, p.y, yaw, sample_time)
             self.last_stamp = stamp
         except (ValueError, TransformException) as exc:
             self.core.fault(f'localization/TF: {exc}')
 
-    def _feedback(self, _msg):
+    def _feedback(self, msg):
         self.core.feedback_time = time.monotonic()
+        self.sport_state_info = {
+            'mode': int(msg.mode), 'gait_type': int(msg.gait_type),
+            'error_code': int(msg.error_code), 'yaw_speed': float(msg.yaw_speed)}
+        velocity = [float(v) for v in msg.velocity]
+        self.sport_velocity = velocity if all(math.isfinite(v) for v in velocity) else None
+
+    def _recording(self, msg):
+        try:
+            data = json.loads(msg.data)
+            self.recording_info = data
+            if data.get('active') and data.get('frames', 0) >= 10:
+                self.recording_at = time.monotonic()
+        except (ValueError, TypeError):
+            pass
+
+    def _recording_ready(self):
+        return (not self.get_parameter('require_recording').value or
+                time.monotonic()-self.recording_at <=
+                self.get_parameter('recording_timeout').value)
+
+    def _start(self, _msg):
+        now = time.monotonic()
+        if not self._recording_ready():
+            self.get_logger().warning('START_REJECTED: recording not healthy')
+            return
+        if not self.dry_run and now-self.gate_verified_at > 1.0:
+            self.get_logger().warning('START_REJECTED: gate not verified')
+            return
+        if self.core.start(now):
+            self.get_logger().info('MANUALLY_STARTED locked MAP anchor')
+        else:
+            self.get_logger().warning('START_REJECTED: lock/pose/TF/feedback not ready')
 
     def _confirm(self, _msg):
         if not self.dry_run:
@@ -209,7 +255,14 @@ class ScienceTargetApproach(Node):
         if (not self.dry_run and self.core.state not in ('IDLE', 'STOP', 'FAULT')
                 and now - self.gate_verified_at > 1.0):
             self.core.fault('gate profile or sole Sport publisher verification expired')
+        if self.core.started is not None and self.core.state not in ('STOP', 'FAULT'):
+            if not self._recording_ready():
+                self.core.fault('recording heartbeat lost')
         report = self.core.step(now)
+        report['sport_velocity'] = self.sport_velocity
+        report['sport_state'] = self.sport_state_info
+        report['camera_frame'] = self.camera_frame
+        report['recording'] = self.recording_info
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'vehicle'

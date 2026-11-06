@@ -69,3 +69,6 @@ id_rsa*
 id_ed25519*
 credentials*
 secrets*
+
+# Local approach experiment videos and synchronized motion records
+camera_ws/records/

@@ -678,3 +678,100 @@ No target detection, map transform or robot motion belongs in this experiment.
 - **Live evidence:** `/tmp/science_authorized_full_run_20261106.json`、
   `/tmp/science_approach_full_20261106.log`、`/tmp/science_gate_full_20261106.log`；
   完整逐周期控制日志路径记录在approach日志启动行。临时数据未提交Git。
+
+## 2026-11-06 — Camera-origin MAP Anchor Hybrid Approach (after 858f75a)
+
+### Prior visual-loss diagnosis
+
+- 来源：上一轮 `/tmp/science_approach_coarse_tuned_20261106.log`、
+  `/tmp/science_approach_readonly_slam_20261106.log`、manager日志及完整run JSON。
+  旧FAULT发生在1793962682.124附近，但2681.503/2681.628/2681.753及2682.132/2682.253
+  仍持续检测到目标。中心约(344,206)至(345,236)，在画面中部；面积874/714 px、有效
+  深度727/537点，超过250 px门槛，median depth约0.778/0.725 m。map转换成功且仍关联T1。
+- 主要证据支持：一次约0.38 s的检测/map输出间隔，叠加输入本身的时间年龄，触发旧
+  0.5 s新鲜度门槛，并非已证明物块出了视野、HSV消失、面积不足、depth失效或ID删除。
+  旧轮未录RGB，无法进一步唯一归因于传输、处理调度或RGB/depth配对，不将推断写成事实。
+  本轮未重新调整HSV、蓝墙或深度聚类算法，只增加真实检测轮廓/mask/诊断输出。
+
+### Implementation and preflight
+
+- 目标改为MAP空间锚点：确认前最近2 s不同观测的中位数，至少5个样本、最大散布0.08 m；
+  锁定后用alpha=0.15平滑修正。新观测必须同时匹配初始锚点0.20 m及当前锚点0.15 m。
+  ID删除/合并/刷新不删除锚点；多重近邻歧义或跳变不更新锚点，不切换其他物块。
+- `stop_reference=camera_origin`、`camera_frame=camera_link`、XY容差0.10 m，忽略Z。
+  通过原始odom时间戳的map->camera_link TF获取相机原点，包含旋转后的安装偏移；
+  不把机身中心冒充相机原点，也不硬加0.36 m。legacy body_center仅为兼容接口保留。
+- `allow_odom=true`已允许真实模式。视觉间断保持锚点并继续用实时Point-LIO/TF更新距离，
+  默认丢失后最多25 s或累计机身里程计路径2.0 m；定位/TF/时间/状态异常仍停车锁存。
+  相机越过锚点平面且不在容差内则FAULT，禁止绕回追逐目标。gate仍为唯一Sport输出，
+  min_speed=0，最大命令0.30；保留制动上界、加速度、lease、急停和超时。
+- 启动发现旧Point-LIO会话已发散：base odom约(-227345,117170)m、年龄0.952 s。
+  当时raw publisher=0，预览拒绝启动。用户再次通过局域网对时，重启只读SLAM/TF/manager
+  后坐标恢复米量级、odom年龄约-0.060 s，再重新建立锚点。未修改Point-LIO核心算法。
+- 用户报告方块10×10×10 mm（用户提供，未以量具复核），确认同一蓝色物块及沿途/终点
+  无机身、腿部、相机干涉，确认急停和监护并授权实机。后续明确要求录像、MAP锁定后
+  直接执行，不再逐次弹启动确认；成功轮按该明确授权自动执行一次，不自动重复。
+- PC录像直接使用实际RGB，叠加原检测器轮廓/中心点及HSV mask、锚点、相机坐标、XY距离、
+  速度、ID、状态和原RGB时间戳；ODOM继续录制并显示`TARGET LOST — MAP ODOM CONTROL`。
+  `DETECT=VISIBLE/LOST`表示当前检测，controller visual_visible表示map观测新鲜度，两者
+  可能不同。每个视频帧和10Hz控制数据保存到同名JSONL，可按RGB stamp/控制stamp对照。
+  录像健康丢失会拒绝启动/触发停车，MP4保留停车后画面。
+
+### Trial A — kp_linear=0.5, timeout FAIL
+
+- 完整实际录像：`camera_ws/records/approach_20261106_205502_671674.mp4`，同名JSONL；
+  run摘要：`camera_ws/records/run_1793969701623560310.json`。
+- 初始camera XY距离1.319 m；锁定ID13。活动采样325 VISUAL、21 ODOM、4 ALIGN。
+  最大命令0.30 m/s；最小距离0.24949 m，但未进入0.10 m范围。
+  8–15/15–25/25–35 s平均vx约0.126/0.149/0.151 m/s，对应Sport XY速度均值约
+  0.00982/0.00616/0.00627 m/s，后半段实际基本不推进。
+  35.037 s触发run timeout，首次FAULT距离0.31391 m，最后读数0.34196 m。
+- 用户现场报告误差35 cm，与最后MAP距离约34.2 cm相近。停止原因是总时限，不是视觉
+  丢失或到点。证据支持低速推进响应不足；未把命令下发当成物理执行，也未只延长时限。
+  该MP4完整解码1391/1391帧、640×480、15fps、37,328,529 bytes，记录保留为失败证据。
+
+### Trial B — kp_linear=1.0, camera XY stop PASS in this scene
+
+- 仅针对控制速度将运行YAML的kp_linear从0.5提高到1.0；安全门最低速度抬升仍关闭，
+  保留0.30上限、制动限速。总时限15 s，独立监督15.5 s停止；没有加入固定速度计时走法。
+- 本轮初始camera XY距离1.54973 m（启动前现场位置已变化），初始稳定中位数锚点
+  (1.365783,-0.180021)m。初始锁定阶段相机约(-0.175229,-0.056675)m。
+  锚点只平滑修正同一空间目标；终点锚点(1.394041,-0.126856)m，累计65次更新。
+  锁定ID全程为13，即使上游刷新仍依空间关联。
+- 采样76次APPROACH_VISUAL、2次APPROACH_ODOM、23次STOP。
+  最后连续ODOM从约7.627 s、camera XY约0.145 m开始，依实时位姿继续接近；
+  7.82724 s进入`STOP / camera XY aligned`，相机(1.311263,-0.122233)m，
+  XY误差0.082907 m，vx=wz=0并经gate发送StopMove。
+- 最后观测在10.02722 s：相机(1.299799,-0.131168)m，锚点(1.394041,-0.126856)m，
+  XY误差0.094341 m。9 s后稳定窗口误差min/median/max约0.08398/0.09976/0.13427 m，
+  存在厘米级Point-LIO/位姿抖动，不将最后一帧当成外部真值。
+- 用户现场明确报告：“可以这次距离物体10cm停止很好”。记录为本场景水平接近及停车
+  PASS（用户粗测约10 cm），与最后MAP约9.4 cm、中位约10.0 cm一致。
+  实测左右偏差未单独提供；这不是正式外参标定或重复精度统计。
+- 命令速度峰值0.30 m/s；Sport XY反馈峰值0.31597 m/s。反馈与命令不完全相同，不能
+  把软件限速写成真实速度严格不超过0.30的外部测量结论。
+  Sport原始mode/gait/error值现写入日志；本次error_code=100含义未确认，不擅自切换模式。
+- 成功录像绝对路径：
+  `/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261106_210841_496906.mp4`
+  同目录同名`.jsonl`含逐帧索引、原图时间戳、检测、控制及用户实测事件。
+  摘要：`camera_ws/records/run_1793970520470079235.json`。
+  MP4完整逐帧解码204/204帧、640×480、15fps、3,598,731 bytes；查看了实际ODOM帧及
+  停车帧，不是RViz或模拟视频。预览校验录像3713/3713帧也单独保留。
+- 结束后控制器和gate退出、raw publisher=0，录像完成封装；没有追加未授权运动。
+  相机/SLAM/检测链与独立只读日志终端按用户需求保留。
+
+### Checks and reproduction boundary
+
+- 只运行必要检查：3项新增锚点/相机参考/无视觉闭环测试，加19项原控制核心兼容测试，
+  共22 passed（0.02 s）；compileall、单进程flake8、相关pydocstyle和独立package build。
+  没有重复全量测试、启动FAR/WP5/localPlanner/pathFollower或修改蓝色识别算法。
+- 新增`watch_approach_logs.sh`/`watch_approach_status.py`，独立终端显示每周期XY误差、
+  vx/wz、Sport实际速度、里程计速度和状态；先前脚本因set -e/ROS环境加载退出已修复，
+  脚本实际输出及终端启动已检查。后续一键入口默认打开该窗口。
+- 一键入口`run_map_anchor_experiment.sh --execute`代表操作者明确启动一次实机实验，
+  自动录像、等待稳定MAP候选、锁定、通过原gate启动、停车后保存并撤下控制进程，
+  不再额外弹确认。默认预览launch仍不发raw速度。该仓库包装入口在实测监督逻辑基础上
+  整理，完成语法/--help检查；没有为了验证包装入口而额外运动。
+- 当前视频/原始JSONL保存在本机，`camera_ws/records/`已加入gitignore，避免误提交数据；
+  源码、参数、实验记录与复现说明提交Git。外参仍PROVISIONAL；不同地面/姿态/目标的
+  重复停车精度、低速响应标定及实际速度严格上限仍NOT VERIFIED。

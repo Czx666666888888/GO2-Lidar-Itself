@@ -30,6 +30,7 @@ setup(
             "coarse_target_locator = go2_science_perception.coarse_target_locator:main",
             "camera_target_to_map = go2_science_perception.camera_target_to_map:main",
             "science_target_manager = go2_science_perception.science_target_manager:main",
+            "approach_video_recorder = go2_science_perception.approach_video_recorder:main",
             "science_target_approach = go2_science_perception.science_target_approach:main",
             "science_goal_bridge = go2_science_perception.science_goal_bridge:main",
         ],

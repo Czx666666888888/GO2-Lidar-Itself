@@ -1,11 +1,19 @@
 science_target_approach:
   ros__parameters:
     dry_run: true
-    allow_odom: false
+    allow_odom: true
+    stop_reference: camera_origin
+    camera_frame: camera_link
+    stop_xy_tolerance: 0.10
+    anchor_window_sec: 2.0
+    anchor_min_observations: 5
+    anchor_max_spread: 0.08
+    anchor_association_radius: 0.20
+    anchor_alpha: 0.15
+    require_recording: true
     map_frame: map
-    stop_distance: 0.80
     distance_tolerance: 0.03
-    kp_linear: 0.5
+    kp_linear: 1.0
     kp_angular: 0.8
     align_yaw_threshold: 0.15
     max_acceleration: 0.15
@@ -25,6 +33,6 @@ science_target_approach:
     speed_window_sec: 0.5
     braking_latency: 0.5
     max_run_time: 45.0
-    odom_max_time: 1.0
-    odom_max_distance: 0.15
+    odom_max_time: 25.0
+    odom_max_distance: 2.0
     future_tolerance: 0.10

@@ -1,135 +1,109 @@
-# 单目标接近实验（不依赖 FAR）
+# 单目标视觉 / MAP 锚点混合闭环
 
-本轮用户授权替代既有“仅可视化”边界，新增独立接近控制器。后续用户逐次明确授权
-短时及完整实机测试，结果见 experiments.md；这不授权未来自动重启运动。
-默认 launch 强制 `dry_run=true, allow_odom=false`，仅发布
-`/science/approach/cmd_vel_preview`，不会发布 `/cmd_vel_raw`、武装或 Sport 请求。
-本流程不启动 FAR、WP5、localPlanner、pathFollower，也不调用完整导航脚本。
+以`858f75a`为基线，不启动FAR、WP5、localPlanner、pathFollower。相机、Point-LIO、
+蓝色检测/蓝墙过滤、map变换和visited继续复用。当前成功参数在
+`config/science_target_approach.yaml`：最高命令0.30 m/s、kp_linear=1.0、
+`stop_reference=camera_origin`、camera_link原点XY容差0.10 m、allow_odom=true。
 
-## 数据与坐标
+## 当前行为
 
-复用既有 D435 蓝色检测、蓝墙过滤、时间戳 TF 转换和 manager 的 visited 空间记忆。
-manager 新增只读 `/science/target_tracks` (`std_msgs/String`, JSON)：
-`frame` 和每个 track 的 `id/state/position/observed_ns/first_seen_ns/visited`。
-`observed_ns` 是原始相机观测时间，不能用 selected/standoff 的重发时间代替。
-既有 selected/standoff/Marker 接口和识别算法不变。
+- 最近2 s内至少5个新鲜稳定样本的中位数建立MAP锚点，散布阈值0.08 m。
+- 锁定后不随selected或ID刷新切换目标，不因track删除/合并或视觉间断删除锚点。
+  新观测须靠近初始锚点0.20 m、当前锚点0.15 m，唯一空间匹配才以alpha=0.15小幅修正。
+  歧义/跳变拒绝更新。visited人工操作仍可使当前任务停止。
+- 使用`/base_state_estimation`原始时间戳查询完整map->camera_link TF，实时计算相机原点；
+  包含真实TF中的旋转和前置安装偏移，不把机身中心当相机，不直接加0.36 m。
+  `distance_xy=hypot(xt-xc,yt-yc)`，停车忽略Z。旧0.80 m机身standoff不参与该模式。
+- 目标观测新鲜时APPROACH_VISUAL，过期时APPROACH_ODOM；后者保留锚点并用实时位姿
+  闭环，默认上限25 s / 实测累计里程计路径2.0 m，不用速度乘时间推算位置。
+- 朝向误差大时先转向，距离比例控制及制动上界连续减速，0.10 m内锁存STOP。
+  越过目标平面但未进入容差时FAULT，避免绕圈追逐；STOP/FAULT都归零并经gate停止。
+- 保留定位/TF/时间戳/状态超时、姿态与位置跳变、原始时间倒退、时钟回退及速度发布者
+  竞争保护。future_tolerance=0.10 s适配已测得约50–60 ms超前；不替换原始stamp。
+  上游没有map epoch消息；重置地图须停止并重新建立锚点，连续小漂移不能全部自动识别。
+- gate仍是唯一持续Sport输出者。min_speed=0，保留lease、加速度、超时和急停。
+  控制器确认前和运行中核对gate参数及唯一可发现本机Sport输出者，不直接发布Sport请求。
+  正常退出发送停止；控制进程死亡依赖仍在运行的gate命令超时，物理效果不能仅靠源码认定。
 
-控制器按 `/base_state_estimation` 的原始时间查询完整 pose TF 到 map，包括位置和朝向。
-它是 `base_odom_node` 已减去雷达前向 0.30 m 偏置的**机身中心**，不是雷达中心。
-该节点继承 `camera_init` header 和 `aft_mapped` child 名，不能仅根据 frame 名判断中心。
-Point-LIO 当前源码不填写 twist，因此实测速度和朝目标方向速度来自带时间戳的
-机身中心 map 位姿，默认在 0.5 s 窗口内差分；不是命令速度。
-ETA 仅在实测朝目标速度大于 0.01 m/s 时有数值，否则为 null。静止定位漂移可能产生
-非零速度/有限 ETA，不能将该数字视为外部真值或物理运动证明。
+## 视频与日志
 
-默认停靠距离 0.80 m、容差 0.03 m，距目标的是机身中心到粗定位表面点的 map XY 距离。
-它是首轮保守参数，**不代表已测量机身净空或完成外参标定**。真实运动前仍需测量
-机身前缘、相机安装及目标尺寸；现有外参为 PROVISIONAL / NOT CALIBRATED。
-manager 的旧 0.40 m standoff 仅用于可视化，控制器不使用它作为停靠距离。
+`approach_video_recorder`直接订阅实际D435 RGB，不是RViz/模拟。复用检测器发布的
+`/science/detection_debug`轮廓、面积、中心点及`/science/detection_mask`；叠加锁定ID、
+锚点、相机MAP位置、XY距离、vx/wz、状态和原图时间戳。ODOM期间显示
+`TARGET LOST — MAP ODOM CONTROL`，HSV mask小窗口保留。
 
-## 状态和互锁
+`DETECT=VISIBLE/LOST`表示RGB检测；APPROACH_ODOM表示锚点MAP观测过期，两者可能不同。
+JSONL保存每个视频帧索引和RGB stamp、检测及10Hz控制数据，可判断是否出视野、阈值
+过滤或时间间断。录像健康不满足会拒绝运动，运行中健康过期则停止。视频停车后继续
+保留3 s，结束封装MP4。输出默认`camera_ws/records/approach_<时间>.mp4`及同名JSONL。
+视频固定15fps，实际到帧时间以JSONL和画面原stamp为准。记录文件本机保留、Git忽略。
 
-人工确认时选择最近的 ACTIVE CONFIRMED、未访问、新鲜目标，轨迹至少存活 3 s；
-该时长门槛不能消除持续误检。IDLE status 输出 candidate 供现场核对。锁定后只更新
-同一 ID，移除/合并、visited 改变或目标跳变进入 FAULT，不跟随新 selected。
-LOCK_TARGET 后依据 yaw 进入 ALIGN 或 APPROACH_VISUAL；大角度误差时前进为零。
-距离比例限速加加速度上限，制动上界解 `v²/(2a)+latency*v <= clearance`；
-参考实际速度估算制动距离。终点进入 STOP，异常进入 FAULT，两者均锁存。
+控制JSONL另记Sport原始速度、mode/gait/error、位姿差分速度及锚点更新/拒绝次数。
+ETA来自实测朝目标速度；静止漂移可能产生伪速度，不以命令速度充当实测速度。
 
-视觉超时默认 0.5 s；第一阶段和首次真实运动都禁止视觉丢失后继续走。
-APPROACH_ODOM 仅可离线/dry-run 显式开启：用最后有效 map 目标加当前实测位姿闭环，
-默认最多继续 1 s 或累计位姿路径 0.15 m，任一到限即 FAULT。真实模式初始化拒绝
-`allow_odom=true`，阶段二验收后才另行解除这一代码门槛。
+## 本机启动
 
-检查定位数据和控制循环超时、非有限值、姿态四元数、原始时间倒退/重复、TF 缺失、
-map 位姿/朝向跳变、ROS 时钟回退、GO2 状态超时、目标距离与实验总时限。
-future_tolerance 默认0.10 s：本轮90样本测得位姿stamp超前46.8–54.7 ms，旧0.05 s门槛
-曾在运动前拦截；当前显式留100 ms预算，仍拒绝更大超前、重复或倒退，不修改原始stamp。
-无法从无跳变的连续数值识别所有 map 重置，重置定位/地图必须人工停止并重新初始化
-整条实验链；当前没有上游 map epoch 消息可消费。
-启动期 TF 尚未发现也可能锁存 FAULT，必须等 TF 就绪后人工 reset。
+GO2相机仍在`192.168.123.18`，独立Foxy wrapper位于
+`/home/unitree/go2_d435_foxy_ws`。已有`launch_go2_d435_foxy.sh`仅采集相机并统一话题名；
+PC采用`science_approach_pc_env.bash`配置peer。两机必须先对时，NTP active不等于同步。
+本轮发现Orin时钟回退以及旧SLAM发散，重建只读SLAM后才开始锚点实验。
 
-真实模式只发布 `/cmd_vel_raw` TwistStamped，持续检查发布者数量。
-确认前及运行中查询 `/go2_safety_gate` 参数，要求最低速度为 0、速度不高于本控制器上限、
-lease 开启、gate 为真实模式、gate 加减速度能力不低于控制器假定减速度、命令超时不大于
-制动延迟预算，且本机可发现的 Sport ROS 发布者仅为 gate；验证过期即停车。
-这不能证明机器人内部 bare-DDS 输出者的行为，控制权互锁继续由 gate 处理。
-专用 `science_approach_safety_gate.yaml` 保留 dry-run 默认，max_speed=0.30、min_speed=0。
-本轮没有修改 gate 源码或禁用已有 lease/急停/超时/加速度互锁。
-STOP/FAULT 发零 Twist 和 `/stop` Int8=1，只有 gate 将其转成 StopMove；控制器不直接发 Sport。
-正常退出尽力发送停止；崩溃/SIGKILL 依赖仍在运行的 gate 命令看门狗（配置 0.30 s）。
-单元测试不是实机故障停车证据；本轮视觉丢失实际停车另有用户确认，其他故障物理
-停车仍需分别验收。
-
-## 阶段一运行方式
-
-先构建 camera_ws 并 source 实际 overlay；下列部署工作空间和网卡名为本机路径。
+本轮使用的独立构建入口：
 
 ```bash
-source /opt/ros/humble/setup.bash
-source /home/czx666/today_full_20260901/today_full/deploy_ws/install/setup.bash
-source /home/czx666/today_full_20260901/today_full/camera_ws/install/setup.bash
 cd /home/czx666/today_full_20260901/today_full
+source /opt/ros/humble/setup.bash
+source deploy_ws/install/setup.bash
+colcon --log-base /tmp/science_anchor_log build --base-paths camera_ws/src \
+  --build-base /tmp/science_anchor_build --install-base /tmp/science_anchor_install \
+  --packages-select go2_science_perception
+source /tmp/science_anchor_install/setup.bash
 source camera_ws/scripts/science_approach_pc_env.bash
-ros2 launch go2_science_perception d435_slam_target_validation.launch.py remote_camera:=true use_rviz:=false
 ```
 
-GO2 的相机只需单个驱动进程。官方 wrapper 4.54.1（源码 commit
-`ae45d4969f5a7105a6a9e0deeadc785004d72441`）在
-`/home/unitree/go2_d435_foxy_ws` 源码构建，链接系统 librealsense 2.54.2。
-Foxy profile 名和 PC wrapper 不同，配置使用 `realsense_go2_foxy.yaml`。
-将该 YAML 及 `camera_ws/scripts/launch_go2_d435_foxy.sh` 复制到 GO2 工作空间，SSH 登录后：
+先确保只有一套现有相机、SLAM/TF/manager/检测链；必要时只读启动：
 
 ```bash
-bash /home/unitree/go2_d435_foxy_ws/launch_camera.sh
+ros2 launch go2_science_perception d435_slam_target_validation.launch.py \
+  remote_camera:=true use_rviz:=false
 ```
 
-脚本限制远端仅与 PC `192.168.123.99` 发现通信，PC 配置对应 peer 为 GO2
-`192.168.123.18`，以避免 Foxy 在原生 GO2 DDS 发现下的启动异常。
-只 remap 话题，不修改图像内容、原始 stamp 或 optical frame。
-启动前两机需实际对时；NTP active 不等于 synchronized。
-本轮通过用户 sudo 执行局域网一次性对时，未安装系统授时服务；重启/长期漂移后必须重查。
-
-另一个 source 了同样环境的 PC 终端：
+只预览和录像（不启动gate、不发raw、不运动）：
 
 ```bash
 ros2 launch go2_science_perception science_target_approach.launch.py
-ros2 topic echo /science/approach/status
 ```
 
-确认 candidate ID、位置与实物对应、目标及机身保持静止，且 `/cmd_vel_raw` 没有发布者。
-例如核对 candidate=1 后显式确认：
+用户要求直接运行时，一条显式执行命令即为人工启动，不再弹额外确认：
 
 ```bash
-ros2 topic pub --once /science/approach/confirm_target_id std_msgs/msg/Int32 '{data: 1}'
+export SCIENCE_APPROACH_OVERLAY=/tmp/science_anchor_install/setup.bash
+bash camera_ws/scripts/run_map_anchor_experiment.sh --execute --timeout 15
 ```
 
-若 candidate 已变化则拒绝确认。空消息 `/science/approach/confirm` 仅兼容 dry-run，真实模式拒绝。
-终止预览可发 `/stop` Int8=1（会影响同域已有 gate，确保当前无真实输出）；
-复位采用 `/science/approach/reset` Empty，清空旧观测与锁定后等待新鲜数据，再人工确认。
-重置不会自动武装 gate。默认 JSONL 在 `/tmp/science_approach_<timestamp>.jsonl`，
-逐控制周期记录参数、初始/当前距离、位置、距离误差、yaw 误差、命令/实测速度、ETA、
-运行时间、视觉丢失、状态和故障原因；参数 `log_directory` 可改为持久目录。
-
-## 验证及真实运动门槛
-
-离线功能测试：source ROS 后将 package 加入现有 PYTHONPATH，运行相关 pytest。
-实际 DDS 合成接口测试需 source deploy_ws 并显式使用隔离域：
+需用户已确认单物块身份、平整无障碍、最终机身/腿/相机无干涉、运动模式、监护和物理
+急停可用。程序等待录像和稳定候选，自动锁定后经原gate启动一次，STOP/FAULT后结束，
+不自动复位或重复运行。可加`--target-xy X Y`限制为已确认MAP位置0.08 m内的候选。
+默认打开独立GNOME日志终端；亦可单独运行：
 
 ```bash
-ROS_DOMAIN_ID=86 RMW_IMPLEMENTATION=rmw_fastrtps_cpp SCIENCE_ROS_TEST=1 \
-  PYTHONPATH="$PWD/camera_ws/src/go2_science_perception:$PYTHONPATH" \
-  /usr/bin/python3 -m pytest camera_ws/src/go2_science_perception/test/test_approach_ros.py -q
+bash camera_ws/scripts/watch_approach_logs.sh
 ```
 
-不得在机器人域运行合成数据注入。合成停车不代表实机停车。
-2026-11-06 调参110/250后，目标选择与静态输入超时检查通过。用户随后要求直接进入
-受限实机，未完成原计划的人工动态dry-run；完整轮因视觉丢失保护停车，尚未完成
-0.80 m可见目标停靠验收，详见 experiments.md。
+该窗口只订阅状态，显示命令和实测反馈，历史记录有明确标记。包装入口整理自实测
+监督逻辑，完成语法和--help检查；没有为包装入口再额外运行机器人。
 
-后续真实测试需重新明确授权。用户需确认场地平整无障碍、物块身份与净空、
-GO2 模式/控制权、物理急停和监护。先短距离、较低速度，逐渐提高到 0.30 m/s；
-现场检查 gate 专用参数，禁止其他持续 Sport 控制器和 raw 发布者，分别人工武装与确认具体 ID。
-本轮用户已确认视觉丢失停车无明显异常；到点精度、外部真值速度、进程死亡物理停车
-仍需另采证据。现有里程计差分曾峰值0.494 m/s，不能把0.30命令上限当成实测速度上限。
-本文件没有自动启动真实 gate 或自动武装的脚本。
+保留原人工服务接口供调试：`/science/approach/confirm_target_id` Int32只锁定相机模式
+目标，`/science/approach/start` Empty才开始；reset Empty清空终态和旧观测，不能自动
+武装。`/stop` Int8=1立即停止。不得同时运行预览、实机两个controller或完整导航脚本。
+
+## 本轮验收
+
+kp=0.5轮在约34.2 cm处超时，用户实测35 cm；后半段命令约0.15而Sport反馈接近0。
+提高kp=1.0而不抬升gate最低速度后，初始1.55 m，约7.83 s进入STOP，MAP误差8.3 cm；
+停车后最后9.4 cm，用户确认实物约10 cm处停住且效果良好。本场景粗验收通过，
+不是正式标定或多次重复精度证明。Sport反馈峰值0.316 m/s，实际速度严格不超过0.30
+仍不能据命令限速认定。
+
+成功录像：`camera_ws/records/approach_20261106_210841_496906.mp4`（204/204帧完整解码），
+对应同名JSONL及`run_1793970520470079235.json`。完整失败/成功证据和边界见experiments.md。
