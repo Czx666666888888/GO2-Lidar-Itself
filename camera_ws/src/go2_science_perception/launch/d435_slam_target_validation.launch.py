@@ -4,7 +4,9 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import GroupAction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -43,6 +45,7 @@ def generate_launch_description():
         AnyLaunchDescriptionSource(
             os.path.join(realsense_share, "launch", "rs_launch.py")
         ),
+        condition=UnlessCondition(LaunchConfiguration("remote_camera")),
         launch_arguments={
             "config_file": os.path.join(
                 package_share, "config", "realsense_d435.yaml"
@@ -84,6 +87,7 @@ def generate_launch_description():
         output="screen",
     )
     rviz = Node(
+        condition=IfCondition(LaunchConfiguration("use_rviz")),
         package="rviz2",
         executable="rviz2",
         name="d435_slam_target_rviz",
@@ -94,6 +98,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument("remote_camera", default_value="false"),
+        DeclareLaunchArgument("use_rviz", default_value="true"),
         GroupAction(actions=[slam], scoped=True),
         GroupAction(actions=[camera], scoped=True),
         static_tf("map_to_camera_init", "map", "camera_init", (0, 0, 0)),

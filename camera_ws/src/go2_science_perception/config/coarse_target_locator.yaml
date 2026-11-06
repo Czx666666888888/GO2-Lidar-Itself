@@ -6,9 +6,9 @@ coarse_target_locator:
     output_topic: /science/target_coarse_point
     h_min: 90
     h_max: 135
-    s_min: 80
+    s_min: 110
     v_min: 50
-    min_component_area_px: 100
+    min_component_area_px: 250
     morphology_kernel_px: 5
     morphology_close_iterations: 1
     morphology_open_iterations: 1

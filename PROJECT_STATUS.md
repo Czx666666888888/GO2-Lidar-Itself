@@ -211,3 +211,24 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 3. 分类现有测试：纯静态/单元、合成数据、依赖 rosbag、依赖 GO2 真机。
 4. 使用一组明确来源的 rosbag 做只读离线回放，验证 Point-LIO 到 `/cmd_vel_raw`，不启动真实运动输出。
 5. 完成硬件安全清单后，再设计分阶段 dry-run 和低速真机验证。
+
+## 2026-11-06 — 独立单目标接近（本轮授权范围）
+
+- 分支 `feature/d435-perception-workspace` 新增 `science_target_approach`；独立预览
+  launch强制dry-run，既有视觉/蓝墙/Point-LIO/FAR/WP5算法不改。manager仅新增带原始
+  观测时间、track寿命、ID及visited的只读JSON快照，供稳定锁定和可见性判断。
+- D435已移至GO2主机，Foxy独立相机驱动构建完成，经用户对时、限定DDS peer和话题
+  remap后PC实收RGB约14.9 Hz、aligned depth约14.4 Hz。源事实与实测见
+  `camera_ws/docs/experiments.md`；外参仍 PROVISIONAL / NOT CALIBRATED。
+- 初轮dry-run被蓝色误检抢占nearest；用户后续将检测参数调为s_min=110、
+  min_component_area_px=250，Codex同步YAML并重编译，155/155及151/151帧各只有1目标。
+  随后T1稳定锁定、预览最高0.30、检测/定位输入超时锁存均通过。
+- 默认0.80 m停靠、最高0.30 m/s、轨迹寿命门槛、明确ID确认、TF/定位/状态/竞争发布者
+  检查、终态锁存和JSONL日志已实现；配置关闭gate的0.20 m/s最低速度抬升。
+  默认保持预览；真实模式仅在用户后续逐次明确授权下经gate输出。
+- 用户随后明确授权0.10 m/s短时及0.30 m/s上限完整接近。完整轮锁定T1，最高Move命令
+  0.294 m/s，约5.73 s、距离0.917 m时视觉丢失并停车，后续里程计距离0.875 m。
+  用户确认方向正确、已停住、无明显异常；这不是0.80 m定距停车通过。窗口位姿差分
+  速度峰值0.494 m/s（真实性待核），实际速度不超过0.30 m/s仍NOT VERIFIED。
+- 真实控制器和gate已停止、raw publisher=0；相机/SLAM/检测链按用户要求保留。
+  后续定距停车验收及阶段三仍未完成，APPROACH_ODOM真实模式继续由代码拒绝。

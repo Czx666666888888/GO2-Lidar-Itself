@@ -565,3 +565,116 @@ No target detection, map transform or robot motion belongs in this experiment.
   主要日志在`/tmp/science_stage2_*_20261103`、`/tmp/science_far_nav_20261103`、
   `/tmp/science_far_perception_20261103_run2`、`/tmp/science_far_manager_clean_20261103`及
   `/tmp/science_far_upstream_restart_20261103`，不在Git中。
+
+## 2026-11-06 — Independent Single-target Approach and Remote D435 Dry-run
+
+- **Scope/authorization:** 用户要求独立接近，不运行 FAR/WP5/localPlanner/pathFollower。
+  新增控制核心、ROS adapter、参数与单独预览 launch；manager 仅增加带原观测时间及
+  first_seen 的 JSON track 快照，保留视觉、墙过滤、TF 和 visited。
+  默认 preview 不发布 `/cmd_vel_raw`，无 safety gate/武装/本轮 Sport 发布或自主运动。
+  用户确认 GO2 和前方一个蓝色物块保持静止，并授权仅进行 dry-run 锁定。
+- **Remote camera:** 用户将 D435 接到 GO2 Orin `192.168.123.18`。SSH/SDK确认 ARM64、
+  Foxy、USB 3.2 D435、firmware 5.12.7.150、SDK 2.54.2；设备序列不记入仓库。
+  独立 `/home/unitree/go2_d435_foxy_ws` 构建官方 wrapper 4.54.1，两个 package 成功。
+  初次构建时主机时钟停在 2026-07-09，出现 clock skew warning；用户后来经 PC 一次性
+  局域网授时成功设置为当前 UTC。NTP active 但未同步，重启后的时钟保持 NOT VERIFIED。
+  默认域 Cyclone 初次退出 245；Fast DDS 能启动但有 bad_alloc 发现噪声。
+  独立域 42 Cyclone 限时采集启动正常；最终使用域 0 双方指定 peer，远端禁用 multicast，
+  PC 扩展 auto participant 范围至 60，避免启动 9 个只读节点时编号耗尽。
+  参数/话题版本差异由单独配置与 remap 解决，不改 stamp/frame。
+- **Real samples:** 15 s PC 接收窗口：RGB 223 帧约 14.890 Hz；aligned depth 216 帧约
+  14.352 Hz；CameraInfo 223 帧约 14.887 Hz；均为640×480、camera_color_optical_frame。
+  RGB消息年龄0.070–0.122 s，aligned depth 0.070–0.122 s，CameraInfo0.061–0.122 s。
+  同时收到原生 LiDAR 223条约14.842 Hz，原始 stamp 比PC落后约337.43–337.51 s；
+  既有 transform_sensors 源码在首帧测定时间offset并同时用于cloud/IMU，本轮未修改。
+  处理后的 `/base_state_estimation` 实际frame=camera_init，审计年龄约 -0.034 s，
+  控制器按原 stamp 经TF转换完整pose到map，不是仅换frame_id。
+- **Real dry-run FAILED for intended target selection:** 首次人工确认瞬间锁定最近的T124，
+  map约(0.867,-0.427)，机身中心约(-0.415,0.103)，初始距离1.381 m；
+  该track与前方实物对应的稳定目标位置不符，因此不能认定锁定正确。
+  ALIGN预览vx=0，wz约-0.295 rad/s，约1.63 s后视觉超时进入FAULT，vx=wz=0并锁存。
+  这只证明该次预览故障归零，不证明真实机器人StopMove或目标接近成功。
+  清理manager启动轨迹并增加轨迹至少存活3 s、IDLE候选预览及明确ID确认后，
+  实物T1约(1.117,0.066)；更近的右侧伪目标T6、后来T62约(0.877,-0.438)仍会持续确认。
+  明确确认T1时，最近候选不同，正确拒绝并保持IDLE零输出。
+  因此仅增加轨迹寿命门槛不足以消除误检，**第一阶段仍未通过，禁止进入阶段二**。
+  需要先处理现场误检或在用户明确授权的独立范围内调检测参数，再重做选择验收。
+- **Localization speed:** 高频相邻pose差分在用户确认静止时出现0.05–0.19 m/s伪速度，
+  改为默认0.5 s位置窗口差分后，审计仍有约0.03 m/s静止漂移。不能把里程计速度当成
+  外部真值；ETA在无可靠朝目标速度时无物理到达时间意义。无命令速度代替实测速度。
+- **Safety audit:** `/cmd_vel_raw`发布者为0；Sport topic上发现9个
+  `_CREATED_BY_BARE_DDS_APP_`原生端点，本轮没有本机ROS Sport控制发布者。
+  专用gate配置max_speed=0.30、min_speed=0，默认dry_run=true；真实模式还查询验证gate
+  参数/唯一可发现本机Sport输出者。gate源码未改。控制器真正停止及进程死亡时物理
+  停止效果均 NOT VERIFIED。
+- **Evidence paths:** PC `/tmp/science_approach_readonly_slam_20261106.log`、
+  `/tmp/science_approach_coarse_20261106.log`、
+  `/tmp/science_approach_live_preview_20261106.log`、
+  `/tmp/science_approach_stable_preview_20261106.log`、
+  `/tmp/science_approach_stable_audit_20261106.json`；
+  第一轮逐周期日志 `/tmp/science_approach_1793961006341780169.jsonl`，
+  后续 `/tmp/science_approach_1793961230532526466.jsonl`；
+  GO2 `/tmp/science_remote_camera_20261106_peer.log`。均为本机临时证据，不在Git。
+  复现、状态/参数与门槛见 `science_target_approach.md`。
+
+### Same session continuation — User tuning and explicitly authorized live runs
+
+本段是同日后续证据，更新上文“尚未真实运动/误选未解决”的时间边界，不作删除或改写。
+
+- **User tuning:** 用户自行将 `coarse_target_locator.py` 默认 `s_min=80 -> 110`、
+  `min_component_area_px=100 -> 250`，要求重新编译测试。Codex同步运行YAML为110/250，
+  未改HSV/morphology/聚类/蓝墙算法。独立build通过。
+  前端稳定20 s窗口155/155帧恰好1目标；干净manager的另一个20 s窗口151/151帧1目标，
+  449份快照均只有1个ACTIVE CONFIRMED，198份IDLE预览候选均T1。
+  参数服务实读110和250。小片/淡色误检在这两个窗口中消失，不代表所有距离/光照均通过。
+- **Tuned real-data dry-run:** 用户确认固定目标和GO2静止；锁定T1后APPROACH_VISUAL
+  预览最高0.30 m/s，初始机身中心距离1.531 m。暂停本轮检测进程1.2 s并自动恢复，
+  约0.461 s后FAULT visual target lost；复位/重新确认后暂停机身里程计节点1.2 s，
+  约0.491 s后FAULT localization timeout。两次归零且恢复输入后继续锁存，raw publisher=0。
+  这是输入中断注入，不能写成物块实际遮挡或机器人真实故障停车。
+  日志 `/tmp/science_approach_live_fault_check_20261106.json`；窗口摘要
+  `/tmp/science_approach_tuned_{frontend,manager}_20261106.json`。
+- **Stage-order change and authorization:** 用户先选择人工位移dry-run，但记录准备在执行前
+  被用户中断；随后要求尽快真机。用户明确确认场地平整无障碍、目标固定、站稳/模式正常、
+  急停可用及监护，授权最高0.10 m/s、最多2 s的单次测试；该轮后又明确要求直接执行
+  最高0.30 m/s的完整接近程序。Codex再次说明保留0.80 m机身中心停靠距离，不驶入物块。
+  未将尚未完成的人工动态dry-run记为已通过。
+- **Timestamp preflight rejection:** 首个0.10真机准备轮因时间戳互锁在IDLE进入FAULT，
+  **0 Move**。追加6 s只读采样90条base odom，age=-54.745至-46.800 ms，83条超前>50 ms，
+  无>400 ms旧数据；源码确认transform_sensors首帧offset及Point-LIO扫描内时间路径。
+  当前控制器future_tolerance配置/默认显式设0.10 s，保留其他时间/TF/跳变检查，不换stamp。
+- **0.10 short live run:** 控制器总时限1.5 s，独立监督1.7 s停止，gate min_speed=0、
+  max_speed/max_yaw_rate=0.10、cmd_timeout=0.30 s、state_timeout=0.50 s、lease开启。
+  T1锁定后初始距离1.508 m，约1.516 s进入run timeout并停止，首次FAULT距离1.418 m，
+  后续读数1.413 m；16条Move、13条Stop请求（该采样窗口）、raw最大vx=0.10。
+  用户随后明确说“刚才已经往前走了一点”，这支持发生前进，不单独证明停车精度。
+  `/tmp/science_authorized_short_trial_executed_20261106.json` 和
+  `/tmp/science_approach_real_trial_ready_20261106.log`。
+- **Full visible-target run — approach and fault-stop, NOT standoff success:** 第一次完整轮
+  启动因监督进程漏source camera overlay导致PackageNotFoundError，在武装/Move前退出；
+  补齐overlay后实际执行一次。参数max_linear_speed/max_angular_speed=0.30，
+  stop_distance=0.80、tolerance=0.03、allow_odom=false、max_run_time=20 s，监督另设20.5 s。
+  全轮锁定T1（65份活动/终态快照没有换ID）；初始距离1.434 m；
+  最高raw及Sport Move vx均0.294012 m/s（上限约束通过）；采样58条Move、13条Stop。
+  确认后5.727 s发生visual target lost，状态FAULT、vx=wz=0，距离0.917 m，
+  yaw_error=-0.09481 rad；最后一份状态在6.427 s，距离0.87486 m，目标最后有效map约
+  (1.12786,0.03287)，机身约(0.25940,0.13844)。最后读数不是外部测得的最终静止距离。
+  未进入standoff reached，**0.80 m定距停车验收未通过**。APPROACH_ODOM未启用。
+- **Physical observation:** 用户现场确认“方向正确，已经停住，无明显异常”。据此记录
+  本轮方向与视觉丢失后的物理停车PASS（用户观察），不是所有定位/进程故障物理停车通过。
+  监督进程随后停止真实控制器、解除武装并停止gate，raw publisher实读0。
+  相机、Point-LIO、转换、检测、manager按用户要求保留用于查看；不会自动重新运动。
+- **Actual speed unresolved:** 0.5 s机身位姿差分全轮峰值0.49403 m/s，首次FAULT时0.43536 m/s，
+  高于0.30命令上限。其来源可能包含Point-LIO抖动/漂移或真实步态速度，尚无外部真值或
+  同步Sport速度记录区分，不能认定真实速度<=0.30。下一次运动前应先核验速度估计及制动
+  假设；本轮用户没有报告明显冲动，但该观察不能替代定量速度验收。
+- **Offline/source verification:** 最终功能回归77 passed，三个DDS测试默认skip；另在隔离域86
+  显式跑三个DDS/TF/gate接口测试通过，相关core+ROS共22 passed。77项为当前工作树结果，
+  包含任务开始前已存在的bridge未提交修改；该bridge源码及测试未纳入本轮提交。覆盖合成闭环到点锁存、
+  实际ROS transport无raw输出、旋转平移TF、坏时间戳、急停、gate最低速度关闭及超时归零、
+  gate profile有效/无效互锁。flake8 --jobs=1及pydocstyle通过，package独立构建通过。
+  非视觉丢失故障的真机停车、定距停车、正式外参/净空测量、实际速度上限及阶段三均
+  **NOT VERIFIED**。
+- **Live evidence:** `/tmp/science_authorized_full_run_20261106.json`、
+  `/tmp/science_approach_full_20261106.log`、`/tmp/science_gate_full_20261106.log`；
+  完整逐周期控制日志路径记录在approach日志启动行。临时数据未提交Git。

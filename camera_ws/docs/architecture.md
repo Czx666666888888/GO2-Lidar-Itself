@@ -185,3 +185,16 @@ Before any map publication or navigation consumption:
 6. Only after review, define a target topic for navigation consumption.
 
 第1、2、4、5项已在2026-09-29单次实机链路中进行初步验证；第3项仍只有暂定手量外参，第6项明确不在本轮范围。不得将这次约15 mm的单次A/B差值解释为外参标定完成或导航可用。
+
+## 2026-11-06 — Optional independent approach experiment
+
+用户另行授权新增不依赖FAR的 `science_target_approach`，不改变上述视觉数据流。
+manager 新增 `/science/target_tracks` String JSON快照（frame、ID、state、position、
+observed_ns、first_seen_ns、visited），原接口保持兼容。接近控制器消费该快照、
+按消息时间经TF转换的 `/base_state_estimation` 完整pose、`/lf/sportmodestate`，
+人工核对candidate后确认具体ID。默认只输出 `/science/approach/cmd_vel_preview` 和
+`/science/approach/status`；真实模式的输出边界为 `/cmd_vel_raw -> go2_safety_gate -> Sport`，
+节点本身不发布Sport请求、不武装。真实模式检查gate参数和唯一可发现本机Sport输出者。
+FAR/WP5/localPlanner/pathFollower不参与此实验。阶段一因误选伪目标尚未通过；
+用户后续授权两次实机，方向及视觉丢失后实际停车由用户确认；0.80 m定距停车与实际
+速度上限仍NOT VERIFIED。远程相机Foxy配置、启动和验证边界见 `science_target_approach.md`。

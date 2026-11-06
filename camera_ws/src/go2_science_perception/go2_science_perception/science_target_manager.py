@@ -2,6 +2,7 @@
 """Cluster map-frame science targets and publish non-motion guidance markers."""
 
 import math
+import json
 from collections import deque
 from dataclasses import dataclass, field
 from statistics import median
@@ -13,7 +14,7 @@ import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from std_msgs.msg import Empty, Int32
+from std_msgs.msg import Empty, Int32, String
 from tf2_geometry_msgs import do_transform_point
 from tf2_ros import Buffer, TransformException
 from tf2_ros.transform_listener import TransformListener
@@ -347,6 +348,8 @@ class ScienceTargetManager(Node):
         self.selected_id: Optional[int] = None
         self.logged_visited_matches = set()
 
+        self.track_states = self.create_publisher(
+            String, "/science/target_tracks", 10)
         self.confirmed_markers = self.create_publisher(
             MarkerArray, self.get_parameter("confirmed_marker_topic").value, 10)
         self.selected_points = self.create_publisher(
@@ -508,6 +511,15 @@ class ScienceTargetManager(Node):
         return deletion_markers(self.map_frame, [namespace])
 
     def _publish_outputs(self) -> None:
+        self.track_states.publish(String(data=json.dumps({
+            "frame": self.map_frame,
+            "tracks": [{"id": t.target_id, "state": t.state,
+                        "position": list(t.position),
+                        "observed_ns": t.last_stamp_ns,
+                        "first_seen_ns": t.first_seen,
+                        "visited": self.tracker.visited_match(t.position) is not None}
+                       for t in self.tracker.tracks],
+        })))
         scale = float(self.get_parameter("marker_scale_m").value)
         confirmed = [track for track in self.tracker.tracks
                      if track.state == CONFIRMED]
