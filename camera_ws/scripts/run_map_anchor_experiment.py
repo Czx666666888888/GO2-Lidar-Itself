@@ -92,10 +92,14 @@ class Experiment:
         gate_log = self.launch('go2_keyboard_teleop', 'go2_safety_gate', [
             '--params-file', str(share / 'config/science_approach_safety_gate.yaml'),
             '-p', 'dry_run:=false'], 'gate')
+        search_params = (['--params-file', str(share / 'config/science_target_search.yaml'),
+                          '-p', f'search_distance:={self.args.search_distance}',
+                          '-p', f'search_timeout:={self.args.search_timeout}']
+                         if self.args.search else [])
         self.launch('go2_science_perception', 'science_target_approach', [
             '--params-file', str(share / 'config/science_target_approach.yaml'),
             '-p', 'dry_run:=false', '-p', f'max_run_time:={self.args.timeout}',
-            '-p', f'log_directory:={self.folder}'], 'control')
+            '-p', f'log_directory:={self.folder}', *search_params], 'control')
         self.launch('go2_science_perception', 'approach_video_recorder', [
             '-p', f'output_directory:={self.folder}'], 'recorder')
         self.spin(2)
@@ -109,39 +113,42 @@ class Experiment:
         deadline = time.monotonic()+10
         while time.monotonic() < deadline:
             if (self.recording.get('active') and self.recording.get('frames', 0) >= 10
-                    and self.control.get('candidate')):
+                    and (self.args.search or self.control.get('candidate'))):
                 break
             self.spin(0.1)
         if (self.control.get('state') != 'IDLE' or not self.recording.get('active') or
                 self.recording.get('frames', 0) < 10):
             raise RuntimeError('camera, recording or localization not ready')
-        candidate = self.control['candidate']
-        if self.args.target_xy:
+        candidate = self.control.get('candidate')
+        if self.args.target_xy and not self.args.search:
             xy = candidate['position']
             if sum((xy[i]-self.args.target_xy[i])**2 for i in (0, 1))**0.5 > 0.08:
                 raise RuntimeError('candidate differs from the approved MAP position')
         if not re.search(r'已取得 id=\d+', gate_log.read_text()):
             raise RuntimeError('no Sport lease')
-        self.confirm.publish(Int32(data=candidate['id']))
-        self.spin(0.5)
-        if self.control.get('state') != 'LOCK_TARGET' or self.control.get('vx') != 0:
-            raise RuntimeError('stable anchor lock rejected')
-        print('LOCKED', json.dumps(self.control), flush=True)
+        if not self.args.search:
+            self.confirm.publish(Int32(data=candidate['id']))
+            self.spin(0.5)
+            if self.control.get('state') != 'LOCK_TARGET' or self.control.get('vx') != 0:
+                raise RuntimeError('stable anchor lock rejected')
+            print('LOCKED', json.dumps(self.control), flush=True)
         self.arm.publish(Bool(data=True))
         self.spin(0.2)
         transitions = [s for s in gate_log.read_text().splitlines() if '状态 ' in s and '->' in s]
         if not transitions or '-> ARMED' not in transitions[-1]:
             raise RuntimeError('gate refused arming')
         started = time.monotonic()
-        self.timer = threading.Timer(self.args.timeout+0.5,
+        total_timeout = self.args.timeout + (self.args.search_timeout if self.args.search else 0)
+        self.timer = threading.Timer(total_timeout+0.5,
                                      lambda: self.stop.publish(Int8(data=1)))
         self.timer.start()
         self.start.publish(Empty())
         seen = False
-        while time.monotonic()-started < self.args.timeout+1:
+        while time.monotonic()-started < total_timeout+1:
             self.spin(0.05)
             state = self.control.get('state')
-            seen |= state in ('ALIGN', 'APPROACH_VISUAL', 'APPROACH_ODOM')
+            seen |= state in ('SEARCH', 'LOCK_TARGET', 'ALIGN',
+                              'APPROACH_VISUAL', 'APPROACH_ODOM')
             if state in ('STOP', 'FAULT'):
                 break
             if (self.node.count_publishers('/cmd_vel_raw') != 1 or
@@ -184,9 +191,16 @@ def main():
     parser.add_argument('--target-xy', nargs=2, type=float,
                         help='optional approved MAP XY position')
     parser.add_argument('--no-log-terminal', action='store_true')
+    parser.add_argument('--search', action='store_true', help='search then approach automatically')
+    parser.add_argument('--search-distance', type=float, default=1.0)
+    parser.add_argument('--search-timeout', type=float, default=20.0)
     args = parser.parse_args()
     if not args.execute or not 0 < args.timeout <= 60:
         parser.error('explicit --execute and a timeout in (0,60] seconds are required')
+    if not 0 < args.search_distance <= 2 or not 0 < args.search_timeout <= 30:
+        parser.error('search distance must be (0,2] m and search timeout (0,30] s')
+    if args.search and args.target_xy:
+        parser.error('--target-xy is only supported for manually selected approach')
     rclpy.init()
     experiment = Experiment(args)
     try:

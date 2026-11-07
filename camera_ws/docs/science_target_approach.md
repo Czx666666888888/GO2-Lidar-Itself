@@ -107,3 +107,36 @@ kp=0.5轮在约34.2 cm处超时，用户实测35 cm；后半段命令约0.15而S
 
 成功录像：`camera_ws/records/approach_20261106_210841_496906.mp4`（204/204帧完整解码），
 对应同名JSONL及`run_1793970520470079235.json`。完整失败/成功证据和边界见experiments.md。
+
+## 2026-11-07 — 移动搜索自动接近
+
+```bash
+export SCIENCE_APPROACH_OVERLAY=/tmp/science_search_host_install/setup.bash
+bash camera_ws/scripts/run_map_anchor_experiment.sh --execute --search \
+  --search-distance 1.0 --search-timeout 20 --timeout 25
+```
+
+`--search`在原接近配置之上加载`science_target_search.yaml`。沿启动时机身MAP朝向走
+1.0 m（默认），SEARCH命令0.20 m/s（用户在前三轮后要求由0.15提高），使用实时Point-LIO位置计算路线投影进度及横向误差；
+超出0.20 m横向边界、搜索超时或路线结束均停车。路线无障碍由现场操作者确认，程序没有
+避障功能。`--search-distance`允许(0,2] m，`--search-timeout`允许(0,30] s。
+
+manager只增加`latest_observation`字段，暴露每帧未经过track中位数的原始MAP点，保留
+`observed_ns`。SEARCH从candidate阶段开始收集，按原始时间戳去重；最近1秒至少5帧，
+任意两观测XY距离最大值严格小于0.10 m才取多帧中位数确认，不要求track寿命3秒，
+不检查像素静止。candidate成为CONFIRMED后才能锁定。窗口不足、散布过大时继续移动，
+所以首次看到至最终确认可能超过1秒；1秒是所用观测窗口，不是强制确认时限。
+
+同一个`science_target_approach`实例依次运行SEARCH、LOCK_TARGET、既有ALIGN/
+APPROACH_VISUAL/APPROACH_ODOM。切换周期输出零速度，下一周期复用原接近控制器；
+没有第二个raw发布者。锁定后按空间关联修正锚点，ID变化不切换目标；视觉丢失依实时
+Point-LIO/map->camera_link闭环，XY≤0.10 m停车。运动时限、定位异常、录像健康及急停
+仍生效。独立监督总上限为搜索时限+接近时限；不自动重复实验。
+
+SEARCH配置单独调整比例增益与制动延迟，旧人工接近配置不变。仍无最低速度抬升。
+实际机器人低速/转向响应与MAP误差须看现场记录，命令上限不等于实际速度保证。
+
+实际RGB视频显示SEARCH、当前MAP观测和相机位置，锁定后显示锚点与XY误差。JSONL
+记录原始观测时间、首次MAP观测、确认时间/耗时、窗口样本数/最大两点散布、切换事件、
+命令和Sport反馈、锚点更新及停车原因。录像中的检测日志另外保留首个RGB检测时间。
+暗光识别沿用用户已实测结论，本轮不重复暗光验收、不调整HSV。不启动FAR/WP5或局部规划。

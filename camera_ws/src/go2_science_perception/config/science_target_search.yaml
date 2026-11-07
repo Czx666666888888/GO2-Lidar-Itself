@@ -1,0 +1,17 @@
+# Overlay the existing approach profile; one controller owns SEARCH and APPROACH.
+science_target_approach:
+  ros__parameters:
+    search_enabled: true
+    search_speed: 0.20
+    search_distance: 1.0
+    search_timeout: 20.0
+    search_cross_track_limit: 0.20
+    anchor_window_sec: 1.0
+    anchor_min_observations: 5
+    anchor_max_spread: 0.10
+    # Trial A stalled under 0.13 m/s; retain the same bounded controller.
+    kp_linear: 1.5
+    # Trial B stayed in ALIGN under low angular commands; keep the 0.30 rad/s cap.
+    kp_angular: 2.0
+    # Matches the existing gate's cmd_timeout; no minimum-speed lift.
+    braking_latency: 0.30

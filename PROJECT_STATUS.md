@@ -248,3 +248,18 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
   同名JSONL含逐帧、控制及用户实测数据；完整204/204帧解码通过，数据本机保留不提交Git。
 - 指令最大0.30，Sport反馈峰值0.316 m/s，不能把指令限速写成实际速度严格上限证明。
   结束撤下实机controller/gate、raw publisher=0；保留只读感知及独立日志窗口。
+
+## 2026-11-07 — 移动搜索与自动MAP接近
+
+- 在原`science_target_approach`内增加SEARCH，沿启动MAP朝向最多1 m，初始0.15、
+  用户后续要求改为0.20 m/s；一个raw发布者切换到原接近控制，不启动FAR/WP5/局部规划。
+- 最近1 s至少5个不同原始时间戳MAP观测、最大两点XY散布<0.10 m自动锁定中位数锚点，
+  无3 s寿命等待、不依赖像素静止；保持原视觉空间修正、失视觉Point-LIO闭环和急停。
+- 实机A为18 cm用户实测超时失败；B为ALIGN超时；C为未确认目标搜索超时。
+  D使用0.20搜索、kp_linear=1.5、kp_angular=2.0、braking_latency=0.30，自动切换后
+  9.800 s以camera XY=0.0927 m触发到达STOP，用户确认“接近10cm完成”。
+  最后MAP读数0.1130 m，Sport反馈峰值0.3503 m/s，不能宣称精密停车或实际严格限速通过。
+- 实际检测MP4完整241/241帧：`camera_ws/records/approach_20261107_172248_186678.mp4`，
+  同名日志及run摘要本机保留；详细失败/成功证据见`camera_ws/docs/experiments.md`。
+- 独立构建、24项针对性控制检查通过。暗光识别使用用户已实测结论，不重复测试、不调HSV。
+  外参仍PROVISIONAL，重复精度/实际严格速度上限/路线终点物理停车仍NOT VERIFIED。

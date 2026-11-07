@@ -114,8 +114,12 @@ class ApproachVideoRecorder(Node):
         state = c.get('state', 'WAIT_CONTROL')
         distance = c.get('camera_distance_xy')
         dtext = 'n/a' if distance is None else f'{distance:.3f}m'
+        map_point = c.get('target_map_anchor')
+        if map_point is None and c.get('search_observations'):
+            map_point = c['search_observations'][0]['map']
         lines = [f"ID={identity} DETECT={'VISIBLE' if visible else 'LOST'} {state}",
-                 f"anchor MAP {self._point(c.get('target_map_anchor'))}",
+                 f"{'observed' if state == 'SEARCH' else 'anchor'} MAP "
+                 f"{self._point(map_point)}",
                  f"camera MAP {self._point(c.get('camera'))} XY={dtext}",
                  f"vx={c.get('vx', 0):+.3f} wz={c.get('wz', 0):+.3f} detector age={age:.3f}s",
                  f'RGB stamp={stamp/1e9:.6f} frame={self.frames}']

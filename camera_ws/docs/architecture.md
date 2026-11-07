@@ -210,3 +210,14 @@ coarse_target_locator新增只读`/science/detection_debug` String及`/science/d
 Image；算法不变。approach_video_recorder消费实际RGB和该检测结果及控制status，输出MP4+
 JSONL并发布`/science/approach/recording`健康状态；控制器可要求录像健康。默认launch为
 预览+录像，显式运行脚本才经原gate执行一次，并默认打开只读日志终端。见运行说明与实验记录。
+
+## 2026-11-07 — 单控制器移动搜索
+
+`science_target_manager`快照仅新增`latest_observation`（本帧未平滑MAP观测），
+保留源`observed_ns`。`science_target_approach`的可选SEARCH使用最近1秒不同源帧做
+MAP XY散布检验与中位数锚定，不使用像素静止判据；确认后零输出一周期再进入原接近
+状态机。SEARCH按启动MAP朝向直行，默认0.20 m/s/1m/20s，有路线/横向边界和超时停止。
+同一节点始终独占`/cmd_vel_raw -> go2_safety_gate -> Sport`，不引入第二个运动发布者。
+视觉/SLAM/TF链及camera_link原点XY停车语义不变；独立SEARCH配置覆盖参数，人工接近
+配置保留。原始视频/检测/控制日志共同记录SEARCH与APPROACH。实机结果与验证边界见
+同目录experiments.md，源代码/参数存在不等于所有现场条件通过。

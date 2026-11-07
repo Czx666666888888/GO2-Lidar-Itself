@@ -42,11 +42,16 @@ class Settings:
     allow_odom: bool = False
     odom_max_time: float = 1.0
     odom_max_distance: float = 0.15
+    search_enabled: bool = False
+    search_speed: float = 0.20
+    search_distance: float = 1.0
+    search_timeout: float = 20.0
+    search_cross_track_limit: float = 0.20
 
     def __post_init__(self):
         """Reject invalid limits rather than silently weakening safety bounds."""
         for name, value in vars(self).items():
-            if (name not in ('allow_odom', 'stop_reference') and
+            if (name not in ('allow_odom', 'stop_reference', 'search_enabled') and
                     (not math.isfinite(value) or value <= 0)):
                 raise ValueError(f'{name} must be finite and positive')
         if self.max_linear_speed > 0.3 or self.max_angular_speed > 0.3:
@@ -55,6 +60,10 @@ class Settings:
             raise ValueError('unknown stop reference')
         if self.anchor_alpha > 1:
             raise ValueError('anchor_alpha must be <= 1')
+        if self.search_enabled and self.search_speed > min(0.30, self.max_linear_speed):
+            raise ValueError('search speed exceeds motion cap')
+        if self.search_enabled and self.stop_reference != 'camera_origin':
+            raise ValueError('SEARCH requires camera_origin')
         if self.stop_reference == 'body_center' and (
                 self.stop_distance < 0.6 or self.distance_tolerance >= self.stop_distance):
             raise ValueError('unsafe standoff/tolerance')
@@ -91,8 +100,13 @@ class ApproachControl:
         self.camera_speed = self.camera_closing_speed = 0.0
         self.anchor_initial = self.anchor_lock_camera = None
         self.histories = {}
+        self.last_observed_ns = {}
         self.anchor_stamp = -math.inf
         self.anchor_updates = self.anchor_rejections = 0
+        self.search_origin = None
+        self.search_started = self.first_seen = self.confirmed_at = None
+        self.confirmation_spread = self.confirmation_count = None
+        self.first_seen_stamp_ns = None
 
     def fault(self, reason):
         """Latch a fault; never restart on data recovery."""
@@ -157,13 +171,24 @@ class ApproachControl:
         """Keep a spatial anchor across missing, merged or changed track IDs."""
         self.tracks, self.snapshot_time = tracks, now
         for t in tracks:
-            if (t['state'] != 'CONFIRMED' or t['visited'] or
+            if (t['state'] not in ('CANDIDATE', 'CONFIRMED') or t['visited'] or
                     not 0 <= t['age'] <= self.p.visual_timeout):
                 continue
             observed = now - t['age']
+            if (self.state == 'SEARCH' and self.search_started is not None and
+                    observed < self.search_started):
+                continue
             history = self.histories.setdefault(t['id'], deque(maxlen=40))
-            if not history or observed > history[-1][0] + 0.001:
-                history.append((observed, tuple(t['position'][:2])))
+            stamp = t.get('observed_ns')
+            new_stamp = stamp is None or stamp != self.last_observed_ns.get(t['id'])
+            if new_stamp and (not history or observed > history[-1][0] + 0.001):
+                self.last_observed_ns[t['id']] = stamp
+                point = (t.get('latest_observation', t['position'])
+                         if self.p.search_enabled else t['position'])
+                history.append((observed, tuple(point[:2])))
+                if self.state == 'SEARCH' and self.first_seen is None:
+                    self.first_seen = observed
+                    self.first_seen_stamp_ns = t.get('observed_ns')
             while history and now-history[0][0] > self.p.anchor_window_sec:
                 history.popleft()
         if self.lock_id is None or self.state in ('STOP', 'FAULT'):
@@ -228,7 +253,8 @@ class ApproachControl:
                 now - self.feedback_time > self.p.feedback_timeout):
             return False
         t = self.candidate(now)
-        if (t is None or t.get('lifetime', 0.0) < self.p.lock_stability_sec or
+        if (t is None or (not self.p.search_enabled and
+                          t.get('lifetime', 0.0) < self.p.lock_stability_sec) or
                 (target_id is not None and target_id != t['id'])):
             return False
         reference = self.reference()
@@ -240,11 +266,16 @@ class ApproachControl:
             if len(history) < self.p.anchor_min_observations:
                 return False
             point = tuple(median(p[i] for p in history) for i in (0, 1))
-            if max(math.dist(p, point) for p in history) > self.p.anchor_max_spread:
+            spread = (max(math.dist(a, b) for a in history for b in history)
+                      if self.p.search_enabled else
+                      max(math.dist(p, point) for p in history))
+            if spread >= self.p.anchor_max_spread:
                 return False
+            self.confirmation_spread, self.confirmation_count = spread, len(history)
         else:
             point = tuple(t['position'][:2])
         self.lock_id, self.target = t['id'], point
+        self.confirmed_at = now
         self.anchor_initial = point
         self.anchor_lock_camera = reference
         self.anchor_stamp = self.snapshot_time-t['age']
@@ -257,6 +288,17 @@ class ApproachControl:
 
     def start(self, now):
         """Start a previously reviewed camera anchor only on a second manual command."""
+        if self.p.search_enabled and self.state == 'IDLE':
+            if (self.robot is None or self.camera is None or
+                    now-self.odom_time > self.p.odom_timeout or
+                    now-self.camera_time > self.p.odom_timeout or
+                    now-self.feedback_time > self.p.feedback_timeout):
+                return False
+            self.histories.clear()
+            self.search_origin = self.robot
+            self.search_started = self.started = now
+            self.state = 'SEARCH'
+            return True
         if (self.state != 'LOCK_TARGET' or self.started is not None or
                 now-self.odom_time > self.p.odom_timeout or
                 now-self.camera_time > self.p.odom_timeout or
@@ -280,7 +322,7 @@ class ApproachControl:
                 self.fault('camera TF timeout')
             elif now - self.feedback_time > self.p.feedback_timeout:
                 self.fault('GO2 feedback timeout')
-            elif now - self.started > self.p.max_run_time:
+            elif self.state != 'SEARCH' and now - self.started > self.p.max_run_time:
                 self.fault('run timeout')
         out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'wz': 0.0,
                'target_id': self.lock_id, 'target': self.target, 'robot': self.robot,
@@ -293,7 +335,59 @@ class ApproachControl:
                'initial_distance': self.initial_distance,
                'elapsed': now - self.started if self.started is not None else 0.0,
                'visual_lost_at': self.lost_at,
-               'candidate': self.candidate(now) if self.state == 'IDLE' else None}
+               'candidate': self.candidate(now) if self.state in ('IDLE', 'SEARCH') else None}
+        out.update(search_origin=self.search_origin, search_started=self.search_started,
+                   search_observations=[{
+                       'id': t['id'], 'map': t.get('latest_observation', t['position']),
+                       'observed_ns': t.get('observed_ns'), 'age': t['age']}
+                       for t in self.tracks] if self.state == 'SEARCH' else [],
+                   first_seen=self.first_seen, first_seen_stamp_ns=self.first_seen_stamp_ns,
+                   confirmed_at=self.confirmed_at, confirmation_spread=self.confirmation_spread,
+                   confirmation_count=self.confirmation_count,
+                   confirmation_seconds=(self.confirmed_at-self.first_seen
+                                         if self.confirmed_at is not None and
+                                         self.first_seen is not None else None))
+        if self.state == 'SEARCH':
+            x0, y0, heading = self.search_origin
+            dx, dy = self.robot[0]-x0, self.robot[1]-y0
+            progress = dx*math.cos(heading)+dy*math.sin(heading)
+            cross = -dx*math.sin(heading)+dy*math.cos(heading)
+            out.update(search_progress=progress, search_cross_track=cross)
+            if abs(cross) > self.p.search_cross_track_limit:
+                self.fault('search cross-track limit')
+            elif now-self.search_started >= self.p.search_timeout:
+                self.state, self.reason = 'STOP', 'search timeout without target'
+            elif progress >= self.p.search_distance:
+                self.state, self.reason = 'STOP', 'search route ended without target'
+            else:
+                # One controller owns both modes; transition tick sends zero SEARCH velocity.
+                self.state = 'IDLE'
+                locked = self.confirm(now)
+                if locked:
+                    self.started = now
+                    self.vx = 0.0
+                    out.update(state=self.state, target_id=self.lock_id,
+                               target=self.target, target_map_anchor=self.target,
+                               confirmed_at=self.confirmed_at,
+                               confirmation_count=self.confirmation_count,
+                               confirmation_spread=self.confirmation_spread,
+                               confirmation_seconds=(now-self.first_seen
+                                                     if self.first_seen is not None else None),
+                               transition='SEARCH->APPROACH')
+                    return out
+                self.state = 'SEARCH'
+                error = angle(heading-self.robot[2])
+                remaining = max(0.0, self.p.search_distance-progress)
+                desired = min(self.p.search_speed, math.sqrt(
+                    2*self.p.max_deceleration*remaining))
+                self.vx = min(desired, self.vx+self.p.max_acceleration*dt)
+                out.update(vx=self.vx, wz=max(-self.p.max_angular_speed, min(
+                    self.p.max_angular_speed, self.p.kp_angular*error-0.5*cross)))
+            if self.state in ('STOP', 'FAULT'):
+                self.vx = 0.0
+                out.update(vx=0.0, wz=0.0)
+            out.update(state=self.state, reason=self.reason)
+            return out
         reference = self.reference()
         if self.robot is None or self.target is None or reference is None:
             return out

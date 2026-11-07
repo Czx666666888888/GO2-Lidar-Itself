@@ -515,6 +515,7 @@ class ScienceTargetManager(Node):
             "frame": self.map_frame,
             "tracks": [{"id": t.target_id, "state": t.state,
                         "position": list(t.position),
+                        "latest_observation": list(t.observations[-1]),
                         "observed_ns": t.last_stamp_ns,
                         "first_seen_ns": t.first_seen,
                         "visited": self.tracker.visited_match(t.position) is not None}

@@ -775,3 +775,84 @@ No target detection, map transform or robot motion belongs in this experiment.
 - 当前视频/原始JSONL保存在本机，`camera_ws/records/`已加入gitignore，避免误提交数据；
   源码、参数、实验记录与复现说明提交Git。外参仍PROVISIONAL；不同地面/姿态/目标的
   重复停车精度、低速响应标定及实际速度严格上限仍NOT VERIFIED。
+
+## 2026-11-07 — 移动搜索 → MAP自动锁定 → 自主接近
+
+来源：本轮实机控制JSONL、实际RGB检测MP4及用户现场反馈。分支
+`feature/d435-perception-workspace`，基于`4475d3f`，未启动FAR、WP5、localPlanner、
+pathFollower，未修改HSV、Point-LIO或坐标变换算法。暗光蓝色识别沿用用户已实测结论，
+本轮不重复其专项验收。外参仍`PROVISIONAL / NOT CALIBRATED`。
+
+### 实现与运行条件
+
+- SEARCH直接加入原`science_target_approach`，同一个`/cmd_vel_raw`发布者经原gate输出。
+  启动朝向定义MAP直线，默认1.0 m，搜索时限20 s，横向偏离0.20 m停车；路线结束无
+  已确认目标则停车。不包含避障，用户确认路线无障碍、起点和急停就绪。
+- SEARCH取消3秒track寿命等待：读取manager新增的`latest_observation`原始MAP观测及
+  原始`observed_ns`，candidate阶段开始收集，按源时间戳去重；最近1 s至少5次，XY
+  最大两点距离严格小于0.10 m时用中位数建锚点。不是对已平滑track位置做散布检验，
+  不要求像素静止。未改原始时间戳TF转换。最后整理另剔除SEARCH启动前的在途观测，
+  避免首次发现时间早于运动启动；该整理仅完成针对性检查，未为此再次运动。
+- 确认周期发送零速度并记录`SEARCH->APPROACH`；随后复用原ALIGN/VISUAL/ODOM控制。
+  ID变化后仍按空间关联小幅修正同一锚点，丢视觉后依Point-LIO与camera_link TF闭环。
+  相机原点MAP XY≤0.10 m锁存STOP。原定位异常停车、急停、录像健康和命令竞争检查保留。
+- 初始SEARCH=0.15 m/s。前三轮后用户明确要求升为0.20 m/s，最终配置/默认均已修改。
+  APPROACH命令上限仍0.30 m/s。独立SEARCH参数覆盖文件保留原人工接近配置不变。
+- 起初GO2时钟为2026-07-09，PC为2026-11-07。用户完成对时后重启本轮相机/SLAM链，
+  清理跨epoch缓存再运动。一次只读launch在创建节点前段错误，开启fault handler重试
+  后正常运行；没有改SLAM算法。原始日志`/tmp/science_search_slam_retry.log`。
+
+### 现场迭代（失败记录保留）
+
+| 轮次 | SEARCH命令 | 观测与结局 | 本机视频名（均在camera_ws/records） |
+|---|---:|---|---|
+| A | 0.15 m/s | 5帧/0.0654 m散布确认；自动接近后15 s超时，最终MAP约0.130 m；用户实测18 cm、目标正确，未通过10 cm | approach_20261107_171651_853661.mp4 |
+| B | 0.15 m/s | 调kp_linear=1.5、braking_latency=0.30后，5帧/0.0503 m确认；目标偏航，长期ALIGN，15 s超时，最终MAP约1.726 m | approach_20261107_171937_504184.mp4 |
+| C | 0.15 m/s | 调kp_angular=2.0；有间歇视觉/MAP观测但未满足确认窗口，20 s搜索超时停车，未接近 | approach_20261107_172116_341828.mp4 |
+| D | 0.20 m/s | 运动中5帧确认、自动接近、到达停车；用户确认“接近10cm完成” | approach_20261107_172248_186678.mp4 |
+
+A末段命令约0.10–0.13 m/s、后5 s Sport XY均值约0.008 m/s，支持低速推进不足；
+B在约0.17–0.29 rad/s命令下转向响应不足。只调整SEARCH覆盖配置中的比例增益与
+制动延迟，继续原控制算法、命令限幅及gate min_speed=0；没有用最低速度抬升或
+放宽停车误差掩盖失败。制动延迟0.30 s与gate cmd_timeout一致。
+
+### D轮详细证据与边界
+
+- run：`camera_ws/records/run_1794043367276655187.json`。
+  录像首个RGB有效检测源时间17:22:47.980103（含启动前画面）；
+  首次有效MAP观测源时间2026-11-07 **17:22:49.727169 +08:00**；确认/切换
+  **17:22:51.570597**，原始源时间至确认1.8434 s。SEARCH命令启动至确认1.5680 s；
+  两者不同是早期在途图像的源时间早于启动，最终源码已排除该类预启动观测。
+  1秒指最终确认所用窗口，不意味着所有场景在看到后1秒内必能确认。
+- 最终确认窗口：5个不同源时间戳的原始MAP点，最大两点XY距离0.08954 m。
+  中位数初始锚点(2.466778,0.416516)m；最终锚点(2.428109,0.434983)m，
+  67次空间匹配平滑修正。没有因track ID更新另选物块。
+- SEARCH命令最高0.20 m/s，确认前MAP路线进度约0.0695 m，Sport XY反馈峰值约
+  0.0921 m/s；这说明实际低速响应与命令不同，不宣称实际速度恰好0.20。
+  活动日志15 SEARCH、1 LOCK_TARGET、21 ALIGN、61 APPROACH_VISUAL、15 APPROACH_ODOM。
+- **17:23:01.370716**、接近开始后9.8002 s首次进入STOP，原因
+  `camera XY aligned`，相机原点MAP XY误差**0.092727 m**，vx=wz=0。
+  停车后最后读数0.113017 m，有位姿/锚点估计波动。用户随后确认“接近10cm完成”。
+  本场景粗验收PASS，不把最后读数改写成≤0.10 m，不作为外部精密真值或重复精度保证。
+- 接近命令峰值0.30 m/s，Sport XY反馈峰值0.3503 m/s；实际速度严格≤0.30 m/s
+  **NOT VERIFIED**，不能把软件限幅当作真实步态速度上限。
+- 完整实际RGB+原检测结果MP4：
+  `/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261107_172248_186678.mp4`。
+  同名`.jsonl`包含原图/检测时间、逐帧状态和控制信息；另有同目录
+  `science_approach_1794043368064451998.jsonl`逐周期控制日志。
+  D视频完整解码**241/241帧**。A425/425帧、C394/394帧也完成完整解码。
+  原始数据本机保留，不提交Git；用户实测反馈已追加到对应run/录像日志。
+
+### 必要检查与未验证项
+
+独立package build通过；两项新增SEARCH针对性测试加原锚点/控制核心检查共24 passed，
+单进程flake8（max-line-length=100）、git diff --check通过。没有新增大量离线测试。
+路线无目标结束/定位中断停车有针对性软件检查；现场C验证了搜索超时停止，未将其
+冒充1.0 m路线终点停车。1.0 m路线终点真机停止、实际严格速度上限、重复精度和其他
+光照/地面条件均**NOT VERIFIED**。结束撤下本轮controller/gate/录像节点，保留只读
+相机、SLAM、检测链；不自动重启运动。
+
+结束只读ROS审计：`/tmp/science_search_final_audit.json`确认
+`cmd_vel_raw_publishers=0`；仅保留相机、Point-LIO、TF、检测/manager，无FAR/WP5/
+localPlanner/pathFollower或controller/gate。最后源码整理后独立build及24项检查再次通过，
+未追加运动。
