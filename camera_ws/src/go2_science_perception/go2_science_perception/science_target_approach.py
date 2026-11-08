@@ -1,5 +1,6 @@
 """ROS adapter for manually confirmed approach; defaults to isolated dry-run."""
 
+from collections import deque
 from dataclasses import fields
 import json
 import math
@@ -44,6 +45,7 @@ class ScienceTargetApproach(Node):
         self.recording_at = -math.inf
         self.recording_info = {}
         self.sport_velocity = None
+        self.map_measurements = deque(maxlen=128)
         self.sport_state_info = {}
         log_dir = self.get_parameter('log_directory').value
         self.log_path = os.path.join(log_dir, f'science_approach_{time.time_ns()}.jsonl')
@@ -67,6 +69,8 @@ class ScienceTargetApproach(Node):
             else '/cmd_vel_raw', 1)
         self.telemetry = self.create_publisher(String, '/science/approach/status', 10)
         self.stop_request = None if self.dry_run else self.create_publisher(Int8, '/stop', 1)
+        self.create_subscription(String, '/science/map_measurement_debug',
+                                 self._map_measurement, 10)
         self.create_subscription(String, '/science/target_tracks', self._tracks, 10)
         self.create_subscription(Odometry, '/base_state_estimation', self._odom,
                                  qos_profile_sensor_data)
@@ -122,6 +126,27 @@ class ScienceTargetApproach(Node):
             raise ValueError(f'stale/future/zero input timestamp: age={age:.6f}s')
         return value, age
 
+    def _map_measurement(self, msg):
+        """Retain exact source-stamp camera ranges; no extra detector or TF shortcut."""
+        try:
+            data = json.loads(msg.data)
+            point = data['map_xyz']
+            camera = data['camera_xyz']
+            if (data['target_frame'] != self.map_frame or data['stamp_ns'] <= 0 or
+                    len(point) != 3 or len(camera) != 3 or camera[2] <= 0 or
+                    not all(math.isfinite(v) for v in point+camera)):
+                return
+            self.map_measurements.append((data['stamp_ns'], tuple(point), math.sqrt(
+                sum(v*v for v in camera))))
+        except (ValueError, TypeError, KeyError):
+            return
+
+    def _matched_camera_range(self, track):
+        matches = [distance for stamp, point, distance in self.map_measurements
+                   if stamp == track['observed_ns'] and
+                   math.dist(point, track['latest_observation']) <= 1e-6]
+        return matches[-1] if matches else None
+
     def _tracks(self, msg):
         try:
             data = json.loads(msg.data)
@@ -139,6 +164,13 @@ class ScienceTargetApproach(Node):
                     raise ValueError('invalid target timestamp')
                 t['age'] = max(0.0, t['age'])
                 t['lifetime'] = (now_ros - t['first_seen_ns']) / 1e9
+                if self.core.p.search_enabled:
+                    raw = t.get('latest_observation')
+                    if raw is None or len(raw) != 3 or not all(math.isfinite(v) for v in raw):
+                        raise ValueError('missing/nonfinite raw MAP observation')
+                    distance = self._matched_camera_range(t)
+                    if distance is not None:
+                        t['camera_range_m'] = distance
             now = time.monotonic()
             self.core.observations(tracks, now)
             self.track_received = now
@@ -184,6 +216,10 @@ class ScienceTargetApproach(Node):
             'error_code': int(msg.error_code), 'yaw_speed': float(msg.yaw_speed)}
         velocity = [float(v) for v in msg.velocity]
         self.sport_velocity = velocity if all(math.isfinite(v) for v in velocity) else None
+        self.core.feedback_speed = (math.hypot(*velocity[:2])
+                                    if self.sport_velocity is not None else math.inf)
+        self.core.feedback_yaw_rate = (float(msg.yaw_speed) if math.isfinite(msg.yaw_speed)
+                                       else math.inf)
 
     def _recording(self, msg):
         try:

@@ -6,9 +6,18 @@ science_target_approach:
     search_distance: 1.0
     search_timeout: 20.0
     search_cross_track_limit: 0.20
+    search_trigger_range_m: 1.8
+    search_trigger_observations: 3
+    stop_confirm_timeout: 6.0
+    stop_confirm_stable_sec: 0.20
+    stop_confirm_min_span_sec: 0.60
+    stop_confirm_speed_mps: 0.05
+    stop_confirm_yaw_rate: 0.10
+    search_cooldown_sec: 0.75
+    confirmation_max_gap_sec: 0.30
     anchor_window_sec: 1.0
     anchor_min_observations: 5
-    anchor_max_spread: 0.10
+    anchor_max_spread: 0.08
     # Trial A stalled under 0.13 m/s; retain the same bounded controller.
     kp_linear: 1.5
     # Trial B stayed in ALIGN under low angular commands; keep the 0.30 rad/s cap.

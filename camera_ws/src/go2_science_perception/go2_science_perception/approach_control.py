@@ -47,6 +47,15 @@ class Settings:
     search_distance: float = 1.0
     search_timeout: float = 20.0
     search_cross_track_limit: float = 0.20
+    search_trigger_range_m: float = 1.8
+    search_trigger_observations: int = 3
+    stop_confirm_timeout: float = 6.0
+    stop_confirm_stable_sec: float = 0.20
+    stop_confirm_min_span_sec: float = 0.60
+    stop_confirm_speed_mps: float = 0.05
+    stop_confirm_yaw_rate: float = 0.10
+    search_cooldown_sec: float = 0.75
+    confirmation_max_gap_sec: float = 0.30
 
     def __post_init__(self):
         """Reject invalid limits rather than silently weakening safety bounds."""
@@ -64,6 +73,15 @@ class Settings:
             raise ValueError('search speed exceeds motion cap')
         if self.search_enabled and self.stop_reference != 'camera_origin':
             raise ValueError('SEARCH requires camera_origin')
+        if self.search_enabled and (not isinstance(self.search_trigger_observations, int) or
+                                    self.search_trigger_observations < 2 or
+                                    self.anchor_min_observations < 5 or
+                                    self.anchor_window_sec > 1.0 or
+                                    self.stop_confirm_timeout > 6.0 or
+                                    self.anchor_max_spread > 0.08 or
+                                    self.search_trigger_range_m > 1.8 or
+                                    self.stop_confirm_min_span_sec > self.anchor_window_sec):
+            raise ValueError('SEARCH stop-confirm limits must not be weakened')
         if self.stop_reference == 'body_center' and (
                 self.stop_distance < 0.6 or self.distance_tolerance >= self.stop_distance):
             raise ValueError('unsafe standoff/tolerance')
@@ -108,6 +126,21 @@ class ApproachControl:
         self.search_started = self.first_seen = self.confirmed_at = None
         self.confirmation_spread = self.confirmation_count = None
         self.first_seen_stamp_ns = None
+        self.feedback_speed = self.feedback_yaw_rate = math.inf
+        self.pose_yaw_rate = 0.0
+        self.yaw_history = deque()
+        self.trigger_history = {}
+        self.search_cooldown_until = -math.inf
+        self.stop_candidate = None
+        self.stop_confirm_started = self.stationary_since = self.settled_at = None
+        self.stop_samples = deque()
+        self.stop_sample_stamps = set()
+        self.stop_confirm_reason = ''
+        self.stop_confirm_attempts = []
+        self.search_first_detection_range_m = None
+        self.stop_request_range_m = self.stop_stable_range_m = None
+        self.stopped_after_sec = self.stationary_confirmation_sec = None
+        self.visual_loss_count = 0
 
     def fault(self, reason):
         """Latch a fault; never restart on data recovery."""
@@ -143,6 +176,12 @@ class ApproachControl:
                 distance = math.hypot(dx, dy)
                 self.closing_speed = ((x - x0) * dx + (y - y0) * dy) / max(
                     distance * (now - t0), 1e-9)
+        self.yaw_history.append((now, yaw))
+        while len(self.yaw_history) > 2 and self.yaw_history[1][0] <= now-self.p.speed_window_sec:
+            self.yaw_history.popleft()
+        if now > self.yaw_history[0][0]:
+            self.pose_yaw_rate = abs(angle(yaw-self.yaw_history[0][1])) / (
+                now-self.yaw_history[0][0])
         self.robot, self.odom_time = (x, y, yaw), now
 
     def camera_pose(self, x, y, now):
@@ -172,6 +211,9 @@ class ApproachControl:
         """Keep a spatial anchor across missing, merged or changed track IDs."""
         self.association_diagnostics = []
         self.tracks, self.snapshot_time = tracks, now
+        if self.p.search_enabled and self.state in ('SEARCH', 'STOP_CONFIRM'):
+            self._search_observations(tracks, now)
+            return
         for t in tracks:
             if (t['state'] not in ('CANDIDATE', 'CONFIRMED') or t['visited'] or
                     not 0 <= t['age'] <= self.p.visual_timeout):
@@ -256,6 +298,195 @@ class ApproachControl:
         self.lost_at = None
         self.odom_travel = 0.0
 
+    def _near_detections(self, now):
+        """Use source-matched camera ranges, never infer range from a smoothed MAP track."""
+        return [t for t in self.tracks if t['state'] in ('CANDIDATE', 'CONFIRMED')
+                and not t['visited'] and t.get('observed_ns', 0) > 0
+                and 0 <= t['age'] + now-self.snapshot_time <= self.p.visual_timeout
+                and 0 < t.get('camera_range_m', math.inf) <= self.p.search_trigger_range_m]
+
+    def _is_stopped(self, now):
+        return (now-self.odom_time <= self.p.odom_timeout and
+                now-self.camera_time <= self.p.odom_timeout and
+                now-self.feedback_time <= self.p.feedback_timeout and
+                max(self.actual_speed, self.camera_speed, self.feedback_speed) <=
+                self.p.stop_confirm_speed_mps and
+                max(self.pose_yaw_rate, abs(self.feedback_yaw_rate)) <=
+                self.p.stop_confirm_yaw_rate)
+
+    def _clear_stationary(self):
+        self.stationary_since = self.settled_at = None
+        self.stop_samples.clear()
+        self.stop_sample_stamps.clear()
+
+    def _search_observations(self, tracks, now):
+        """Keep moving hints separate from new, post-settle confirmation measurements."""
+        valid = self._near_detections(now)
+        if self.state == 'SEARCH':
+            if self.first_seen is None:
+                hints = [t for t in tracks if t['state'] in ('CANDIDATE', 'CONFIRMED')
+                         and not t['visited'] and 0 <= t['age'] <= self.p.visual_timeout
+                         and math.isfinite(t.get('camera_range_m', math.inf))
+                         and now-t['age'] >= self.search_started]
+                if hints:
+                    first = min(hints, key=lambda t: t['camera_range_m'])
+                    self.first_seen = now-first['age']
+                    self.first_seen_stamp_ns = first['observed_ns']
+                    self.search_first_detection_range_m = first['camera_range_m']
+            # A single spatial candidate must persist through distinct source frames.
+            if len(valid) != 1:
+                self.trigger_history.clear()
+                return
+            t = valid[0]
+            observed = now-t['age']
+            if observed < max(self.search_started, self.search_cooldown_until):
+                return
+            if self.first_seen is None:
+                self.first_seen, self.first_seen_stamp_ns = observed, t['observed_ns']
+                self.search_first_detection_range_m = t['camera_range_m']
+            history = self.trigger_history.setdefault(t['id'], deque(
+                maxlen=self.p.search_trigger_observations))
+            for other in list(self.trigger_history):
+                if other != t['id']:
+                    del self.trigger_history[other]
+            if history and t['observed_ns'] <= history[-1][1]:
+                return
+            point = tuple(t['latest_observation'][:2])
+            if history and ((t['observed_ns']-history[-1][1])*1e-9 >
+                            self.p.confirmation_max_gap_sec or
+                            math.dist(point, history[0][2]) > self.p.target_jump_m):
+                history.clear()
+            history.append((observed, t['observed_ns'], point, t['camera_range_m']))
+            return
+        if not self._is_stopped(now):
+            self._clear_stationary()
+            self.stop_confirm_reason = 'waiting for measured stop'
+            return
+        if self.settled_at is None:
+            return
+        seed = self.stop_candidate['map']
+        matches = [t for t in valid if math.dist(tuple(t['latest_observation'][:2]), seed)
+                   <= min(self.p.anchor_association_radius, self.p.target_jump_m)]
+        if len(matches) != 1:
+            self.stop_samples.clear()
+            self.stop_confirm_reason = 'candidate missing or spatially ambiguous'
+            return
+        t = matches[0]
+        observed = now-t['age']
+        stamp = t['observed_ns']
+        if observed <= self.settled_at or stamp in self.stop_sample_stamps:
+            return
+        if self.stop_samples and stamp <= self.stop_samples[-1][1]:
+            return
+        point = tuple(t['latest_observation'][:2])
+        if self.stop_samples and (stamp-self.stop_samples[-1][1])*1e-9 > (
+                self.p.confirmation_max_gap_sec):
+            self.stop_samples.clear()
+        self.stop_sample_stamps.add(stamp)
+        self.stop_samples.append((observed, stamp, point, t['id'], t['camera_range_m']))
+        while self.stop_samples and now-self.stop_samples[0][0] > self.p.anchor_window_sec:
+            self.stop_samples.popleft()
+        self.stop_confirm_reason = 'collecting new stationary observations'
+
+    def _begin_stop_confirm(self, now):
+        valid = self._near_detections(now)
+        if len(valid) != 1:
+            return False
+        t = valid[0]
+        history = self.trigger_history.get(t['id'], [])
+        if len(history) < self.p.search_trigger_observations:
+            return False
+        if now-history[-1][0] > self.p.visual_timeout:
+            return False
+        self.stop_candidate = dict(
+            id=t['id'], map=tuple(median(s[2][i] for s in history) for i in (0, 1)),
+            trigger_stamp_ns=history[-1][1])
+        self.stop_request_range_m = t['camera_range_m']
+        self.stop_stable_range_m = None
+        self.stopped_after_sec = self.stationary_confirmation_sec = None
+        self.stop_confirm_started = now
+        self._clear_stationary()
+        self.trigger_history.clear()
+        self.state, self.reason, self.vx = 'STOP_CONFIRM', '', 0.0
+        self.stop_confirm_reason = 'waiting for measured stop'
+        return True
+
+    def _stop_confirmation(self, now, out):
+        """Always zero; timeout resumes the original bounded search after cooldown."""
+        self.vx = 0.0
+        if now-self.stop_confirm_started >= self.p.stop_confirm_timeout:
+            self.stop_confirm_attempts.append(dict(
+                candidate=self.stop_candidate, result='TIMEOUT',
+                stop_request_range_m=self.stop_request_range_m,
+                stop_stable_range_m=self.stop_stable_range_m,
+                stopped_after_sec=self.stopped_after_sec, reason=self.stop_confirm_reason,
+                elapsed=now-self.stop_confirm_started))
+            self.state, self.reason = 'SEARCH', 'confirmation timeout; search cooldown'
+            self.search_cooldown_until = now+self.p.search_cooldown_sec
+            self.trigger_history.clear()
+            self._clear_stationary()
+            out.update(state=self.state, reason=self.reason,
+                       transition='STOP_CONFIRM->SEARCH', stop_confirm_reason='timeout')
+            return out
+        if not self._is_stopped(now):
+            self._clear_stationary()
+            self.stop_confirm_reason = 'waiting for measured stop'
+        elif self.stationary_since is None:
+            self.stationary_since = now
+        elif (self.settled_at is None and
+              now-self.stationary_since >= self.p.stop_confirm_stable_sec):
+            self.settled_at = now
+            self.stopped_after_sec = now-self.stop_confirm_started
+            self.stop_samples.clear()
+            self.stop_sample_stamps.clear()
+            near = self._near_detections(now)
+            match = [t for t in near
+                     if math.dist(t['latest_observation'][:2], self.stop_candidate['map'])
+                     <= self.p.target_jump_m]
+            self.stop_stable_range_m = match[0]['camera_range_m'] if len(match) == 1 else None
+        samples = list(self.stop_samples)
+        spread = max((math.dist(a[2], b[2]) for a in samples for b in samples), default=0.0)
+        span = (samples[-1][1]-samples[0][1])*1e-9 if samples else 0.0
+        out.update(stop_confirm_reason=self.stop_confirm_reason,
+                   stationary_since=self.stationary_since,
+                   settled_at=self.settled_at, stopped_after_sec=self.stopped_after_sec,
+                   stop_stable_range_m=self.stop_stable_range_m,
+                   stationary_sample_count=len(samples), stationary_sample_span=span,
+                   stationary_spread=spread,
+                   stationary_observations=[dict(observed_ns=s[1], map=s[2], id=s[3],
+                                                 camera_range_m=s[4]) for s in samples])
+        current = self._near_detections(now)
+        matches = [t for t in current
+                   if math.dist(t['latest_observation'][:2], self.stop_candidate['map'])
+                   <= self.p.target_jump_m]
+        if (self.settled_at is None or len(samples) < self.p.anchor_min_observations or
+                span < self.p.stop_confirm_min_span_sec or spread >= self.p.anchor_max_spread or
+                len(matches) != 1 or matches[0]['state'] != 'CONFIRMED' or
+                matches[0]['observed_ns'] != samples[-1][1]):
+            return out
+        self.target = tuple(median(s[2][i] for s in samples) for i in (0, 1))
+        self.lock_id = samples[-1][3]
+        self.anchor_initial, self.anchor_lock_camera = self.target, self.camera
+        self.anchor_stamp = self.visual_time = samples[-1][0]
+        self.confirmed_at = self.started = now
+        self.initial_distance = math.dist(self.target, self.camera)
+        self.confirmation_spread, self.confirmation_count = spread, len(samples)
+        self.stationary_confirmation_sec = now-self.settled_at
+        self.state, self.reason = 'LOCK_TARGET', ''
+        self.stop_confirm_attempts.append(dict(
+            candidate=self.stop_candidate, result='CONFIRMED',
+            stop_request_range_m=self.stop_request_range_m,
+            stop_stable_range_m=self.stop_stable_range_m,
+            stopped_after_sec=self.stopped_after_sec,
+            stationary_confirmation_sec=self.stationary_confirmation_sec, spread=spread,
+            count=len(samples), elapsed=now-self.stop_confirm_started))
+        out.update(state=self.state, target_id=self.lock_id, target=self.target,
+                   target_map_anchor=self.target, anchor_initial=self.anchor_initial,
+                   confirmed_at=now, confirmation_count=len(samples), confirmation_spread=spread,
+                   stationary_confirmation_sec=self.stationary_confirmation_sec,
+                   initial_distance=self.initial_distance, transition='STOP_CONFIRM->APPROACH')
+        return out
+
     def candidate(self, now):
         """Preview the nearest eligible target; refuse an unstable nearest ID."""
         if self.robot is None:
@@ -270,7 +501,7 @@ class ApproachControl:
 
     def confirm(self, now, target_id=None):
         """Choose nearest fresh active unvisited ID using the current body pose."""
-        if self.state != 'IDLE':
+        if self.state != 'IDLE' or self.p.search_enabled:
             return False
         if (now - self.odom_time > self.p.odom_timeout or
                 now - self.feedback_time > self.p.feedback_timeout):
@@ -345,7 +576,8 @@ class ApproachControl:
                 self.fault('camera TF timeout')
             elif now - self.feedback_time > self.p.feedback_timeout:
                 self.fault('GO2 feedback timeout')
-            elif self.state != 'SEARCH' and now - self.started > self.p.max_run_time:
+            elif (self.state not in ('SEARCH', 'STOP_CONFIRM') and
+                  now-self.started > self.p.max_run_time):
                 self.fault('run timeout')
         out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'wz': 0.0,
                'target_id': self.lock_id, 'target': self.target, 'robot': self.robot,
@@ -368,10 +600,21 @@ class ApproachControl:
                    first_seen=self.first_seen, first_seen_stamp_ns=self.first_seen_stamp_ns,
                    confirmed_at=self.confirmed_at, confirmation_spread=self.confirmation_spread,
                    confirmation_count=self.confirmation_count,
+                   search_first_detection_range_m=self.search_first_detection_range_m,
+                   stop_candidate=self.stop_candidate,
+                   stop_request_range_m=self.stop_request_range_m,
+                   stop_stable_range_m=self.stop_stable_range_m,
+                   stop_confirm_started=self.stop_confirm_started,
+                   stop_confirm_attempts=list(self.stop_confirm_attempts),
+                   stopped_after_sec=self.stopped_after_sec,
+                   stationary_confirmation_sec=self.stationary_confirmation_sec,
+                   search_cooldown_until=(self.search_cooldown_until
+                                          if math.isfinite(self.search_cooldown_until) else None),
+                   visual_loss_count=self.visual_loss_count,
                    confirmation_seconds=(self.confirmed_at-self.first_seen
                                          if self.confirmed_at is not None and
                                          self.first_seen is not None else None))
-        if self.state == 'SEARCH':
+        if self.state in ('SEARCH', 'STOP_CONFIRM'):
             x0, y0, heading = self.search_origin
             dx, dy = self.robot[0]-x0, self.robot[1]-y0
             progress = dx*math.cos(heading)+dy*math.sin(heading)
@@ -384,22 +627,14 @@ class ApproachControl:
             elif progress >= self.p.search_distance:
                 self.state, self.reason = 'STOP', 'search route ended without target'
             else:
-                # One controller owns both modes; transition tick sends zero SEARCH velocity.
-                self.state = 'IDLE'
-                locked = self.confirm(now)
-                if locked:
-                    self.started = now
-                    self.vx = 0.0
-                    out.update(state=self.state, target_id=self.lock_id,
-                               target=self.target, target_map_anchor=self.target,
-                               confirmed_at=self.confirmed_at,
-                               confirmation_count=self.confirmation_count,
-                               confirmation_spread=self.confirmation_spread,
-                               confirmation_seconds=(now-self.first_seen
-                                                     if self.first_seen is not None else None),
-                               transition='SEARCH->APPROACH')
+                if self.state == 'STOP_CONFIRM':
+                    return self._stop_confirmation(now, out)
+                if self._begin_stop_confirm(now):
+                    out.update(state='STOP_CONFIRM', stop_candidate=self.stop_candidate,
+                               stop_confirm_started=now,
+                               stop_request_range_m=self.stop_request_range_m,
+                               transition='SEARCH->STOP_CONFIRM')
                     return out
-                self.state = 'SEARCH'
                 error = angle(heading-self.robot[2])
                 remaining = max(0.0, self.p.search_distance-progress)
                 desired = min(self.p.search_speed, math.sqrt(
@@ -438,6 +673,7 @@ class ApproachControl:
                 if self.lost_at is None:
                     self.lost_at = now
                     self.odom_travel = 0.0
+                    self.visual_loss_count += 1
                 if not self.p.allow_odom:
                     self.fault('visual target lost')
                 elif (now - self.lost_at >= self.p.odom_max_time or

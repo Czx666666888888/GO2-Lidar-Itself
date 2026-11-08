@@ -15,6 +15,24 @@ import rclpy
 from std_msgs.msg import Bool, Empty, Int8, Int32, String
 
 
+def flow_metrics(reports):
+    """Keep requested outcome evidence separate from the user's physical distance."""
+    final = reports[-1] if reports else {}
+    return dict(
+        search_first_detection_range_m=final.get('search_first_detection_range_m'),
+        stop_request_range_m=final.get('stop_request_range_m'),
+        stop_stable_range_m=final.get('stop_stable_range_m'),
+        stopped_after_sec=final.get('stopped_after_sec'),
+        stationary_confirmation_sec=final.get('stationary_confirmation_sec'),
+        confirmation_spread_m=final.get('confirmation_spread'),
+        confirmation_count=final.get('confirmation_count'),
+        confirmation_attempts=final.get('stop_confirm_attempts', []),
+        approach_visual_loss_count=final.get('visual_loss_count'),
+        final_map_xy_error_m=final.get('camera_distance_xy'),
+        terminal_state=final.get('state'), terminal_reason=final.get('reason'),
+        physical_distance_m=None, physical_result='PENDING_USER_OBSERVATION')
+
+
 class Experiment:
     """Own only this run's processes; always stop, disarm and finalize video."""
 
@@ -147,7 +165,7 @@ class Experiment:
         while time.monotonic()-started < total_timeout+1:
             self.spin(0.05)
             state = self.control.get('state')
-            seen |= state in ('SEARCH', 'LOCK_TARGET', 'ALIGN',
+            seen |= state in ('SEARCH', 'STOP_CONFIRM', 'LOCK_TARGET', 'ALIGN',
                               'APPROACH_VISUAL', 'APPROACH_ODOM')
             if state in ('STOP', 'FAULT'):
                 break
@@ -176,7 +194,8 @@ class Experiment:
         for _, stream in self.children:
             stream.close()
         summary = {'control_reports': self.reports, 'final': self.control,
-                   'recording': self.recording, 'physical_result': 'PENDING_USER_OBSERVATION'}
+                   'recording': self.recording, 'physical_result': 'PENDING_USER_OBSERVATION',
+                   'flow_metrics': flow_metrics(self.reports)}
         (self.folder / f'run_{self.tag}.json').write_text(json.dumps(summary, indent=2))
         print('FINISHED', json.dumps(summary['final']),
               json.dumps(self.recording), flush=True)
