@@ -1,0 +1,33 @@
+{
+  "source": "camera_ws/records/map_drift_C_20261108.jsonl",
+  "detections": 421,
+  "accepted_frames": 339,
+  "time_difference_definition": "RGB minus depth, milliseconds",
+  "legacy_float_timestamp_roundoff": false,
+  "all": {
+    "min_ms": -67.268555,
+    "median_ms": 0.0,
+    "max_ms": 67.193359,
+    "abs_p95_ms": 67.19336
+  },
+  "accepted": {
+    "min_ms": -67.268555,
+    "median_ms": 0.0,
+    "max_ms": 67.193116,
+    "abs_p95_ms": 67.19336
+  },
+  "reference_xy": [
+    0.9650134234919904,
+    0.15301439430597485
+  ],
+  "reference_origin": "explicit",
+  "std_xy_m": [
+    0.01966085707822323,
+    0.013094060760829534
+  ],
+  "max_error_m": 0.1371666513948351,
+  "p95_error_m": 0.059510029309222764,
+  "measurements": 342,
+  "lio_interpolation": "position linear, quaternion normalized lerp; max bracket 100ms",
+  "lio_bracketed_count": 340
+}

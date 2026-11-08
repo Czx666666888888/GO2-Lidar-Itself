@@ -32,6 +32,8 @@ class ApproachVideoRecorder(Node):
         self.log_path = os.path.join(folder, name + '.jsonl')
         self.log = open(self.log_path, 'x', buffering=1)
         self.writer = None
+        self.raw_writer = None
+        self.raw_path = os.path.join(folder, name + '_raw.mp4')
         self.frames = 0
         self.closed = False
         self.last_frame = -float('inf')
@@ -88,11 +90,17 @@ class ApproachVideoRecorder(Node):
             h, w = frame.shape[:2]
             self.writer = cv2.VideoWriter(self.path, cv2.VideoWriter_fourcc(*'mp4v'),
                                           self.get_parameter('video_fps').value, (w, h))
+            self.raw_writer = cv2.VideoWriter(
+                self.raw_path, cv2.VideoWriter_fourcc(*'mp4v'),
+                self.get_parameter('video_fps').value, (w, h))
+            if not self.raw_writer.isOpened():
+                raise RuntimeError('Raw RGB MP4 writer could not open')
             if not self.writer.isOpened():
                 raise RuntimeError('MP4 writer could not open')
             self.first_stamp = stamp
         self.last_frame = time.monotonic()
         self.last_stamp = stamp
+        self.raw_writer.write(frame)
         age = (stamp-self.debug.get('color_stamp_ns', 0))/1e9
         fresh = 0 <= age <= 0.4
         if fresh:
@@ -155,7 +163,8 @@ class ApproachVideoRecorder(Node):
             self.close()
         self.health.publish(String(data=json.dumps({
             'active': not self.closed and time.monotonic()-self.last_frame < 0.5,
-            'frames': self.frames, 'video': self.path, 'jsonl': self.log_path,
+            'frames': self.frames, 'video': self.path, 'raw_video': self.raw_path,
+            'jsonl': self.log_path,
             'last_rgb_stamp_ns': self.last_stamp, 'closed': self.closed})))
 
     def close(self):
@@ -164,10 +173,13 @@ class ApproachVideoRecorder(Node):
             return
         self._write('summary', {'frames': self.frames, 'first_rgb_stamp_ns': self.first_stamp,
                                 'last_rgb_stamp_ns': self.last_stamp, 'video': self.path,
+                                'raw_video': self.raw_path,
                                 'nominal_fps': self.get_parameter('video_fps').value})
         self.closed = True
         if self.writer is not None:
             self.writer.release()
+        if self.raw_writer is not None:
+            self.raw_writer.release()
         self.log.close()
         self.get_logger().info(f'RECORDING_SAVED {self.path} frames={self.frames}')
 

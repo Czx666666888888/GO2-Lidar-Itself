@@ -1,0 +1,207 @@
+{
+  "A": {
+    "source": "camera_ws/records/map_drift_A_20261108.jsonl",
+    "detections": 118,
+    "accepted_frames": 118,
+    "time_difference_definition": "RGB minus depth, milliseconds",
+    "legacy_float_timestamp_roundoff": false,
+    "all": {
+      "min_ms": -67.243652,
+      "median_ms": 0.0,
+      "max_ms": 67.193604,
+      "abs_p95_ms": 67.2014526
+    },
+    "accepted": {
+      "min_ms": -67.243652,
+      "median_ms": 0.0,
+      "max_ms": 67.193604,
+      "abs_p95_ms": 67.2014526
+    },
+    "reference_xy": [
+      0.9650134234919904,
+      0.15301439430597485
+    ],
+    "reference_origin": "first observation; verify physical target identity",
+    "std_xy_m": [
+      0.006495083689774502,
+      0.004972775280223317
+    ],
+    "max_error_m": 0.025112578017577467,
+    "p95_error_m": 0.022724729874358893,
+    "measurements": 117,
+    "lio_interpolation": "position linear, quaternion normalized lerp; max bracket 100ms",
+    "lio_bracketed_count": 115,
+    "odom_count": 223,
+    "odom_duration_s": 14.974514245986938,
+    "odom_sample_interval_min_max_s": [
+      0.06334066390991211,
+      0.07798266410827637
+    ],
+    "odom_position_span_m": [
+      0.033288798423956156,
+      0.024841905549433732,
+      0.008622592263856274
+    ],
+    "odom_max_step_3d_m": 0.015269658393697965,
+    "odom_max_position_derivative_mps": 0.2278286286273525,
+    "odom_max_yaw_derivative_radps": 0.1219958653005074,
+    "odom_yaw_relative_min_max_end_deg": [
+      -0.8769282996324534,
+      0.3417415614506473,
+      -0.1589237455764556
+    ],
+    "odom_max_xy_displacement_m": 0.025813040757196343,
+    "odom_end_xy_displacement_m": 0.008169284512712741,
+    "error_pearson": {
+      "abs_rgb_depth_ms": 0.07851759202497063,
+      "lio_yaw": 0.38576993503437595,
+      "pixel_u": -0.12505938133165634,
+      "camera_z": 0.06764842433534778
+    },
+    "tf_arithmetic_residual_max_m": 8.101585801848734e-16,
+    "tf_query_matches_measurement": true,
+    "target_ids": [
+      1
+    ],
+    "interpretation": "Internal consistency only. Pose derivatives are not physical truth. Identity annotation assumptions and incomplete motion coverage remain material."
+  },
+  "B2": {
+    "source": "camera_ws/records/map_drift_B2_20261108.jsonl",
+    "detections": 469,
+    "accepted_frames": 418,
+    "time_difference_definition": "RGB minus depth, milliseconds",
+    "legacy_float_timestamp_roundoff": false,
+    "all": {
+      "min_ms": -67.36084,
+      "median_ms": 0.0,
+      "max_ms": 67.195801,
+      "abs_p95_ms": 67.19414019999999
+    },
+    "accepted": {
+      "min_ms": -67.36084,
+      "median_ms": 0.0,
+      "max_ms": 0.0,
+      "abs_p95_ms": 67.194336
+    },
+    "identity_annotation": "camera_ws/analysis/map_drift_20261108/B2_identity.csv",
+    "unfiltered_measurements": 480,
+    "reference_xy": [
+      0.9650134234919904,
+      0.15301439430597485
+    ],
+    "reference_origin": "explicit",
+    "std_xy_m": [
+      0.011134349647490676,
+      0.01827536224643025
+    ],
+    "max_error_m": 0.13998422593945214,
+    "p95_error_m": 0.04074779630013274,
+    "measurements": 418,
+    "lio_interpolation": "position linear, quaternion normalized lerp; max bracket 100ms",
+    "lio_bracketed_count": 416,
+    "odom_count": 889,
+    "odom_duration_s": 59.86750817298889,
+    "odom_sample_interval_min_max_s": [
+      0.06342673301696777,
+      0.07839632034301758
+    ],
+    "odom_position_span_m": [
+      0.1578023006761486,
+      0.2321752526944406,
+      0.06682667587709082
+    ],
+    "odom_max_step_3d_m": 0.042418302014559116,
+    "odom_max_position_derivative_mps": 0.6320572028906353,
+    "odom_max_yaw_derivative_radps": 1.81264289066897,
+    "odom_yaw_relative_min_max_end_deg": [
+      -30.772765595036468,
+      12.521067803357923,
+      -7.627369095690976
+    ],
+    "odom_max_xy_displacement_m": 0.16769539118252583,
+    "odom_end_xy_displacement_m": 0.015995915697590013,
+    "error_pearson": {
+      "abs_rgb_depth_ms": -0.009241526493907483,
+      "lio_yaw": -0.33098896695230434,
+      "pixel_u": -0.34400233518698126,
+      "camera_z": -0.16588089976861878
+    },
+    "tf_arithmetic_residual_max_m": 6.036438896220727e-16,
+    "tf_query_matches_measurement": true,
+    "target_ids": [
+      6,
+      9,
+      21
+    ],
+    "interpretation": "Internal consistency only. Pose derivatives are not physical truth. Identity annotation assumptions and incomplete motion coverage remain material."
+  },
+  "C": {
+    "source": "camera_ws/records/map_drift_C_20261108.jsonl",
+    "detections": 421,
+    "accepted_frames": 339,
+    "time_difference_definition": "RGB minus depth, milliseconds",
+    "legacy_float_timestamp_roundoff": false,
+    "all": {
+      "min_ms": -67.268555,
+      "median_ms": 0.0,
+      "max_ms": 67.193359,
+      "abs_p95_ms": 67.19336
+    },
+    "accepted": {
+      "min_ms": -67.268555,
+      "median_ms": 0.0,
+      "max_ms": 67.193116,
+      "abs_p95_ms": 67.19336
+    },
+    "identity_annotation": "camera_ws/analysis/map_drift_20261108/C_identity.csv",
+    "unfiltered_measurements": 342,
+    "reference_xy": [
+      0.9650134234919904,
+      0.15301439430597485
+    ],
+    "reference_origin": "explicit",
+    "std_xy_m": [
+      0.019651622597758434,
+      0.012889036828479389
+    ],
+    "max_error_m": 0.1371666513948351,
+    "p95_error_m": 0.059613772683519105,
+    "measurements": 339,
+    "lio_interpolation": "position linear, quaternion normalized lerp; max bracket 100ms",
+    "lio_bracketed_count": 337,
+    "odom_count": 797,
+    "odom_duration_s": 53.599992752075195,
+    "odom_sample_interval_min_max_s": [
+      0.06339097023010254,
+      0.08063817024230957
+    ],
+    "odom_position_span_m": [
+      0.540038248131566,
+      0.18799950892648717,
+      0.08376522439066593
+    ],
+    "odom_max_step_3d_m": 0.05773222866653327,
+    "odom_max_position_derivative_mps": 0.7954036126638616,
+    "odom_max_yaw_derivative_radps": 0.258135698222666,
+    "odom_yaw_relative_min_max_end_deg": [
+      -0.48224646258218606,
+      9.97525770776441,
+      8.251766722106055
+    ],
+    "odom_max_xy_displacement_m": 0.5337520609555612,
+    "odom_end_xy_displacement_m": 0.1458523138738818,
+    "error_pearson": {
+      "abs_rgb_depth_ms": 0.06449092822607265,
+      "lio_yaw": 0.4469890811309844,
+      "pixel_u": 0.5560884160830932,
+      "camera_z": -0.5423882443562755
+    },
+    "tf_arithmetic_residual_max_m": 6.591583993652515e-16,
+    "tf_query_matches_measurement": true,
+    "target_ids": [
+      6,
+      27
+    ],
+    "interpretation": "Internal consistency only. Pose derivatives are not physical truth. Identity annotation assumptions and incomplete motion coverage remain material."
+  }
+}

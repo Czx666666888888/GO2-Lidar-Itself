@@ -134,6 +134,7 @@ class TargetTracker:
         self.visited_radius = float(visited_radius)
         self.visited_positions: List[Point3] = []
         self.tracks: List[TargetTrack] = []
+        self.association_diagnostics = []
         self.next_id = 1
         self.merge_counts: Dict[Tuple[int, int], int] = {}
 
@@ -141,10 +142,17 @@ class TargetTracker:
         """Associate all observations from one frame without track reuse."""
         events = self.expire(stamp_ns)
         observations = list(points)
+        self.association_diagnostics = []
         candidates = []
         for observation_index, point in enumerate(observations):
             for track_index, track in enumerate(self.tracks):
                 distance = xy_distance(point, track.position)
+                self.association_diagnostics.append({
+                    'stamp_ns': stamp_ns, 'observation_index': observation_index,
+                    'id': track.target_id, 'old_map': list(track.position),
+                    'new_map': list(point), 'distance_xy': distance,
+                    'decision': 'REJECT', 'reason': 'one_to_one_competition'
+                    if distance <= self.association_radius else 'association_radius'})
                 if distance <= self.association_radius:
                     candidates.append((distance, observation_index, track_index))
 
@@ -154,6 +162,9 @@ class TargetTracker:
             if observation_index in used_observations or track_index in used_tracks:
                 continue
             track = self.tracks[track_index]
+            for item in self.association_diagnostics:
+                if item['observation_index'] == observation_index and item['id'] == track.target_id:
+                    item.update(decision='ACCEPT', reason='nearest_available_one_to_one')
             track.update(observations[observation_index], stamp_ns)
             events.append(f"ASSOCIATED id={track.target_id}")
             if track.state == STALE:
@@ -513,6 +524,7 @@ class ScienceTargetManager(Node):
     def _publish_outputs(self) -> None:
         self.track_states.publish(String(data=json.dumps({
             "frame": self.map_frame,
+            "association_diagnostics": self.tracker.association_diagnostics,
             "tracks": [{"id": t.target_id, "state": t.state,
                         "position": list(t.position),
                         "latest_observation": list(t.observations[-1]),

@@ -1,0 +1,15 @@
+# Derived full association events remain local with original recordings.
+**/associations.jsonl
+# Unselected/invalid-round full curves are reproducible from local originals.
+B/measurements.csv
+B/diagnostics.png
+B2/measurements.csv
+B2/diagnostics.png
+C/measurements.csv
+C/diagnostics.png
+# Small processed tables and offline identity annotations are review artifacts.
+!A/measurements.csv
+!B2_selected/measurements.csv
+!C_selected/measurements.csv
+!B2_identity.csv
+!C_identity.csv

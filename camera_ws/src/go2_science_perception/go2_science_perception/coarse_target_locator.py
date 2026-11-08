@@ -465,12 +465,14 @@ class CoarseTargetLocator(Node):
                 'area': int(np.count_nonzero(target.mask)),
                 'valid_depth_points': int(target.valid_depth_points),
                 'depth_m': float(target.median_depth_m),
+                'camera_xyz': [float(v) for v in target.xyz],
+                'reason': target.reason,
                 'contours': [cv2.approxPolyDP(c, 1.5, True).reshape(-1, 2).tolist()
                              for c in contours],
             })
         self.debug_publisher.publish(String(data=json.dumps({
-            'color_stamp_ns': int(round(self.color_stamp*1e9)),
-            'depth_stamp_ns': int(round(self.depth_stamp*1e9)),
+            'color_stamp_ns': self.color_header.stamp.sec*10**9 + self.color_header.stamp.nanosec,
+            'depth_stamp_ns': self.depth_header.stamp.sec*10**9 + self.depth_header.stamp.nanosec,
             'received_ns': self.get_clock().now().nanoseconds,
             'reason': self.last_invalid_reason, 'targets': detections,
             'raw_mask_pixels': int(np.count_nonzero(raw)),

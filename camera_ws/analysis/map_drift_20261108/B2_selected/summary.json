@@ -1,0 +1,35 @@
+{
+  "source": "camera_ws/records/map_drift_B2_20261108.jsonl",
+  "detections": 469,
+  "accepted_frames": 418,
+  "time_difference_definition": "RGB minus depth, milliseconds",
+  "legacy_float_timestamp_roundoff": false,
+  "all": {
+    "min_ms": -67.36084,
+    "median_ms": 0.0,
+    "max_ms": 67.195801,
+    "abs_p95_ms": 67.19414019999999
+  },
+  "accepted": {
+    "min_ms": -67.36084,
+    "median_ms": 0.0,
+    "max_ms": 0.0,
+    "abs_p95_ms": 67.194336
+  },
+  "identity_annotation": "camera_ws/analysis/map_drift_20261108/B2_identity.csv",
+  "unfiltered_measurements": 480,
+  "reference_xy": [
+    0.9650134234919904,
+    0.15301439430597485
+  ],
+  "reference_origin": "explicit",
+  "std_xy_m": [
+    0.011134349647490676,
+    0.01827536224643025
+  ],
+  "max_error_m": 0.13998422593945214,
+  "p95_error_m": 0.04074779630013274,
+  "measurements": 418,
+  "lio_interpolation": "position linear, quaternion normalized lerp; max bracket 100ms",
+  "lio_bracketed_count": 416
+}

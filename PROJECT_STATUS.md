@@ -271,3 +271,15 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 接近8.800s、失视觉累计里程计路径2.003m时触发`odometry continuation limit`，当时
 相机XY误差1.113m，不是到达停车。MAP偏移根因仍待查；未调HSV或放宽门槛。
 已按用户要求停止PC只读链及远端D435，原始332帧视频/日志保留。详情见camera_ws实验记录。
+
+## 2026-11-08 — 固定物块 MAP 漂移诊断准备
+
+基于9d657b8，新增观测记录（原始RGB/Depth stamp、camera XYZ、实际MAP TF、
+关联分支原因）、只读JSONL采集与统计脚本；不修改HSV、Point-LIO、关联门槛或控制计算。
+旧录像332帧完整解码，175检测/80有效帧实际时差绝对P95约67.19ms；旧逐帧MAP/TF/
+Point-LIO原始姿态不足，且/tmp感知日志已丢失，底层根因仍Unknown。
+A/B2/C诊断数据已采集：A最大/P95 2.51/2.27cm；B2物块注释14.00/4.07cm；
+C候选13.72/5.96cm（最大点身份被录像tile遮挡，NOT VERIFIED）。严格B/C运动和全程
+可见性未达，C用户只部分返回。未复现旧23–39cm已核实同物块漂移，根因仍Unknown。
+GO2时钟已恢复，正式采集前同连接SSH测得约-6.1ms。TF算术一致不证明外参或定位准确。
+详见camera_ws/docs/map_drift_diagnostics.md。不得将本次时钟异常反推为前轮根因。

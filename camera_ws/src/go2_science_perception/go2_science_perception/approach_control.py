@@ -103,6 +103,7 @@ class ApproachControl:
         self.last_observed_ns = {}
         self.anchor_stamp = -math.inf
         self.anchor_updates = self.anchor_rejections = 0
+        self.association_diagnostics = []
         self.search_origin = None
         self.search_started = self.first_seen = self.confirmed_at = None
         self.confirmation_spread = self.confirmation_count = None
@@ -169,6 +170,7 @@ class ApproachControl:
 
     def observations(self, tracks, now):
         """Keep a spatial anchor across missing, merged or changed track IDs."""
+        self.association_diagnostics = []
         self.tracks, self.snapshot_time = tracks, now
         for t in tracks:
             if (t['state'] not in ('CANDIDATE', 'CONFIRMED') or t['visited'] or
@@ -202,28 +204,49 @@ class ApproachControl:
                 self.fault('target position jump')
                 return
         near = []
+
+        def diagnostic(t, decision, reason):
+            point = tuple(t['position'][:2])
+            self.association_diagnostics.append({
+                'id': t['id'], 'observed_ns': t.get('observed_ns'),
+                'decision': decision, 'reason': reason, 'map_xy': point,
+                'anchor_initial_xy': self.anchor_initial or self.target,
+                'anchor_current_xy': self.target,
+                'distance_initial_xy': math.dist(point, self.anchor_initial or self.target),
+                'distance_current_xy': math.dist(point, self.target)})
+
         for t in tracks:
             if t['state'] != 'CONFIRMED' or not 0 <= t['age'] <= self.p.visual_timeout:
+                diagnostic(t, 'REJECT', 'not_confirmed' if t['state'] != 'CONFIRMED'
+                           else 'observation_age')
                 continue
             point = tuple(t['position'][:2])
             if t['visited']:
+                diagnostic(t, 'REJECT', 'visited')
                 if t['id'] == self.lock_id:
                     self.fault('locked target marked visited')
                 continue
             initial = self.anchor_initial or self.target
             if (math.dist(point, initial) > self.p.anchor_association_radius or
                     math.dist(point, self.target) > self.p.target_jump_m):
+                diagnostic(t, 'REJECT', 'initial_anchor_radius'
+                           if math.dist(point, initial) > self.p.anchor_association_radius
+                           else 'current_anchor_jump')
                 if t['id'] == self.lock_id:
                     self.anchor_rejections += 1
                 continue
             near.append(t)
         # Ambiguous reacquisition never chooses a different physical target.
         if len(near) != 1:
+            for item in near:
+                diagnostic(item, 'REJECT', 'ambiguous_spatial_matches')
             return
         t = near[0]
         observed = now-t['age']
         if observed <= self.anchor_stamp + 0.001:
+            diagnostic(t, 'REJECT', 'not_new_observation')
             return
+        diagnostic(t, 'ACCEPT', 'unique_fresh_spatial_match')
         alpha = self.p.anchor_alpha
         self.target = tuple((1-alpha)*old + alpha*new
                             for old, new in zip(self.target, t['position'][:2]))
@@ -330,6 +353,7 @@ class ApproachControl:
                'camera': self.camera, 'target_map_anchor': self.target,
                'anchor_initial': self.anchor_initial, 'anchor_updates': self.anchor_updates,
                'anchor_rejections': self.anchor_rejections,
+               'association_diagnostics': self.association_diagnostics,
                'visual_age': now-self.visual_time if math.isfinite(self.visual_time) else None,
                'visual_visible': now-self.visual_time <= self.p.visual_timeout, 'eta': None,
                'initial_distance': self.initial_distance,

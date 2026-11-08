@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Transform coarse camera targets into the SLAM map frame."""
 
+import json
 import math
 from collections import deque
 from dataclasses import dataclass
 from typing import Sequence, Tuple
 
+from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped, TransformStamped
 import rclpy
 from rclpy.duration import Duration
@@ -124,6 +126,8 @@ class CameraTargetToMap(Node):
             self._point_callback,
             qos_profile_sensor_data,
         )
+        self.diagnostic_publisher = self.create_publisher(
+            String, "/science/map_measurement_debug", 10)
         self.transformed_count = 0
         self.failed_count = 0
         self.input_count = 0
@@ -207,6 +211,16 @@ class CameraTargetToMap(Node):
         mapped.header.frame_id = self.map_frame
         self.point_publisher.publish(mapped)
         self.marker_publisher.publish(self._make_marker(mapped))
+        tr, q = transform.transform.translation, transform.transform.rotation
+        self.diagnostic_publisher.publish(String(data=json.dumps({
+            "stamp_ns": stamp_to_nanoseconds(point.header.stamp),
+            "query_ns": stamp_to_nanoseconds(point.header.stamp),
+            "tf_stamp_ns": stamp_to_nanoseconds(transform.header.stamp),
+            "source_frame": point.header.frame_id, "target_frame": self.map_frame,
+            "camera_xyz": [point.point.x, point.point.y, point.point.z],
+            "map_xyz": [mapped.point.x, mapped.point.y, mapped.point.z],
+            "translation": [tr.x, tr.y, tr.z], "quaternion_xyzw": [q.x, q.y, q.z, q.w],
+        })))
         self.transformed_count += 1
         self.get_logger().info(
             f"MAP_TARGET source_frame={point.header.frame_id} "
