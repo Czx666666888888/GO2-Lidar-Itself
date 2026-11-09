@@ -11,6 +11,7 @@ class Settings:
     """Experiment limits; the adapter exposes every field as a ROS parameter."""
 
     stop_reference: str = 'body_center'
+    visual_servo_enabled: bool = False  # Opt-in; existing MAP approach remains default.
     stop_xy_tolerance: float = 0.10
     anchor_window_sec: float = 2.0
     anchor_min_observations: int = 5
@@ -60,7 +61,8 @@ class Settings:
     def __post_init__(self):
         """Reject invalid limits rather than silently weakening safety bounds."""
         for name, value in vars(self).items():
-            if (name not in ('allow_odom', 'stop_reference', 'search_enabled') and
+            if (name not in ('allow_odom', 'stop_reference', 'search_enabled',
+                             'visual_servo_enabled') and
                     (not math.isfinite(value) or value <= 0)):
                 raise ValueError(f'{name} must be finite and positive')
         if self.max_linear_speed > 0.3 or self.max_angular_speed > 0.3:
@@ -141,6 +143,9 @@ class ApproachControl:
         self.stop_request_range_m = self.stop_stable_range_m = None
         self.stopped_after_sec = self.stationary_confirmation_sec = None
         self.visual_loss_count = 0
+        self.visual_relative = None
+        self.visual_relative_time = -math.inf
+        self.visual_measurement_count = 0
 
     def fault(self, reason):
         """Latch a fault; never restart on data recovery."""
@@ -237,6 +242,10 @@ class ApproachControl:
                 history.popleft()
         if self.lock_id is None or self.state in ('STOP', 'FAULT'):
             return
+        if self.p.visual_servo_enabled and self.p.stop_reference == 'camera_origin':
+            # Active experimental mode has its own source-time/geometry association.
+            # Do not also update from MAP-only manager associations.
+            return
         if self.p.stop_reference == 'body_center':
             old = next((t for t in tracks if t['id'] == self.lock_id), None)
             if old is None:
@@ -297,6 +306,33 @@ class ApproachControl:
         self.anchor_updates += 1
         self.lost_at = None
         self.odom_travel = 0.0
+
+    def visual_observation(self, relative_xy, map_xy, now):
+        """Accept an independently associated camera-origin target observation.
+
+        relative_xy is in vehicle axes, expressed FROM camera origin.
+        map_xy is retained only as a fallback target when vision is missing.
+        """
+        if (not self.p.visual_servo_enabled or self.target is None or
+                self.state in ('IDLE', 'SEARCH', 'STOP_CONFIRM', 'STOP', 'FAULT')):
+            return False
+        if (len(relative_xy) != 2 or len(map_xy) != 2 or
+                not all(math.isfinite(v) for v in (*relative_xy, *map_xy, now)) or
+                now <= self.visual_relative_time):
+            return False
+        self.visual_relative = tuple(relative_xy)
+        self.visual_relative_time = now
+        # The fallback anchor moves ONLY when camera geometry has associated
+        # the measurement; do not let unassociated manager tracks move it.
+        alpha = self.p.anchor_alpha
+        self.target = tuple((1-alpha)*a + alpha*b
+                            for a, b in zip(self.target, map_xy))
+        self.visual_time = now
+        self.anchor_updates += 1
+        self.visual_measurement_count += 1
+        self.lost_at = None
+        self.odom_travel = 0.0
+        return True
 
     def _near_detections(self, now):
         """Use source-matched camera ranges, never infer range from a smoothed MAP track."""
@@ -650,7 +686,16 @@ class ApproachControl:
         reference = self.reference()
         if self.robot is None or self.target is None or reference is None:
             return out
-        dx, dy = self.target[0] - reference[0], self.target[1] - reference[1]
+        visual_servo_active = (
+            self.p.visual_servo_enabled and
+            self.p.stop_reference == 'camera_origin' and
+            self.visual_relative is not None and
+            0 <= now-self.visual_relative_time <= self.p.visual_timeout)
+        if visual_servo_active:
+            # Local camera target, rotated into vehicle axes at source time.
+            dx, dy = self.visual_relative
+        else:
+            dx, dy = self.target[0] - reference[0], self.target[1] - reference[1]
         distance = math.hypot(dx, dy)
         camera_mode = self.p.stop_reference == 'camera_origin'
         stop_distance = 0.0 if camera_mode else self.p.stop_distance
@@ -658,10 +703,15 @@ class ApproachControl:
         remaining = max(0.0, distance - stop_distance)
         speed = self.camera_speed if camera_mode else self.actual_speed
         closing = self.camera_closing_speed if camera_mode else self.closing_speed
-        error = angle(math.atan2(dy, dx) - self.robot[2])
+        error = (angle(math.atan2(dy, dx)) if visual_servo_active else
+                 angle(math.atan2(dy, dx) - self.robot[2]))
         brake = (speed ** 2 / (2 * self.p.max_deceleration)
                  + speed * self.p.braking_latency)
-        out.update(distance=distance, remaining=remaining, yaw_error=error,
+        out.update(control_reference=('CAMERA_RELATIVE' if visual_servo_active
+                                      else 'MAP_FALLBACK'),
+                   visual_measurement_count=self.visual_measurement_count,
+                   visual_relative_xy=self.visual_relative,
+                   distance=distance, remaining=remaining, yaw_error=error,
                    distance_error=distance - stop_distance,
                    camera_distance_xy=distance if camera_mode else None,
                    braking_distance=brake,
@@ -685,7 +735,8 @@ class ApproachControl:
                 if remaining <= tolerance:
                     self.state = 'STOP'
                     self.reason = 'camera XY aligned' if camera_mode else 'standoff reached'
-                elif (camera_mode and self.anchor_lock_camera is not None and
+                elif (camera_mode and not visual_servo_active and
+                      self.anchor_lock_camera is not None and
                       sum((self.target[i]-reference[i]) *
                           (self.anchor_initial[i]-self.anchor_lock_camera[i])
                           for i in (0, 1)) < 0):
