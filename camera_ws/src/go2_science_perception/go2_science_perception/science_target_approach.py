@@ -20,6 +20,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 from unitree_go.msg import SportModeState
 
 from .approach_control import ApproachControl, Settings
+from .visual_target_tracking import CameraRelativeMatcher, Measurement, rotate
 
 
 class ScienceTargetApproach(Node):
@@ -46,6 +47,10 @@ class ScienceTargetApproach(Node):
         self.recording_info = {}
         self.sport_velocity = None
         self.map_measurements = deque(maxlen=128)
+        self.visual_matcher = CameraRelativeMatcher(max_gap_s=5.0)
+        self.visual_pending = []
+        self.visual_pending_stamp = None
+        self.visual_association = {'decision': 'IDLE'}
         self.sport_state_info = {}
         log_dir = self.get_parameter('log_directory').value
         self.log_path = os.path.join(log_dir, f'science_approach_{time.time_ns()}.jsonl')
@@ -138,8 +143,58 @@ class ScienceTargetApproach(Node):
                 return
             self.map_measurements.append((data['stamp_ns'], tuple(point), math.sqrt(
                 sum(v*v for v in camera))))
+            if self.core.p.visual_servo_enabled:
+                # Mapper records the exact source-time camera->MAP transform.
+                # Batch candidates by source stamp before selecting uniquely.
+                source = data['source_frame']
+                trans = tuple(data['translation'])
+                quat = tuple(data['quaternion_xyzw'])
+                measure = Measurement(
+                    int(data['stamp_ns']), source, tuple(camera), tuple(point),
+                    trans, quat)
+                if self.visual_pending_stamp not in (None, measure.stamp_ns):
+                    self._flush_visual_candidates()
+                    self.visual_pending = []
+                self.visual_pending_stamp = measure.stamp_ns
+                self.visual_pending.append(measure)
         except (ValueError, TypeError, KeyError):
             return
+
+    def _flush_visual_candidates(self):
+        """Associate one complete depth source frame; never choose mid-frame."""
+        if not self.visual_pending:
+            return
+        if self.core.target is None or self.core.state in (
+                'IDLE', 'SEARCH', 'STOP_CONFIRM', 'STOP', 'FAULT'):
+            return
+        if self.visual_matcher.anchor_xy is None:
+            self.visual_matcher.reset(self.core.target)
+        batch = self.visual_pending
+        ros_age = (self.get_clock().now().nanoseconds-batch[0].stamp_ns)*1e-9
+        if ros_age < -self.future_tolerance or ros_age > self.core.p.visual_timeout:
+            self.visual_association = {'decision': 'REJECT',
+                                       'reason': 'camera observation too old'}
+            return
+        accepted = self.visual_matcher.update(batch)
+        self.visual_association = self.visual_matcher.last_result
+        if accepted is None:
+            return
+        try:
+            # Transform only the measured TARGET VECTOR into vehicle axes.
+            # Translation is intentionally excluded: it is from camera ORIGIN.
+            camera_to_vehicle = self.tf_buffer.lookup_transform(
+                'vehicle', accepted.source_frame,
+                rclpy.time.Time(nanoseconds=accepted.stamp_ns))
+            q = camera_to_vehicle.transform.rotation
+            delta = rotate((q.x, q.y, q.z, q.w), accepted.camera_xyz)
+            sample_time = time.monotonic()-max(0.0, ros_age)
+            if not self.core.visual_observation(
+                    (delta[0], delta[1]), accepted.map_xyz[:2], sample_time):
+                self.visual_association = {'decision': 'REJECT',
+                                           'reason': 'core rejected observation'}
+        except (TransformException, ValueError) as exc:
+            self.visual_association = {'decision': 'REJECT',
+                                       'reason': 'optical-to-vehicle TF: ' + str(exc)}
 
     def _matched_camera_range(self, track):
         matches = [distance for stamp, point, distance in self.map_measurements
@@ -273,6 +328,9 @@ class ScienceTargetApproach(Node):
     def _reset(self, _msg):
         if self.core.state in ('STOP', 'FAULT'):
             self.core.reset()
+            self.visual_matcher.reset()
+            self.visual_pending = []
+            self.visual_pending_stamp = None
             self.last_stamp = None
             self.track_received = -math.inf
 
@@ -299,6 +357,8 @@ class ScienceTargetApproach(Node):
         report['sport_state'] = self.sport_state_info
         report['camera_frame'] = self.camera_frame
         report['recording'] = self.recording_info
+        if self.core.p.visual_servo_enabled:
+            report['camera_relative_association'] = self.visual_association
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'vehicle'
