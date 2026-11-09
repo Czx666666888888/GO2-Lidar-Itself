@@ -148,6 +148,10 @@ python vision_training/tools/dataset.py review-dataset \
 [datasets/blue_cube/README.md](datasets/blue_cube/README.md)。不要重复执行上述抽帧示例
 来产生相同视频的另一个组；示例用于新数据，或先使用新的数据集版本目录。
 
+后续已完成该批图片的质量筛查并打包181张CVAT送标图片，原213张保留；
+见[最简标注步骤与数据覆盖](datasets/blue_cube/ANNOTATION_GUIDE.md)。新增
+tools/prepare_annotation.py仅根据已视觉复核的计划准备图片包，不生成标签/审核回执。
+
 ## 3. 配置训练
 
 编辑`configs/blue_cube.yaml`：project、data、model、output、name、imgsz、epochs、batch、

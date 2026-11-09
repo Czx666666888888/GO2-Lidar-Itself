@@ -1,0 +1,24 @@
+total: 213
+included: 181
+excluded_near_duplicates: 31
+held: 1
+unreadable: 0
+label_files_created: 0
+human_reviewed: 0
+names:
+  '0': blue_cube
+groups:
+- lab_floor_20261108_09
+retained_attention:
+  motion_blur_keep: 15
+  edge_check: 28
+  dim_appearance: 18
+  small_target_check: 26
+zip_sha256: b472409b1a53f7e493f21d16a71a8bd64cd681356c649263806ba347a48f028c
+original_pool_unchanged: true
+scope: Assistant image-quality triage only; no object boxes or human annotation approval
+base_commit: 19c840d50442c7db764e6050e13e39ffb8541cf3
+training_performed: false
+training_blockers:
+- 0 manual label files and 0 human review receipts
+- Only one capture/scene group; independent validation and test groups not prepared
