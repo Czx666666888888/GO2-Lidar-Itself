@@ -73,7 +73,8 @@ class CameraRelativeMatcher:
 
     @staticmethod
     def _valid(m):
-        values = m.camera_xyz + m.map_xyz + m.camera_in_map + m.camera_quaternion
+        values = (*m.camera_xyz, *m.map_xyz, *m.camera_in_map,
+                  *m.camera_quaternion)
         return (m.stamp_ns > 0 and m.source_frame and
                 len(m.camera_xyz) == 3 and len(m.map_xyz) == 3 and
                 len(m.camera_in_map) == 3 and len(m.camera_quaternion) == 4 and
@@ -88,7 +89,9 @@ class CameraRelativeMatcher:
         return math.sqrt(sum(v*v for v in point))
 
     def _residual(self, old, new, intrinsics=None):
-        predicted = camera_prediction(old.map_xyz, new.camera_in_map,
+        world = tuple(p+t for p, t in zip(
+            rotate(old.camera_quaternion, old.camera_xyz), old.camera_in_map))
+        predicted = camera_prediction(world, new.camera_in_map,
                                       new.camera_quaternion)
         if predicted[2] <= 0.0:
             return None
