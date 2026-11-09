@@ -1,0 +1,4 @@
+# Replace with actual independent capture/session groups, never adjacent frames.
+train: [capture_session_A, capture_session_B]
+val: [capture_session_C]
+test: [capture_session_D]

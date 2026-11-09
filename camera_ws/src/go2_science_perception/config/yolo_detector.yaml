@@ -1,0 +1,26 @@
+yolo_detector:
+  ros__parameters:
+    # Set local .pt/.onnx; no model download during ROS startup.
+    model_path: ''
+    metadata_path: ''
+    # Comma-separated exact checkpoint class names; empty selects all.
+    class_names: ''
+    confidence: 0.25
+    iou: 0.45
+    imgsz: 640
+    device: '0'
+    inference_rate_hz: 10.0
+    color_topic: /camera/camera/color/image_raw
+    depth_topic: /camera/camera/aligned_depth_to_color/image_raw
+    camera_info_topic: /camera/camera/color/camera_info
+    max_rgb_depth_delta_sec: 0.10
+    max_image_age_sec: 1.0
+    depth_roi_fraction: 0.5
+    min_depth_m: 0.15
+    max_depth_m: 5.0
+    min_depth_pixels: 20
+    min_valid_depth_ratio: 0.6
+    max_depth_spread_m: 0.08
+    publish_debug_image: true
+    # Optional append-only per-frame JSONL: source stamps, boxes, depth, inference latency.
+    log_path: ''

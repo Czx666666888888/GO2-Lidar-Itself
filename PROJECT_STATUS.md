@@ -319,3 +319,25 @@ USB实收D435；GO2时钟退回2022年，经用户本地输入sudo密码恢复�
 后续用户报告当前版本“实测两次都可以”，并要求推送。已记录为用户现场反馈；所述
 两次未逐一关联原始run并审计，不补写距离/耗时或定量重复精度。实验实现为07292cd，
 参数保持搜索5 m/0.25 m/s/60 s、确认6 s、SEARCH专用ODOM路径5 m/25 s。
+
+## 2026-11-09 — 可复用YOLO训练与独立PC推理
+
+来源：远端基线e15c66c、源码、PC针对性测试/构建、官方模型/合成数据消息检查；
+新分支feature/reusable-yolo-training。新增vision_training的普通YAML训练/评估/PT与
+ONNX导出、视频抽帧/图片导入/显式人工审核/拍摄组划分/数据检查和复现快照。
+ROS新增独立yolo_detector，权重内类名及可选类别筛选，独立2D JSON/调试图/可靠深度
+粗点输出，不发布原HSV点、map或运动接口；旧HSV源码/配置/launch保持不变。
+
+PC独立venv：RTX4060 Laptop 8GB、驱动595.99.02、Python3.10.12、torch2.5.1+cu124、
+Ultralytics8.3.40、numpy1.26.4/OpenCV4.10；实际CUDA矩阵运算通过。
+16项新增检查和53项旧HSV/搜索/接近检查通过；仅构建go2_science_perception。
+同一train.py用不同YAML完成单/双类别合成fixture各1 epoch，评估/子集/导出实际执行；
+PT/ONNX模型在隔离DDS域各5种RGB-D情形检查通过，源图时间戳与类别选择可追溯。
+上述合成fixture与官方COCO模型不代表蓝色立方体性能。
+
+历史30视频中10份raw共207.8秒，已提取213张未审核图像；尚无人工审核YOLO标签，
+所以没有训练blue_cube模型或真实mAP/困难组结果。真实D435 YOLO流、3D准确性、持续
+速率、连续漏检和Orin/NX/TensorRT为NOT VERIFIED。
+安装/导入观察到间歇Python/标准库异常，限制CPU亲和/线程后部分检查通过；
+环境长期稳定性及根因未确认，详见vision_training/VALIDATION.md，不假定已修复。
+当前已有bridge/10mm分析的无关未提交改动不纳入本任务。

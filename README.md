@@ -1,5 +1,8 @@
 # 2026-09-01 完整包(数据+代码)
 
+独立的通用YOLO训练、评估、导出与PC端ROS2推理工作流见
+[vision_training/README.md](vision_training/README.md)。使用配置更换比赛目标，保留现有HSV实机流程。
+
 ## 内容
 - rosbags/ : 5 个代表实机复测 bag(retest4/5/6/8/9, 每轮最新)
 - code/    : 当前源码(已回退到 8月31 打包版 code_package_20260831)

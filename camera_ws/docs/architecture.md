@@ -1,5 +1,19 @@
 # D435 Perception Architecture
 
+## Optional generic YOLO PC branch
+
+本分支新增`yolo_detector`，不加入既有HSV或导航launch。D435 RGB经配置指定的
+Ultralytics检测模型输出多类别2D框；可选Aligned Depth按源时间最近匹配，CameraInfo
+用于反投影，仅在frame/尺寸/时间及ROI深度质量合格时输出camera color optical粗点。
+模型类名来自权重，可按配置筛选；导出metadata存在时校验哈希、类名与输入尺寸。
+独立JSON检测、PointStamped及debug Image分别为`/science/yolo/detections`、
+`/science/yolo_target_point`、`/science/yolo/debug_image`，均关联原RGB时间戳；
+JSON额外保留深度时刻、时间差及每帧耗时。没有有效深度时保留2D，不发3D。
+训练venv与现有系统ROS依赖隔离，ROS运行显式指定venv Python 3.10解释器。
+数据/训练/评估/模型版本关系及限制见`../../vision_training/README.md`。
+不接map/manager/visited/FAR、HSV正式点话题或任何运动输出；深度ROI粗点不等于
+正式标定、目标身份/表面真值或导航验收。实际验证见`../../vision_training/VALIDATION.md`。
+
 ## Isolation Boundary
 
 `camera_ws` 是独立 ROS 2 Humble 工作空间。本阶段不引用、不启动也不修改现有 Point-LIO、terrain、WP5/NBV、FAR、local planner、path follower、safety gate、GO2 Sport API 或主导航 launch。

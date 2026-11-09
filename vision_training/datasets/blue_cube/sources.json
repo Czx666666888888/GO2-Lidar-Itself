@@ -1,0 +1,120 @@
+{
+  "source": "local video container metadata; scene preview only, not labels",
+  "raw_videos": [
+    {
+      "file": "approach_20261108_211245_917119_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 84,
+      "fps": 15.0,
+      "seconds": 5.6,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261108_222156_798690_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 233,
+      "fps": 15.0,
+      "seconds": 15.533333333333333,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261108_222516_034701_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 184,
+      "fps": 15.0,
+      "seconds": 12.266666666666667,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261108_222842_367393_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 203,
+      "fps": 15.0,
+      "seconds": 13.533333333333333,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261108_223231_137141_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 394,
+      "fps": 15.0,
+      "seconds": 26.266666666666666,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261109_202905_232322_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 237,
+      "fps": 15.0,
+      "seconds": 15.8,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261109_203226_883196_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 327,
+      "fps": 15.0,
+      "seconds": 21.8,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261109_203609_327607_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 560,
+      "fps": 15.0,
+      "seconds": 37.333333333333336,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261109_204520_581746_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 528,
+      "fps": 15.0,
+      "seconds": 35.2,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    },
+    {
+      "file": "approach_20261109_205725_163351_raw.mp4",
+      "raw": true,
+      "opened": true,
+      "frames": 367,
+      "fps": 15.0,
+      "seconds": 24.466666666666665,
+      "width": 640,
+      "height": 480,
+      "scene_tags": "UNREVIEWED"
+    }
+  ],
+  "raw_seconds": 207.79999999999998,
+  "raw_frames": 3117,
+  "extracted_frames": 213,
+  "group": "lab_floor_20261108_09",
+  "human_reviewed_images": 0
+}

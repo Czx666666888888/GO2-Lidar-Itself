@@ -1,5 +1,11 @@
 # Standalone D435 Perception Workspace
 
+新增独立PC YOLO RGB-D节点及可复用训练/评估/导出入口，见
+[vision_training工作流](../vision_training/README.md)。它使用独立venv与
+`/science/yolo/detections`、`/science/yolo_target_point`、`/science/yolo/debug_image`，
+不替换HSV，不发布原`/science/target_coarse_point`或导航/运动话题。
+下方旧实验内容仍保留其历史证据边界；蓝色立方体YOLO尚待人工标注后训练。
+
 ## Goal
 
 为安装在 Unitree GO2 前端的 Intel RealSense D435 建立独立 ROS 2 Humble 实验环境。最终系统将识别科学目标、读取目标像素处的对齐深度、由相机内参反投影为三维点，并在完成外参标定后转换到 GO2 雷达 SLAM 的 `map` 坐标系。
