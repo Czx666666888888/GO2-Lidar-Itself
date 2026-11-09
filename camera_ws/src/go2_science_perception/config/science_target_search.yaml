@@ -2,13 +2,15 @@
 science_target_approach:
   ros__parameters:
     search_enabled: true
-    search_speed: 0.20
-    search_distance: 1.0
-    search_timeout: 20.0
+    search_speed: 0.25
+    search_distance: 5.0
+    search_timeout: 60.0
     search_cross_track_limit: 0.20
     search_trigger_range_m: 1.8
     search_trigger_observations: 3
     stop_confirm_timeout: 6.0
+    # User-authorized far-target trial: lost-vision odometry path budget only.
+    odom_max_distance: 5.0
     stop_confirm_stable_sec: 0.20
     stop_confirm_min_span_sec: 0.60
     stop_confirm_speed_mps: 0.05

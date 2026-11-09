@@ -211,13 +211,13 @@ def main():
                         help='optional approved MAP XY position')
     parser.add_argument('--no-log-terminal', action='store_true')
     parser.add_argument('--search', action='store_true', help='search then approach automatically')
-    parser.add_argument('--search-distance', type=float, default=1.0)
-    parser.add_argument('--search-timeout', type=float, default=20.0)
+    parser.add_argument('--search-distance', type=float, default=5.0)
+    parser.add_argument('--search-timeout', type=float, default=60.0)
     args = parser.parse_args()
     if not args.execute or not 0 < args.timeout <= 60:
         parser.error('explicit --execute and a timeout in (0,60] seconds are required')
-    if not 0 < args.search_distance <= 2 or not 0 < args.search_timeout <= 30:
-        parser.error('search distance must be (0,2] m and search timeout (0,30] s')
+    if not 0 < args.search_distance <= 5 or not 0 < args.search_timeout <= 60:
+        parser.error('search distance must be (0,5] m and search timeout (0,60] s')
     if args.search and args.target_xy:
         parser.error('--target-xy is only supported for manually selected approach')
     rclpy.init()

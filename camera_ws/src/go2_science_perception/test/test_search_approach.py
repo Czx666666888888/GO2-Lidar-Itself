@@ -138,6 +138,24 @@ def test_search_route_end_and_localization_loss_stop():
     assert c.step(11.1)['vx'] == 0
 
 
+def test_five_metre_search_passes_old_limits_and_stops_at_route_end():
+    c = search()
+    c.p.search_distance, c.p.search_timeout = 5.0, 60.0
+    for i in range(1, 502):
+        t = 10+i*.1
+        c.pose(i*.01, 0, 0, t)
+        c.camera_pose(i*.01+.36, 0, t)
+        c.feedback_time = t
+        r = c.step(t)
+        if i < 500:
+            assert r['state'] == 'SEARCH'
+        else:
+            break
+    assert r['reason'] == 'search route ended without target'
+    assert r['search_progress'] == 5.0
+    assert r['vx'] == r['wz'] == 0
+
+
 def test_camera_range_matches_both_source_timestamp_and_raw_map_point():
     from types import SimpleNamespace
     from go2_science_perception.science_target_approach import ScienceTargetApproach

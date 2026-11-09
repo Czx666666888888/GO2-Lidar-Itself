@@ -162,3 +162,21 @@ SEARCH配置单独调整比例增益与制动延迟，旧人工接近配置不�
 停稳判据未及时满足的问题，4秒版亦超时，不能宣称重复成功率已提高。
 明天先检查USB连接、对时、固定安装、物块/路线和急停，再运行上述`--execute --search`
 入口。没有自动定时启动，不放宽停稳速度或坐标散布条件。原始视频与大日志仅留本机。
+
+### 2026-11-09 远目标参数
+
+用户明确要求SEARCH搜索路线5 m，并确认搜索速度为0.25 m/s（原输入2.5为口误）。
+SEARCH YAML和执行入口默认路线现为5 m、总搜索时限60 s；入口允许距离(0,5] m、
+时限(0,60] s。此前命令显式指定的1 m/20 s仍会覆盖新默认。
+STOP_CONFIRM总预算保持6 s，SEARCH配置单独覆盖失视觉ODOM路径上限为5 m，
+ODOM时间上限仍25 s，其他关联、停稳、散布及0.30 m/s安全门上限不变。
+搜索距离从本轮启动位置沿启动航向计算，无目标时到达路线/时限即停车，无避障。
+
+```bash
+export SCIENCE_APPROACH_OVERLAY=/tmp/science_5m_install/setup.bash
+bash camera_ws/scripts/run_map_anchor_experiment.sh --execute --search \
+  --search-distance 5.0 --search-timeout 60 --timeout 25
+```
+
+本机临时overlay需先完成对应build；真实执行须具备已确认的路线、监护和物理急停。
+实测结果另见experiments.md，不将参数修改视为6秒确认或5 m路径验收通过。
