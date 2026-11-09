@@ -117,7 +117,9 @@ class Experiment:
         self.launch('go2_science_perception', 'science_target_approach', [
             '--params-file', str(share / 'config/science_target_approach.yaml'),
             '-p', 'dry_run:=false', '-p', f'max_run_time:={self.args.timeout}',
-            '-p', f'log_directory:={self.folder}', *search_params], 'control')
+            '-p', f'log_directory:={self.folder}', *search_params,
+            *(['-p', 'visual_servo_enabled:=true'] if self.args.visual_servo else [])],
+            'control')
         self.launch('go2_science_perception', 'approach_video_recorder', [
             '-p', f'output_directory:={self.folder}'], 'recorder')
         self.spin(2)
@@ -211,6 +213,8 @@ def main():
                         help='optional approved MAP XY position')
     parser.add_argument('--no-log-terminal', action='store_true')
     parser.add_argument('--search', action='store_true', help='search then approach automatically')
+    parser.add_argument('--visual-servo', action='store_true',
+                        help='opt into experimental camera-relative approach')
     parser.add_argument('--search-distance', type=float, default=5.0)
     parser.add_argument('--search-timeout', type=float, default=60.0)
     args = parser.parse_args()
