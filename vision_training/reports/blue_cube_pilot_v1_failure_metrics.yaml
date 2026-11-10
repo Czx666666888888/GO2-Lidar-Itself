@@ -1,0 +1,1269 @@
+environment:
+  python: 3.10.12
+  platform: Linux-6.8.0-138-generic-x86_64-with-glibc2.35
+  packages:
+    torch: 2.5.1+cu124
+    torchvision: 0.20.1+cu124
+    ultralytics: 8.3.40
+    numpy: 1.26.4
+    opencv-python: 4.10.0.84
+    onnx: 1.17.0
+    onnxruntime: 1.20.1
+  git_commit: b7a2e46ec3249190b0eea29da1b034fd16ec1b30
+dataset_fingerprint: f2cb59d2fac89f27eb510628272b3815fcb2601d0bc8db30ed34ea769d1b4679
+checkpoint_sha256:
+  best: f8d9b0b775180046b541377bf2bbbab2a468c5b59e47262d3aeaab8e6b2bf979
+  last: 8de90dbfbadfc1ad20ad354bc4632247029dcf146b971104ea526b06f7ce96f7
+matching: One class-0 ground truth per image; class-correct IoU>=0.5; one TP maximum,
+  duplicate predictions are FP; NMS IoU=.7 max_det=300
+per_split:
+  train:
+    images: 14
+    models:
+      best:
+        '0.01':
+          predictions: 976
+          tp: 3
+          fp: 973
+          fn: 11
+          wrong_class: 0
+          background_iou_below_01: 961
+          localization_iou_01_to_05: 12
+        '0.05':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+      last:
+        '0.01':
+          predictions: 1681
+          tp: 12
+          fp: 1669
+          fn: 2
+          wrong_class: 0
+          background_iou_below_01: 1635
+          localization_iou_01_to_05: 31
+        '0.05':
+          predictions: 87
+          tp: 2
+          fp: 85
+          fn: 12
+          wrong_class: 0
+          background_iou_below_01: 85
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 30
+          tp: 0
+          fp: 30
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 30
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 11
+          tp: 0
+          fp: 11
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 11
+          localization_iou_01_to_05: 0
+    width_640:
+      min: 26.11008
+      median: 35.94496
+      max: 69.10976
+    height_640:
+      min: 13.35984
+      median: 36.13008
+      max: 68.37024000000001
+    area_640:
+      min: 348.8264911872
+      median: 1245.1860903936
+      max: 4626.5977319424
+    top_clipped: 1
+    area_below_32_squared: 2
+  val:
+    images: 6
+    models:
+      best:
+        '0.01':
+          predictions: 428
+          tp: 1
+          fp: 427
+          fn: 5
+          wrong_class: 0
+          background_iou_below_01: 423
+          localization_iou_01_to_05: 3
+        '0.05':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+      last:
+        '0.01':
+          predictions: 676
+          tp: 0
+          fp: 676
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 675
+          localization_iou_01_to_05: 1
+        '0.05':
+          predictions: 27
+          tp: 0
+          fp: 27
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 27
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 9
+          tp: 0
+          fp: 9
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 9
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 3
+          tp: 0
+          fp: 3
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 3
+          localization_iou_01_to_05: 0
+    width_640:
+      min: 23.63968
+      median: 32.8
+      max: 37.710080000000005
+    height_640:
+      min: 13.40016
+      median: 20.97
+      max: 27.84
+    area_640:
+      min: 316.7754943488
+      median: 773.1012480000002
+      max: 874.4521728000001
+    top_clipped: 3
+    area_below_32_squared: 6
+loss_rows:
+- epoch: 1.0
+  time: 1.24117
+  train/box_loss: 1.7252
+  train/cls_loss: 4.92858
+  train/dfl_loss: 1.37669
+  metrics/precision(B): 0.00278
+  metrics/recall(B): 0.83333
+  metrics/mAP50(B): 0.00704
+  metrics/mAP50-95(B): 0.00409
+  val/box_loss: 1.52817
+  val/cls_loss: 4.19462
+  val/dfl_loss: 1.02397
+  lr/pg0: 6.0e-05
+  lr/pg1: 6.0e-05
+  lr/pg2: 6.0e-05
+- epoch: 2.0
+  time: 1.99945
+  train/box_loss: 1.9523
+  train/cls_loss: 4.85466
+  train/dfl_loss: 1.33866
+  metrics/precision(B): 0.00278
+  metrics/recall(B): 0.83333
+  metrics/mAP50(B): 0.00699
+  metrics/mAP50-95(B): 0.00416
+  val/box_loss: 1.54974
+  val/cls_loss: 4.20104
+  val/dfl_loss: 1.02803
+  lr/pg0: 0.000137228
+  lr/pg1: 0.000137228
+  lr/pg2: 0.000137228
+- epoch: 3.0
+  time: 2.73857
+  train/box_loss: 1.75752
+  train/cls_loss: 4.76491
+  train/dfl_loss: 1.28131
+  metrics/precision(B): 0.00278
+  metrics/recall(B): 0.83333
+  metrics/mAP50(B): 0.00699
+  metrics/mAP50-95(B): 0.00416
+  val/box_loss: 1.55891
+  val/cls_loss: 4.19839
+  val/dfl_loss: 1.03074
+  lr/pg0: 0.000211288
+  lr/pg1: 0.000211288
+  lr/pg2: 0.000211288
+- epoch: 4.0
+  time: 3.50981
+  train/box_loss: 1.86413
+  train/cls_loss: 4.64473
+  train/dfl_loss: 1.49345
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.00985
+  metrics/mAP50-95(B): 0.00626
+  val/box_loss: 1.10711
+  val/cls_loss: 4.17312
+  val/dfl_loss: 0.91109
+  lr/pg0: 0.00028218
+  lr/pg1: 0.00028218
+  lr/pg2: 0.00028218
+- epoch: 5.0
+  time: 4.32527
+  train/box_loss: 1.00975
+  train/cls_loss: 4.19574
+  train/dfl_loss: 0.88118
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.00998
+  metrics/mAP50-95(B): 0.00714
+  val/box_loss: 1.03373
+  val/cls_loss: 4.17305
+  val/dfl_loss: 0.90125
+  lr/pg0: 0.000349904
+  lr/pg1: 0.000349904
+  lr/pg2: 0.000349904
+- epoch: 6.0
+  time: 5.14388
+  train/box_loss: 1.06202
+  train/cls_loss: 3.86065
+  train/dfl_loss: 0.97284
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.01076
+  metrics/mAP50-95(B): 0.00536
+  val/box_loss: 1.2666
+  val/cls_loss: 4.1165
+  val/dfl_loss: 0.91782
+  lr/pg0: 0.00041446
+  lr/pg1: 0.00041446
+  lr/pg2: 0.00041446
+- epoch: 7.0
+  time: 5.92528
+  train/box_loss: 1.08481
+  train/cls_loss: 3.25929
+  train/dfl_loss: 0.95296
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.01076
+  metrics/mAP50-95(B): 0.00536
+  val/box_loss: 1.2666
+  val/cls_loss: 4.1165
+  val/dfl_loss: 0.91782
+  lr/pg0: 0.000475848
+  lr/pg1: 0.000475848
+  lr/pg2: 0.000475848
+- epoch: 8.0
+  time: 6.72551
+  train/box_loss: 0.98789
+  train/cls_loss: 2.81866
+  train/dfl_loss: 0.9184
+  metrics/precision(B): 0.00278
+  metrics/recall(B): 0.83333
+  metrics/mAP50(B): 0.00745
+  metrics/mAP50-95(B): 0.00398
+  val/box_loss: 1.15548
+  val/cls_loss: 4.15969
+  val/dfl_loss: 0.92228
+  lr/pg0: 0.000534068
+  lr/pg1: 0.000534068
+  lr/pg2: 0.000534068
+- epoch: 9.0
+  time: 7.52129
+  train/box_loss: 0.98237
+  train/cls_loss: 2.57802
+  train/dfl_loss: 0.92979
+  metrics/precision(B): 0.00222
+  metrics/recall(B): 0.66667
+  metrics/mAP50(B): 0.00498
+  metrics/mAP50-95(B): 0.00344
+  val/box_loss: 1.06849
+  val/cls_loss: 4.22972
+  val/dfl_loss: 0.90787
+  lr/pg0: 0.00058912
+  lr/pg1: 0.00058912
+  lr/pg2: 0.00058912
+- epoch: 10.0
+  time: 8.29843
+  train/box_loss: 1.0098
+  train/cls_loss: 2.60156
+  train/dfl_loss: 0.88541
+  metrics/precision(B): 0.00222
+  metrics/recall(B): 0.66667
+  metrics/mAP50(B): 0.00498
+  metrics/mAP50-95(B): 0.00344
+  val/box_loss: 1.06849
+  val/cls_loss: 4.22972
+  val/dfl_loss: 0.90787
+  lr/pg0: 0.000641004
+  lr/pg1: 0.000641004
+  lr/pg2: 0.000641004
+- epoch: 11.0
+  time: 9.10714
+  train/box_loss: 0.98545
+  train/cls_loss: 2.44125
+  train/dfl_loss: 0.94352
+  metrics/precision(B): 0.00222
+  metrics/recall(B): 0.66667
+  metrics/mAP50(B): 0.00464
+  metrics/mAP50-95(B): 0.00275
+  val/box_loss: 1.16933
+  val/cls_loss: 4.22686
+  val/dfl_loss: 0.93222
+  lr/pg0: 0.00068972
+  lr/pg1: 0.00068972
+  lr/pg2: 0.00068972
+- epoch: 12.0
+  time: 9.88374
+  train/box_loss: 0.87026
+  train/cls_loss: 2.45249
+  train/dfl_loss: 0.91245
+  metrics/precision(B): 0.00222
+  metrics/recall(B): 0.66667
+  metrics/mAP50(B): 0.00464
+  metrics/mAP50-95(B): 0.00275
+  val/box_loss: 1.16933
+  val/cls_loss: 4.22686
+  val/dfl_loss: 0.93222
+  lr/pg0: 0.000735268
+  lr/pg1: 0.000735268
+  lr/pg2: 0.000735268
+- epoch: 13.0
+  time: 10.6894
+  train/box_loss: 0.85061
+  train/cls_loss: 2.33392
+  train/dfl_loss: 0.91324
+  metrics/precision(B): 0.00278
+  metrics/recall(B): 0.83333
+  metrics/mAP50(B): 0.00588
+  metrics/mAP50-95(B): 0.0023
+  val/box_loss: 1.43224
+  val/cls_loss: 4.18957
+  val/dfl_loss: 1.07153
+  lr/pg0: 0.000777648
+  lr/pg1: 0.000777648
+  lr/pg2: 0.000777648
+- epoch: 14.0
+  time: 11.465
+  train/box_loss: 0.81657
+  train/cls_loss: 2.48921
+  train/dfl_loss: 0.91787
+  metrics/precision(B): 0.00278
+  metrics/recall(B): 0.83333
+  metrics/mAP50(B): 0.00588
+  metrics/mAP50-95(B): 0.0023
+  val/box_loss: 1.43224
+  val/cls_loss: 4.18957
+  val/dfl_loss: 1.07153
+  lr/pg0: 0.00081686
+  lr/pg1: 0.00081686
+  lr/pg2: 0.00081686
+- epoch: 15.0
+  time: 12.2714
+  train/box_loss: 0.89829
+  train/cls_loss: 2.56417
+  train/dfl_loss: 0.93146
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.0072
+  metrics/mAP50-95(B): 0.00286
+  val/box_loss: 1.51003
+  val/cls_loss: 4.32464
+  val/dfl_loss: 1.16491
+  lr/pg0: 0.000852904
+  lr/pg1: 0.000852904
+  lr/pg2: 0.000852904
+- epoch: 16.0
+  time: 13.0546
+  train/box_loss: 0.89216
+  train/cls_loss: 2.28699
+  train/dfl_loss: 0.86348
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.0072
+  metrics/mAP50-95(B): 0.00286
+  val/box_loss: 1.51003
+  val/cls_loss: 4.32464
+  val/dfl_loss: 1.16491
+  lr/pg0: 0.00088578
+  lr/pg1: 0.00088578
+  lr/pg2: 0.00088578
+- epoch: 17.0
+  time: 13.8321
+  train/box_loss: 1.05777
+  train/cls_loss: 2.26406
+  train/dfl_loss: 0.95032
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.0072
+  metrics/mAP50-95(B): 0.00286
+  val/box_loss: 1.51003
+  val/cls_loss: 4.32464
+  val/dfl_loss: 1.16491
+  lr/pg0: 0.000915488
+  lr/pg1: 0.000915488
+  lr/pg2: 0.000915488
+- epoch: 18.0
+  time: 14.6471
+  train/box_loss: 0.80594
+  train/cls_loss: 2.12516
+  train/dfl_loss: 0.91169
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.00492
+  metrics/mAP50-95(B): 0.00305
+  val/box_loss: 1.32728
+  val/cls_loss: 4.05627
+  val/dfl_loss: 1.0623
+  lr/pg0: 0.000942028
+  lr/pg1: 0.000942028
+  lr/pg2: 0.000942028
+- epoch: 19.0
+  time: 15.4372
+  train/box_loss: 0.91464
+  train/cls_loss: 2.11165
+  train/dfl_loss: 0.93069
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.00492
+  metrics/mAP50-95(B): 0.00305
+  val/box_loss: 1.32728
+  val/cls_loss: 4.05627
+  val/dfl_loss: 1.0623
+  lr/pg0: 0.0009654
+  lr/pg1: 0.0009654
+  lr/pg2: 0.0009654
+- epoch: 20.0
+  time: 16.2077
+  train/box_loss: 0.90982
+  train/cls_loss: 1.99748
+  train/dfl_loss: 0.95236
+  metrics/precision(B): 0.00333
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.00492
+  metrics/mAP50-95(B): 0.00305
+  val/box_loss: 1.32728
+  val/cls_loss: 4.05627
+  val/dfl_loss: 1.0623
+  lr/pg0: 0.000985604
+  lr/pg1: 0.000985604
+  lr/pg2: 0.000985604
+closest_image_pairs:
+- image_a: approach_20261108_211245_917119_raw_00000000.jpg
+  image_b: approach_20261108_211245_917119_raw_00000075.jpg
+  gray64x48_mae: 1.7473958333333333
+- image_a: approach_20261108_222156_798690_raw_00000000.jpg
+  image_b: approach_20261108_222156_798690_raw_00000075.jpg
+  gray64x48_mae: 1.970703125
+- image_a: approach_20261108_222156_798690_raw_00000060.jpg
+  image_b: approach_20261108_222156_798690_raw_00000075.jpg
+  gray64x48_mae: 2.4124348958333335
+- image_a: approach_20261108_222842_367393_raw_00000105.jpg
+  image_b: approach_20261108_222842_367393_raw_00000120.jpg
+  gray64x48_mae: 2.5257161458333335
+- image_a: approach_20261108_222516_034701_raw_00000165.jpg
+  image_b: approach_20261108_222516_034701_raw_00000180.jpg
+  gray64x48_mae: 2.5537109375
+- image_a: approach_20261108_222516_034701_raw_00000150.jpg
+  image_b: approach_20261108_222516_034701_raw_00000165.jpg
+  gray64x48_mae: 2.611328125
+- image_a: approach_20261108_222156_798690_raw_00000000.jpg
+  image_b: approach_20261108_222156_798690_raw_00000060.jpg
+  gray64x48_mae: 3.3180338541666665
+- image_a: approach_20261108_222156_798690_raw_00000000.jpg
+  image_b: approach_20261108_222156_798690_raw_00000120.jpg
+  gray64x48_mae: 3.9866536458333335
+- image_a: approach_20261108_222516_034701_raw_00000150.jpg
+  image_b: approach_20261108_222516_034701_raw_00000180.jpg
+  gray64x48_mae: 4.034830729166667
+- image_a: approach_20261108_222156_798690_raw_00000075.jpg
+  image_b: approach_20261108_222156_798690_raw_00000120.jpg
+  gray64x48_mae: 4.4951171875
+- image_a: approach_20261108_222156_798690_raw_00000060.jpg
+  image_b: approach_20261108_222156_798690_raw_00000135.jpg
+  gray64x48_mae: 4.675130208333333
+- image_a: approach_20261108_222516_034701_raw_00000120.jpg
+  image_b: approach_20261108_222516_034701_raw_00000135.jpg
+  gray64x48_mae: 4.692708333333333
+- image_a: approach_20261108_222156_798690_raw_00000075.jpg
+  image_b: approach_20261108_222156_798690_raw_00000135.jpg
+  gray64x48_mae: 4.773763020833333
+- image_a: approach_20261108_222516_034701_raw_00000120.jpg
+  image_b: approach_20261108_222516_034701_raw_00000150.jpg
+  gray64x48_mae: 4.89453125
+- image_a: approach_20261108_222516_034701_raw_00000045.jpg
+  image_b: approach_20261108_222842_367393_raw_00000000.jpg
+  gray64x48_mae: 4.901041666666667
+images:
+- index: 1
+  split: train
+  filename: approach_20261108_211245_917119_raw_00000000.jpg
+  width_640: 69.10976
+  height_640: 65.90016
+  center_normalized:
+  - 0.944617
+  - 0.635521
+  max_confidence: 0.012830717489123344
+  top_box_xyxy:
+  - 216.4405517578125
+  - 267.0181884765625
+  - 638.6343994140625
+  - 478.06988525390625
+  top_box_iou: 0.05074285529766602
+  max_raw_iou: 0.9709194397855085
+  max_confidence_iou_ge_05: 0.012678372673690319
+  threshold_001:
+    predictions: 71
+    tp: 1
+    fp: 70
+    fn: 0
+    wrong_class: 0
+    background_iou_below_01: 64
+    localization_iou_01_to_05: 6
+    best_iou: 0.9468506063502711
+    matched_confidence: 0.012678372673690319
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012824135832488537
+    raw_matching_candidate_at_001: 1
+- index: 2
+  split: train
+  filename: approach_20261108_211245_917119_raw_00000075.jpg
+  width_640: 67.66976
+  height_640: 68.37024000000001
+  center_normalized:
+  - 0.945195
+  - 0.632135
+  max_confidence: 0.012939746491611004
+  top_box_xyxy:
+  - 570.5770874023438
+  - 263.3945617675781
+  - 640.0
+  - 342.4067687988281
+  top_box_iou: 0.8434604384162776
+  max_raw_iou: 0.965143422390535
+  max_confidence_iou_ge_05: 0.012939746491611004
+  threshold_001:
+    predictions: 58
+    tp: 1
+    fp: 57
+    fn: 0
+    wrong_class: 0
+    background_iou_below_01: 53
+    localization_iou_01_to_05: 4
+    best_iou: 0.8434604384162776
+    matched_confidence: 0.012939746491611004
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012814951129257679
+    raw_matching_candidate_at_001: 1
+- index: 3
+  split: train
+  filename: approach_20261108_222156_798690_raw_00000000.jpg
+  width_640: 29.269759999999998
+  height_640: 35.95008
+  center_normalized:
+  - 0.59193
+  - 0.25549
+  max_confidence: 0.012816930189728737
+  top_box_xyxy:
+  - 2.061798095703125
+  - 221.38040161132812
+  - 226.50732421875
+  - 478.3858337402344
+  top_box_iou: 0.0
+  max_raw_iou: 0.9387588752088885
+  max_confidence_iou_ge_05: 0.003334302455186844
+  threshold_001:
+    predictions: 67
+    tp: 0
+    fp: 67
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 67
+    localization_iou_01_to_05: 0
+    best_iou: 0.03146000804260651
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012898913584649563
+    raw_matching_candidate_at_001: 0
+- index: 4
+  split: train
+  filename: approach_20261108_222156_798690_raw_00000060.jpg
+  width_640: 29.58976
+  height_640: 36.31008
+  center_normalized:
+  - 0.613133
+  - 0.27199
+  max_confidence: 0.01279082614928484
+  top_box_xyxy:
+  - 0.0
+  - 298.34271240234375
+  - 167.20965576171875
+  - 480.0
+  top_box_iou: 0.0
+  max_raw_iou: 0.9364341852276554
+  max_confidence_iou_ge_05: 0.0034637064673006535
+  threshold_001:
+    predictions: 73
+    tp: 0
+    fp: 73
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 73
+    localization_iou_01_to_05: 0
+    best_iou: 0.030797393263979893
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.01300989929586649
+    raw_matching_candidate_at_001: 1
+- index: 5
+  split: train
+  filename: approach_20261108_222156_798690_raw_00000075.jpg
+  width_640: 31.76
+  height_640: 33.15024
+  center_normalized:
+  - 0.597219
+  - 0.26349
+  max_confidence: 0.012917919084429741
+  top_box_xyxy:
+  - 355.33599853515625
+  - 99.833251953125
+  - 634.8139038085938
+  - 474.26666259765625
+  top_box_iou: 0.010061091469502419
+  max_raw_iou: 0.9309289497331596
+  max_confidence_iou_ge_05: 0.003428808646276593
+  threshold_001:
+    predictions: 62
+    tp: 0
+    fp: 62
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 62
+    localization_iou_01_to_05: 0
+    best_iou: 0.024926759000438066
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012864463031291962
+    raw_matching_candidate_at_001: 0
+- index: 6
+  split: train
+  filename: approach_20261108_222156_798690_raw_00000105.jpg
+  width_640: 28.89984
+  height_640: 33.82992
+  center_normalized:
+  - 0.523391
+  - 0.30174
+  max_confidence: 0.012814359739422798
+  top_box_xyxy:
+  - 320.1826171875
+  - 111.69378662109375
+  - 635.1573486328125
+  - 475.4080810546875
+  top_box_iou: 0.008534151044627689
+  max_raw_iou: 0.9590235161196026
+  max_confidence_iou_ge_05: 0.0032175760716199875
+  threshold_001:
+    predictions: 63
+    tp: 0
+    fp: 63
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 63
+    localization_iou_01_to_05: 0
+    best_iou: 0.014551857309891131
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012842451222240925
+    raw_matching_candidate_at_001: 0
+- index: 7
+  split: train
+  filename: approach_20261108_222156_798690_raw_00000120.jpg
+  width_640: 31.37024
+  height_640: 36.99984
+  center_normalized:
+  - 0.548445
+  - 0.297708
+  max_confidence: 0.012875068932771683
+  top_box_xyxy:
+  - 364.92401123046875
+  - 243.0948486328125
+  - 633.5789184570312
+  - 478.82135009765625
+  top_box_iou: 0.0
+  max_raw_iou: 0.9444310590535183
+  max_confidence_iou_ge_05: 0.0033613783307373524
+  threshold_001:
+    predictions: 61
+    tp: 0
+    fp: 61
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 61
+    localization_iou_01_to_05: 0
+    best_iou: 0.031467272462813514
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012909823097288609
+    raw_matching_candidate_at_001: 0
+- index: 8
+  split: train
+  filename: approach_20261108_222156_798690_raw_00000135.jpg
+  width_640: 38.06016
+  height_640: 46.880160000000004
+  center_normalized:
+  - 0.580656
+  - 0.352771
+  max_confidence: 0.012804429046809673
+  top_box_xyxy:
+  - 3.705322265625
+  - 236.88827514648438
+  - 235.76589965820312
+  - 479.4349060058594
+  top_box_iou: 0.0
+  max_raw_iou: 0.934190718137966
+  max_confidence_iou_ge_05: 0.0032959480304270983
+  threshold_001:
+    predictions: 78
+    tp: 0
+    fp: 78
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 78
+    localization_iou_01_to_05: 0
+    best_iou: 0.030805925881493394
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012878306210041046
+    raw_matching_candidate_at_001: 0
+- index: 9
+  split: train
+  filename: approach_20261108_222516_034701_raw_00000045.jpg
+  width_640: 26.11008
+  height_640: 13.35984
+  center_normalized:
+  - 0.468352
+  - 0.014625
+  max_confidence: 0.012909871526062489
+  top_box_xyxy:
+  - 443.3004150390625
+  - 233.38706970214844
+  - 640.0
+  - 479.573486328125
+  top_box_iou: 0.0
+  max_raw_iou: 0.8705750948212696
+  max_confidence_iou_ge_05: 0.0030611283145844936
+  threshold_001:
+    predictions: 64
+    tp: 0
+    fp: 64
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 64
+    localization_iou_01_to_05: 0
+    best_iou: 0.004532356921627967
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012846683152019978
+    raw_matching_candidate_at_001: 0
+- index: 10
+  split: train
+  filename: approach_20261108_222516_034701_raw_00000120.jpg
+  width_640: 33.82976
+  height_640: 31.04016
+  center_normalized:
+  - 0.390133
+  - 0.057958
+  max_confidence: 0.012826689518988132
+  top_box_xyxy:
+  - 438.7475891113281
+  - 254.04879760742188
+  - 640.0
+  - 480.0
+  top_box_iou: 0.0
+  max_raw_iou: 0.8907420113200346
+  max_confidence_iou_ge_05: 0.0032848198898136616
+  threshold_001:
+    predictions: 84
+    tp: 0
+    fp: 84
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 84
+    localization_iou_01_to_05: 0
+    best_iou: 0.023581922213098922
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.01290968805551529
+    raw_matching_candidate_at_001: 0
+- index: 11
+  split: train
+  filename: approach_20261108_222516_034701_raw_00000135.jpg
+  width_640: 38.09984
+  height_640: 34.89984
+  center_normalized:
+  - 0.408828
+  - 0.169271
+  max_confidence: 0.012857488356530666
+  top_box_xyxy:
+  - 340.08978271484375
+  - 93.09890747070312
+  - 635.33251953125
+  - 473.2687683105469
+  top_box_iou: 0.0
+  max_raw_iou: 0.9749938657137764
+  max_confidence_iou_ge_05: 0.003440365893766284
+  threshold_001:
+    predictions: 67
+    tp: 0
+    fp: 67
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 67
+    localization_iou_01_to_05: 0
+    best_iou: 0.02461475702565933
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012840643525123596
+    raw_matching_candidate_at_001: 0
+- index: 12
+  split: train
+  filename: approach_20261108_222516_034701_raw_00000150.jpg
+  width_640: 39.790079999999996
+  height_640: 35.91024
+  center_normalized:
+  - 0.382664
+  - 0.114469
+  max_confidence: 0.012912229634821415
+  top_box_xyxy:
+  - 321.64508056640625
+  - 77.05940246582031
+  - 639.1788940429688
+  - 474.84625244140625
+  top_box_iou: 0.0
+  max_raw_iou: 0.9611482279109368
+  max_confidence_iou_ge_05: 0.003500474849715829
+  threshold_001:
+    predictions: 73
+    tp: 0
+    fp: 73
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 73
+    localization_iou_01_to_05: 0
+    best_iou: 0.0325536462733572
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012975668534636497
+    raw_matching_candidate_at_001: 0
+- index: 13
+  split: train
+  filename: approach_20261108_222516_034701_raw_00000165.jpg
+  width_640: 40.19968
+  height_640: 39.49008
+  center_normalized:
+  - 0.396719
+  - 0.108656
+  max_confidence: 0.01290049310773611
+  top_box_xyxy:
+  - 347.62890625
+  - 90.5233154296875
+  - 639.0194091796875
+  - 473.4349365234375
+  top_box_iou: 0.0
+  max_raw_iou: 0.9387387261212806
+  max_confidence_iou_ge_05: 0.0034818274434655905
+  threshold_001:
+    predictions: 73
+    tp: 0
+    fp: 73
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 73
+    localization_iou_01_to_05: 0
+    best_iou: 0.03336033775505124
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012870573438704014
+    raw_matching_candidate_at_001: 0
+- index: 14
+  split: train
+  filename: approach_20261108_222516_034701_raw_00000180.jpg
+  width_640: 41.92
+  height_640: 36.99984
+  center_normalized:
+  - 0.410219
+  - 0.101667
+  max_confidence: 0.012909495271742344
+  top_box_xyxy:
+  - 1.6120452880859375
+  - 233.0886993408203
+  - 231.5043182373047
+  - 478.50823974609375
+  top_box_iou: 0.0
+  max_raw_iou: 0.8748048103360886
+  max_confidence_iou_ge_05: 0.012665730901062489
+  threshold_001:
+    predictions: 82
+    tp: 1
+    fp: 81
+    fn: 0
+    wrong_class: 0
+    background_iou_below_01: 79
+    localization_iou_01_to_05: 2
+    best_iou: 0.6601794966880277
+    matched_confidence: 0.012665730901062489
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.01292244903743267
+    raw_matching_candidate_at_001: 0
+- index: 15
+  split: val
+  filename: approach_20261108_222842_367393_raw_00000000.jpg
+  width_640: 23.63968
+  height_640: 13.40016
+  center_normalized:
+  - 0.528094
+  - 0.015417
+  max_confidence: 0.012850607745349407
+  top_box_xyxy:
+  - 2.3943328857421875
+  - 226.04238891601562
+  - 243.06382751464844
+  - 478.7300720214844
+  top_box_iou: 0.0
+  max_raw_iou: 0.8902261751793357
+  max_confidence_iou_ge_05: 0.003071035025641322
+  threshold_001:
+    predictions: 68
+    tp: 0
+    fp: 68
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 67
+    localization_iou_01_to_05: 1
+    best_iou: 0.12804967042225815
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012877172790467739
+    raw_matching_candidate_at_001: 0
+- index: 16
+  split: val
+  filename: approach_20261108_222842_367393_raw_00000045.jpg
+  width_640: 26.46976
+  height_640: 13.72992
+  center_normalized:
+  - 0.477445
+  - 0.014302
+  max_confidence: 0.012858015485107899
+  top_box_xyxy:
+  - 1.39105224609375
+  - 230.73260498046875
+  - 238.73464965820312
+  - 478.32958984375
+  top_box_iou: 0.0
+  max_raw_iou: 0.917332904597889
+  max_confidence_iou_ge_05: 0.003030628664419055
+  threshold_001:
+    predictions: 60
+    tp: 0
+    fp: 60
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 60
+    localization_iou_01_to_05: 0
+    best_iou: 0.010054614419006418
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012860792689025402
+    raw_matching_candidate_at_001: 0
+- index: 17
+  split: val
+  filename: approach_20261108_222842_367393_raw_00000090.jpg
+  width_640: 31.40992
+  height_640: 27.84
+  center_normalized:
+  - 0.485148
+  - 0.090667
+  max_confidence: 0.012840286828577518
+  top_box_xyxy:
+  - 359.064208984375
+  - 80.70184326171875
+  - 638.1041870117188
+  - 473.41473388671875
+  top_box_iou: 0.0
+  max_raw_iou: 0.9319795632910319
+  max_confidence_iou_ge_05: 0.0008283916395157576
+  threshold_001:
+    predictions: 69
+    tp: 0
+    fp: 69
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 69
+    localization_iou_01_to_05: 0
+    best_iou: 0.025875006423301938
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012905078008770943
+    raw_matching_candidate_at_001: 0
+- index: 18
+  split: val
+  filename: approach_20261108_222842_367393_raw_00000105.jpg
+  width_640: 34.190079999999995
+  height_640: 24.320159999999998
+  center_normalized:
+  - 0.400867
+  - 0.026042
+  max_confidence: 0.01295568235218525
+  top_box_xyxy:
+  - 2.5760498046875
+  - 247.49575805664062
+  - 244.27676391601562
+  - 480.0
+  top_box_iou: 0.0
+  max_raw_iou: 0.9685554694397854
+  max_confidence_iou_ge_05: 0.003087155055254698
+  threshold_001:
+    predictions: 73
+    tp: 0
+    fp: 73
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 73
+    localization_iou_01_to_05: 0
+    best_iou: 0.021908922221232998
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012861440889537334
+    raw_matching_candidate_at_001: 0
+- index: 19
+  split: val
+  filename: approach_20261108_222842_367393_raw_00000120.jpg
+  width_640: 35.95008
+  height_640: 20.08992
+  center_normalized:
+  - 0.411055
+  - 0.023844
+  max_confidence: 0.013187591917812824
+  top_box_xyxy:
+  - 247.22348022460938
+  - 1.3105030059814453
+  - 281.9195251464844
+  - 19.626623153686523
+  top_box_iou: 0.831828612258842
+  max_raw_iou: 0.9171169561411305
+  max_confidence_iou_ge_05: 0.013187591917812824
+  threshold_001:
+    predictions: 80
+    tp: 1
+    fp: 79
+    fn: 0
+    wrong_class: 0
+    background_iou_below_01: 76
+    localization_iou_01_to_05: 2
+    best_iou: 0.831828612258842
+    matched_confidence: 0.013187591917812824
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.012914629653096199
+    raw_matching_candidate_at_001: 0
+- index: 20
+  split: val
+  filename: approach_20261108_222842_367393_raw_00000135.jpg
+  width_640: 37.710080000000005
+  height_640: 21.85008
+  center_normalized:
+  - 0.464195
+  - 0.024948
+  max_confidence: 0.012901118956506252
+  top_box_xyxy:
+  - 2.4344635009765625
+  - 245.10675048828125
+  - 238.90829467773438
+  - 479.77545166015625
+  top_box_iou: 0.0
+  max_raw_iou: 0.90902573985404
+  max_confidence_iou_ge_05: 0.0031054469291120768
+  threshold_001:
+    predictions: 78
+    tp: 0
+    fp: 78
+    fn: 1
+    wrong_class: 0
+    background_iou_below_01: 78
+    localization_iou_01_to_05: 0
+    best_iou: 0.025173215127742593
+    matched_confidence: null
+  higher_thresholds: '0.05/0.10/0.25: predictions=TP=FP=0, FN=1, IoU=null'
+  square_control:
+    input_shape:
+    - 1
+    - 3
+    - 640
+    - 640
+    max_confidence: 0.01283870916813612
+    raw_matching_candidate_at_001: 0
+optimizer_schedule_inference:
+  batches_per_epoch: 4
+  total_batches: 80
+  warmup_batches: 100
+  nbs: 64
+  batch_size: 4
+  optimizer_step_calls_by_epoch5: 10
+  optimizer_step_calls_by_epoch20: 17
+  caveat: Reconstructed from installed 8.3.40 trainer control flow; AMP step skips
+    not logged, not a measured optimizer state. Stripped checkpoints do not retain
+    updates/optimizer.
+installed_source_sha256:
+  engine/trainer.py: 09df7940b2770b87e7728397d5881ab8b03d69655845dd46eb1d00bb6c57f3a9
+  utils/metrics.py: b68265c80d16fb1b4286a02d203887212a25c5cff7d0d3f7ddecf1590d6b9cf7
+  utils/torch_utils.py: 75d591f36164c5288542aaffbb3ab142f8abf91002bc2c6c41baa984a4854e89
+  nn/modules/head.py: 060fd65edbced34e1f00a17ba84c45adecb0585ae04287394dcddf03d295a0be

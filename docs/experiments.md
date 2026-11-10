@@ -70,3 +70,16 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 本机证据vision_training/runs/blue_cube_pilot_v1，报告及参数/版本/权重哈希见
   [pilot报告](../vision_training/reports/blue_cube_pilot_v1.md)。18项针对性检查通过。
 - 未全仓构建、未重装框架、未启动ROS/GO2；真实部署和跨场景性能NOT VERIFIED。
+
+## 2026-11-10 — 已有pilot权重失败分析（无新训练）
+
+- 基线b7a2e46，20图真实GPU四阈值、类别及IoU≥0.5的一对一真值匹配。
+- best conf0.01：train TP/FP/FN=3/973/11，val=1/427/5；conf0.05/0.10/0.25均0框。
+- 最高候选分数约0.0128–0.0132，多为背景；不能用候选框总数当正确识别。
+- 20图GT裁剪复核无明显错对象；验证目标更小/更靠上；同视频高度近似，有效多样性不足。
+- 训练cls损失5→20轮下降52.4%，但best未可靠拟合train；last高分输出全为背景FP。
+- 固定源码默认预热100batch，本次仅80batch；推算17个optimizer_step调用点，非实测有效更新数。
+- 主要支持A，建议先补多样标签、从官方权重建新基线并适配更新预算；唯一根因未证实。
+- 报告：[失败分析](../vision_training/reports/blue_cube_pilot_v1_failure_analysis.md)。
+  本机完整证据vision_training/runs/blue_cube_pilot_v1/analysis_v2；21项检查通过。
+- 未训练、未改框架/ROS/HSV/MAP/控制、未全仓编译或启动GO2；改进效果NOT VERIFIED。

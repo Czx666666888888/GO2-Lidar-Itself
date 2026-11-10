@@ -305,3 +305,7 @@ train/val/test及有效人工审核指纹，pilot不得声明test。未削弱正
 见[实验报告](reports/blue_cube_pilot_v1.md)、[数据版本](datasets/blue_cube_pilot_v1/README.md)。
 实际20轮早停；conf=0.25未检出验证/定性图中的可见目标，不代表模型已可用。
 上文“尚无人工标签/未训练”是11月9日基线状态，本段为11月10日新增结果。
+
+该pilot后续已完成[失败诊断](reports/blue_cube_pilot_v1_failure_analysis.md)：四阈值按真实
+GT IoU核对后，best在训练图上亦未可靠拟合；发现极少batch下预热/更新预算不足的配置风险。
+新增tools/analyze_pilot.py只读分析，不训练或改标签；下一版优先补多样标签并从官方权重建基线。
