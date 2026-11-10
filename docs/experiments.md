@@ -83,3 +83,15 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 报告：[失败分析](../vision_training/reports/blue_cube_pilot_v1_failure_analysis.md)。
   本机完整证据vision_training/runs/blue_cube_pilot_v1/analysis_v2；21项检查通过。
 - 未训练、未改框架/ROS/HSV/MAP/控制、未全仓编译或启动GO2；改进效果NOT VERIFIED。
+
+## 2026-11-10 — blue_cube_pilot_v2（一次80轮配置修正）
+
+- 基线3ea9fbc；同20图14/6、同官方YOLO11n与增强；nbs64→4，epochs50→80，patience15→80。
+- warmup3仍有100batch下限；实际320batch累积均1，optimizer post-step hook313次，AMP跳步7次。
+- conf0.25、IoU≥0.5：V1 best train/val=0/0/14、0/0/6；V2 best=13/0/1、4/0/2；last=14/0/0、4/0/2。
+- conf0.05：V2 best train/val=14/1/0、5/0/1；last=14/1/0、6/0/0，FP1为重复框。
+- best第70轮，last第80轮；训练调用87.85秒，CSV累计74.69秒（口径含监测等，非纯GPU时间）。
+- 第24–27轮10项验证loss为NaN，后期有限；原CSV保留，分析显式null并记事件，不声明全程稳定。
+- 结论：已具备训练图拟合能力；同场景val仍漏边缘小目标，不证明跨场景泛化。
+- 236个V1/数据保护文件和库trainer源码hash未变；30项检查通过，无全仓构建/GO2运行。
+- [对比报告](../vision_training/reports/blue_cube_pilot_v2.md)；本机完整证据vision_training/runs/blue_cube_pilot_v2。

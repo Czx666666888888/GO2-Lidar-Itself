@@ -4,6 +4,7 @@ import argparse
 import csv
 import itertools
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -167,8 +168,12 @@ def run(a):
                                       [('best', a.weights), ('last', a.last)] if v},
                    matching='One class-0 ground truth per image; class-correct IoU>=0.5; '
                             'one TP maximum, duplicate predictions are FP; NMS IoU=.7 max_det=300',
-                   per_split={}, loss_rows=[{k: float(v) for k, v in r.items()}
-                                            for r in train_rows],
+                   per_split={}, loss_rows=[{
+                       k: float(v) if math.isfinite(float(v)) else None for k, v in r.items()}
+                       for r in train_rows],
+                   nonfinite_csv_events=[dict(epoch=int(r['epoch']), column=k, raw_value=v)
+                                         for r in train_rows for k, v in r.items()
+                                         if not math.isfinite(float(v))],
                    closest_image_pairs=pairs[:15], images=rows)
     for split in ('train', 'val'):
         group = [r for r in rows if r['split'] == split]
@@ -189,14 +194,25 @@ def run(a):
         summary['per_split'][split] = stats
     write_json(out / 'analysis.json', summary)
     (out / 'analysis.yaml').write_text(yaml.safe_dump(summary, sort_keys=False))
+    plot_measurements(summary, out)
+    assert inspect_dataset(a.data, splits=('train', 'val'), require_review=True)[1][
+        'fingerprint'] == manifest['fingerprint']
+    print(yaml.safe_dump(summary['per_split'], sort_keys=False))
+
+
+def plot_measurements(summary, out):
     # Charts contain measurements only, no source images.
+    out = Path(out)
+    rows = summary['images']
+    best = max(summary['loss_rows'], key=lambda r: .1*r['metrics/mAP50(B)'] +
+               .9*r['metrics/mAP50-95(B)'])['epoch']
     fig, axes = plt.subplots(2, 3, figsize=(13, 7))
     epoch = [r['epoch'] for r in summary['loss_rows']]
     for j, loss in enumerate(('box_loss', 'cls_loss', 'dfl_loss')):
         for split in ('train', 'val'):
             axes[0, j].plot(epoch, [r[f'{split}/{loss}'] for r in summary['loss_rows']],
                             label=split)
-        axes[0, j].axvline(5, color='gray', linestyle=':')
+        axes[0, j].axvline(best, color='gray', linestyle=':')
         axes[0, j].set_title(loss)
         axes[0, j].legend()
     for key in ('metrics/mAP50(B)', 'metrics/mAP50-95(B)'):
@@ -217,9 +233,6 @@ def run(a):
     fig.tight_layout()
     fig.savefig(out / 'loss_size_position.png', dpi=140)
     plt.close(fig)
-    assert inspect_dataset(a.data, splits=('train', 'val'), require_review=True)[1][
-        'fingerprint'] == manifest['fingerprint']
-    print(yaml.safe_dump(summary['per_split'], sort_keys=False))
 
 
 if __name__ == '__main__':

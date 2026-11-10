@@ -383,3 +383,16 @@ best在conf0.01下训练TP/FP/FN=3/973/11、val=1/427/5；conf≥0.05两组均0�
 报告vision_training/reports/blue_cube_pilot_v1_failure_analysis.md；本机完整证据analysis_v2。
 21项针对性测试通过；仅新增诊断代码/测量图/报告，无训练、框架更改、全仓build或GO2连接。
 唯一失败根因及改进后的效果尚需受控验证，不把推断写为已证实因果。
+
+## 2026-11-10 — blue_cube_pilot_v2配置修正训练
+
+来源：最新Push 3ea9fbc、RTX4060真实训练/推理、optimizer hook与保护文件哈希。
+仍使用同20图14/6及相同官方YOLO11n初始化；nbs=4、epochs/patience=80，warmup=3沿用V1。
+80轮完成，best第70轮；320batch累积始终1，实测optimizer.step313次（另7次AMP跳步）。
+conf0.25：V1 best train0/0/14、val0/0/6；V2 best13/0/1、4/0/2；V2 last14/0/0、4/0/2。
+conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/FN、IoU≥0.5。
+结论：已能拟合14张训练图；同场景6张val不足以证明真实泛化，边缘小目标仍低置信度。
+训练调用87.85秒，CSV累计74.69秒；24–27轮出现10个NaN验证loss单元，原始记录未改，
+之后恢复有限。不能声称全程数值稳定，异常唯一原因未证实；本轮没有追加训练/搜索。
+236个V1/数据保护文件及库trainer源码hash未变。30项针对性检查通过；未全仓build或启GO2。
+详见vision_training/reports/blue_cube_pilot_v2.md；权重/全量预测本机runs/blue_cube_pilot_v2。

@@ -160,3 +160,30 @@ def test_pilot_is_explicit_and_formal_workflow_stays_strict(tmp_path):
     path.write_text(yaml.safe_dump(data))
     with pytest.raises(ValueError, match='must not declare'):
         training_plan(config, pilot=True)
+
+
+@pytest.mark.parametrize('extra', [
+    dict(nbs=4, warmup_epochs=3.0, patience=80), dict(nbs=4, warmup_epochs=0, patience=0)])
+def test_small_dataset_parameters_are_forwarded(tmp_path, extra):
+    path = dataset(tmp_path, ['object'])
+    receipt(path)
+    config = tmp_path / 'train.yaml'
+    cfg = dict(project='pilot', name='v2', data=str(path), model='yolo11n.pt',
+               output='runs', imgsz=640, epochs=80, batch=4, device=0, patience=80)
+    cfg.update(extra)
+    config.write_text(yaml.safe_dump(cfg))
+    args = training_plan(config)[-1]
+    assert all(args[k] == v for k, v in extra.items())
+
+
+@pytest.mark.parametrize('extra', [
+    dict(nbs=0), dict(nbs=True), dict(nbs=4.5), dict(warmup_epochs=-1),
+    dict(warmup_epochs=float('nan')), dict(warmup_epochs=True), dict(patience=-1)])
+def test_invalid_small_dataset_parameters_fail_before_reading_data(tmp_path, extra):
+    config = tmp_path / 'train.yaml'
+    cfg = dict(project='pilot', name='v2', data='missing.yaml', model='yolo11n.pt',
+               output='runs', imgsz=640, epochs=80, batch=4, device=0, patience=80)
+    cfg.update(extra)
+    config.write_text(yaml.safe_dump(cfg))
+    with pytest.raises(ValueError, match='nbs|warmup_epochs|patience'):
+        training_plan(config)

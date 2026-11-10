@@ -309,3 +309,18 @@ train/val/test及有效人工审核指纹，pilot不得声明test。未削弱正
 该pilot后续已完成[失败诊断](reports/blue_cube_pilot_v1_failure_analysis.md)：四阈值按真实
 GT IoU核对后，best在训练图上亦未可靠拟合；发现极少batch下预热/更新预算不足的配置风险。
 新增tools/analyze_pilot.py只读分析，不训练或改标签；下一版优先补多样标签并从官方权重建基线。
+
+## 2026-11-10：V2小样本配置修正
+
+[blue_cube_pilot_v2报告](reports/blue_cube_pilot_v2.md)：仍使用V1的14/6数据，从官方模型
+重训一次；nbs4、epochs/patience80，last.pt在conf0.25、IoU≥0.5下训练14 TP/0 FP/0 FN。
+仅证明小样本学习能力，6张同场景val不代表真实泛化。24–27轮部分验证loss出现NaN并如实保留。
+
+通用配置支持经校验的`nbs`正整数、`warmup_epochs`有限非负数、`patience`非负整数；
+不提供这些可选新字段时沿用Ultralytics默认，不改变旧项目配置。
+固定8.3.40源码是`max(round(warmup_epochs*nb),100) if warmup_epochs>0 else -1`；
+V2使用3.0，仍预热100batch。0的分支须按实际版本和运行日志核对，本次未测试零预热。
+
+`train.py --pilot --monitor-every 5`为单类别、每图单正样本pilot记录实际优化器step、
+逐batch累积/LR/AMP scale及每5轮EMA副本的train/val匹配，不修改优化器或库源码。
+默认不开启；正式工作流仍要求原train/val/test审核。
