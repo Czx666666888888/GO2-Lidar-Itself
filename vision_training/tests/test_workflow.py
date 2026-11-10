@@ -137,3 +137,26 @@ def test_import_review_split_preserves_provenance_and_tagged_subset(tmp_path):
     (root / 'data.yaml').write_text(yaml.safe_dump(changed))
     with pytest.raises(ValueError, match='Unreviewed'):
         split_groups(SimpleNamespace(dataset=str(root), assignments=str(assignment)))
+
+
+def test_pilot_is_explicit_and_formal_workflow_stays_strict(tmp_path):
+    path = dataset(tmp_path, ['object'])
+    data = yaml.safe_load(path.read_text())
+    del data['test']
+    path.write_text(yaml.safe_dump(data))
+    _, manifest = inspect_dataset(path, splits=('train', 'val'))
+    write_json(path.with_suffix('.review.json'), dict(
+        reviewer='UNIT_TEST_FIXTURE_ONLY', fingerprint=manifest['fingerprint']))
+    config = tmp_path / 'pilot.yaml'
+    cfg = dict(project='pilot', name='v1', data=str(path), model='yolo11n.pt',
+               output='runs', imgsz=640, epochs=50, batch=4, device=0, patience=15)
+    config.write_text(yaml.safe_dump(cfg))
+    with pytest.raises(ValueError, match='Missing split: test'):
+        training_plan(config)
+    plan = training_plan(config, pilot=True)
+    assert plan[0]['validation_protocol'] == 'pilot_train_val_only'
+    assert len(plan[2]['entries']) == 2
+    data['test'] = 'images/test'
+    path.write_text(yaml.safe_dump(data))
+    with pytest.raises(ValueError, match='must not declare'):
+        training_plan(config, pilot=True)

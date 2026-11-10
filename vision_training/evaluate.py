@@ -26,10 +26,16 @@ def main():
     parser.add_argument('--device', default='0')
     parser.add_argument('--conf', type=float, default=0.25, help='sample prediction threshold')
     parser.add_argument('--samples', type=int, default=20)
+    parser.add_argument('--pilot', action='store_true', help='evaluate train/val-only pilot')
     args = parser.parse_args()
     from ultralytics import YOLO
     import torch
-    data, manifest = inspect_dataset(args.data, require_review=True)
+    if args.pilot and args.split != 'val':
+        raise ValueError('Pilot evaluation is validation only')
+    splits = ('train', 'val') if args.pilot else ('train', 'val', 'test')
+    data, manifest = inspect_dataset(args.data, splits=splits, require_review=True)
+    if args.pilot and 'test' in data:
+        raise ValueError('Pilot must not declare a test split')
     paths = [Path(e['image']) for e in manifest['entries'] if e['split'] == args.split]
     if args.subset:
         if Path(args.subset).name != args.subset:

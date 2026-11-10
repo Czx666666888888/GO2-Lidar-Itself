@@ -13,7 +13,7 @@ except ImportError:
     from dataset import inspect_dataset
 
 
-def training_plan(config_path):
+def training_plan(config_path, pilot=False):
     path = Path(config_path).resolve()
     cfg = read_yaml(path)
     required = ('project', 'data', 'model', 'output', 'name', 'imgsz', 'epochs',
@@ -26,7 +26,12 @@ def training_plan(config_path):
             raise ValueError(f'{key} must be a single directory name')
     if cfg['imgsz'] <= 0 or cfg['epochs'] <= 0 or cfg['batch'] <= 0:
         raise ValueError('imgsz, epochs, batch must be positive')
-    data, manifest = inspect_dataset(resolve(path.parent, cfg['data']), require_review=True)
+    splits = ('train', 'val') if pilot else ('train', 'val', 'test')
+    data, manifest = inspect_dataset(resolve(path.parent, cfg['data']), splits=splits,
+                                     require_review=True)
+    if pilot and 'test' in data:
+        raise ValueError('Pilot must not declare a test split')
+    cfg['validation_protocol'] = 'pilot_train_val_only' if pilot else 'formal_train_val_test'
     output = resolve(path.parent, cfg['output']) / cfg['project'] / cfg['name']
     spec = str(cfg['model'])
     model_path = (Path(__file__).resolve().parent / 'weights' / spec
@@ -51,8 +56,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', required=True)
     parser.add_argument('--dry-run', action='store_true', help='validate without loading torch')
+    parser.add_argument('--pilot', action='store_true', help='explicit small-sample train/val only')
     opts = parser.parse_args()
-    cfg, data, manifest, output, model_path, args = training_plan(opts.config)
+    cfg, data, manifest, output, model_path, args = training_plan(opts.config, pilot=opts.pilot)
     if opts.dry_run:
         print(json.dumps(dict(output=str(output), model=str(model_path), names=data['names'],
                               images=len(manifest['entries']), arguments=args), indent=2))

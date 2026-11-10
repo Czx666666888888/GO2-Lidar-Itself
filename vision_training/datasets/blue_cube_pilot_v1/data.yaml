@@ -1,0 +1,5 @@
+names:
+  0: blue_cube
+path: .
+train: images/train
+val: images/val

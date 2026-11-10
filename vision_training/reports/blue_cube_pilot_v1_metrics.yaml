@@ -1,0 +1,104 @@
+baseline_commit: ac76fe9795ed7a4ddd8124f157538b3a94fb1d57
+version: blue_cube_pilot_v1
+train_images: 14
+val_images: 6
+independent_test_images: 0
+epoch_limit: 50
+epochs_completed: 20
+best_epoch: 5
+patience: 15
+csv_cumulative_seconds: 16.2077
+validation:
+  weights_sha256: f8d9b0b775180046b541377bf2bbbab2a468c5b59e47262d3aeaab8e6b2bf979
+  names:
+    '0': blue_cube
+  split: val
+  subset: null
+  images: 6
+  dataset_fingerprint: f2cb59d2fac89f27eb510628272b3815fcb2601d0bc8db30ed34ea769d1b4679
+  precision: 0.0033333333333333335
+  recall: 1.0
+  map50: 0.009966611018363939
+  map50_95: 0.007125893820237308
+  validation_speed_ms:
+    preprocess: 0.4296700159708659
+    inference: 15.487233797709147
+    loss: 0.008900960286458334
+    postprocess: 15.104969342549643
+  batch1_wall_ms:
+    mean: 8.746948833428783
+    p50: 8.766546500055483
+    p95: 8.806431000039083
+  timing_scope: batch=1, includes image loading/preprocess/NMS, excludes warmup; not
+    ROS end-to-end latency
+  temporal_missed_detection_metrics: 'NOT VERIFIED: requires reviewed video timeline'
+timing:
+  weights_sha256: f8d9b0b775180046b541377bf2bbbab2a468c5b59e47262d3aeaab8e6b2bf979
+  conf: 0.25
+  imgsz: 640
+  device: 0
+  validation_images: 6
+  qualitative_images: 12
+  timing_samples: 90
+  warmup: 5
+  gpu_inference_ms:
+    mean: 6.384804513719347
+    p50: 6.368279457092285
+    p95: 6.4727783203125
+  synchronized_predict_wall_ms:
+    mean: 8.968514177771189
+    p50: 8.930694999889965
+    p95: 9.441182099999423
+  scope: batch1 FP32 .pt, file read/preprocessing/NMS in wall time; inference from
+    Ultralytics synchronized GPU profile; same cases repeated 5 times; not ROS latency
+training_final_validation:
+  metrics/precision(B): 0.0033333333333333335
+  metrics/recall(B): 1.0
+  metrics/mAP50(B): 0.009949999999999995
+  metrics/mAP50-95(B): 0.007114077805695139
+  fitness: 0.007397670025125625
+weights_sha256:
+  best.pt: f8d9b0b775180046b541377bf2bbbab2a468c5b59e47262d3aeaab8e6b2bf979
+  last.pt: 8de90dbfbadfc1ad20ad354bc4632247029dcf146b971104ea526b06f7ce96f7
+prediction_confidence: 0.25
+validation_detections_at_025: 0
+qualitative_detections_at_025: 0
+qualitative_cases:
+- filename: approach_20261109_204520_581746_raw_00000045.jpg
+  reason: dim_appearance
+  detections: 0
+- filename: approach_20261109_204520_581746_raw_00000120.jpg
+  reason: dim_appearance
+  detections: 0
+- filename: approach_20261109_204520_581746_raw_00000195.jpg
+  reason: dim_appearance
+  detections: 0
+- filename: approach_20261109_204520_581746_raw_00000315.jpg
+  reason: dim_appearance
+  detections: 0
+- filename: approach_20261108_223231_137141_raw_00000045.jpg
+  reason: edge_check
+  detections: 0
+- filename: approach_20261109_203609_327607_raw_00000090.jpg
+  reason: edge_check
+  detections: 0
+- filename: approach_20261109_204520_581746_raw_00000405.jpg
+  reason: edge_check
+  detections: 0
+- filename: approach_20261109_204520_581746_raw_00000525.jpg
+  reason: edge_check
+  detections: 0
+- filename: approach_20261108_223231_137141_raw_00000195.jpg
+  reason: motion_blur_keep
+  detections: 0
+- filename: approach_20261109_205725_163351_raw_00000315.jpg
+  reason: motion_blur_keep
+  detections: 0
+- filename: approach_20261108_223231_137141_raw_00000210.jpg
+  reason: additional source video
+  detections: 0
+- filename: approach_20261109_202905_232322_raw_00000135.jpg
+  reason: additional source video
+  detections: 0
+conclusion: No credible success case at conf=0.25; model not ready for use. Same scene,
+  tiny validation; no quantitative claims for unlabelled images.

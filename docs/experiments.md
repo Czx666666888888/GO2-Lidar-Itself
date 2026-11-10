@@ -58,3 +58,15 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - The referenced `today_representative.md` and `today_analysis_20260901.tar.gz` are not tracked in this repository.
 - Exact metric calculation methods, per-run commit hashes, parameter dumps and environment metadata are not recorded in the root README.
 - Future experiment entries should include commit hash, parameter snapshot, command, host/robot configuration, bag checksum, safety conditions and analysis command.
+
+## 2026-11-10 — blue_cube_pilot_v1（PC真实GPU，小样本）
+
+- 来源：用户CVAT First 30.zip；20图20框。按4个视频14 train/6 val，无test；同lab场景。
+- 原annotation_v1 181图哈希未变，161张未标注图未当负样本。
+- 既有RTX4060/venv，YOLO11n 640/batch4/epochs50/patience15/device0；实际20轮早停。
+- 独立val P=0.003333、R=1、mAP50=0.00996661、mAP50-95=0.00712589。
+- conf0.25：6张val与12张未标注观察图均0框，模型不可用，无成功案例；后者不算定量测试。
+- 90次预热后GPU推理均值6.385ms、同步predict墙钟8.969ms；不代表持续FPS/ROS。
+- 本机证据vision_training/runs/blue_cube_pilot_v1，报告及参数/版本/权重哈希见
+  [pilot报告](../vision_training/reports/blue_cube_pilot_v1.md)。18项针对性检查通过。
+- 未全仓构建、未重装框架、未启动ROS/GO2；真实部署和跨场景性能NOT VERIFIED。

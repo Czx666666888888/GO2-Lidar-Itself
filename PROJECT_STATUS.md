@@ -356,3 +356,18 @@ CVAT指南已入仓，媒体仅本机保留，没有创建标签或review回执�
 17项训练/数据与标注包检查通过；初次pytest收集遇既有解释器异常，按既有CPU亲和
 16–19条件重跑通过，未重装环境、未全仓构建。train.py、competition.example.yaml与
 全部受保护的HSV/定位/manager/搜索/运动源码配置保持不变。
+
+## 2026-11-10 — 20张人工标注YOLO pilot
+
+来源：CVAT ZIP、本地哈希/框图检查、RTX4060真实训练与独立验证输出。
+最新远程基线ac76fe9已核对。独立blue_cube_pilot_v1只使用20份人工标签和精确匹配图片，
+整视频划分14 train/6 val，无test；同实验室场景，不声称独立拍摄会话。原181图哈希不变。
+指定50轮/patience15，实际20轮早停，best第5轮；CSV累计16.2077秒。
+独立val P=0.003333、R=1.0、mAP50=0.00996661、mAP50-95=0.00712589；conf=0.25
+下6验证/12未标注定性图片均0框，无可信成功检测案例，不能部署。未标注图不算定量测试。
+90次预热后GPU推理均值6.385ms，同步predict墙钟8.969ms，不代表ROS延迟/持续FPS。
+18项针对性测试通过；默认三组审核保持严格，只有显式--pilot允许train/val。
+本地best/last/曲线/对比图/快照见vision_training/runs/blue_cube_pilot_v1；
+报告vision_training/reports/blue_cube_pilot_v1.md及版本/指标YAML入仓。
+未重装框架、未全仓build、未启动ROS/GO2；真实部署、跨场景及连续推理NOT VERIFIED。
+下一步补独立会话和弱光/边缘/尺度/干扰物人工标注，再建立新版本微调。

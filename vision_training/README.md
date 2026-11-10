@@ -296,3 +296,12 @@ Ultralytics第三方代码/权重使用其自身AGPL-3.0或相应商业许可，
 - [YOLO11](https://docs.ultralytics.com/models/yolo11/)
 - [YOLO数据格式](https://docs.ultralytics.com/datasets/detect/)
 - [训练](https://docs.ultralytics.com/modes/train/)、[评估](https://docs.ultralytics.com/modes/val/)、[导出](https://docs.ultralytics.com/modes/export/)
+
+## 2026-11-10：20图pilot（不替代正式工作流）
+
+用户CVAT人工标注已导入独立`blue_cube_pilot_v1`，按原视频14 train / 6 val，无test。
+仅显式`train.py --pilot`与`evaluate.py --pilot --split val`接受两组；默认仍要求
+train/val/test及有效人工审核指纹，pilot不得声明test。未削弱正式检查。
+见[实验报告](reports/blue_cube_pilot_v1.md)、[数据版本](datasets/blue_cube_pilot_v1/README.md)。
+实际20轮早停；conf=0.25未检出验证/定性图中的可见目标，不代表模型已可用。
+上文“尚无人工标签/未训练”是11月9日基线状态，本段为11月10日新增结果。
