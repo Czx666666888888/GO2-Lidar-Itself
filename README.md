@@ -1,46 +1,61 @@
-# 2026-09-01 完整包(数据+代码)
+# GO2-Lidar-Itself
 
-独立的通用YOLO训练、评估、导出与PC端ROS2推理工作流见
-[vision_training/README.md](vision_training/README.md)。使用配置更换比赛目标，保留现有HSV实机流程。
+基于 ROS 2 的 Unitree GO2 自主导航与科学目标感知实验项目，包含机载 UTLiDAR/IMU、Point-LIO、FAR/局部规划、安全运动门、D435 RGB-D 定位，以及可复用的 YOLO 训练与独立推理工作流。
 
-## 内容
-- rosbags/ : 5 个代表实机复测 bag(retest4/5/6/8/9, 每轮最新)
-- code/    : 当前源码(已回退到 8月31 打包版 code_package_20260831)
-  - go2_keyboard_teleop/  (WP5探索/安全门/机身中心里程计)
-  - autonomy_stack_go2_src/ (Point-LIO + terrain + far/local planner)
-  - scripts/ (启动/录制/分析脚本)
+更新日期：2026-11-11。当前研发分支：`feature/reusable-yolo-training`；本次整理依据代码基线 `5fa5cd0` 和仓库实验报告，未重新进行训练、构建或真机实验。
 
-## GO2 机载雷达接入
+## 当前进展
 
-GO2 机载 UTLidar 的 `/utlidar/cloud` 和 `/utlidar/imu` 由机器人直接通过
-ROS 2/CycloneDDS 发布，电脑端不需要 `go2_robot_sdk` 或额外启动雷达驱动。
-将电脑有线网卡设置到 `192.168.123.0/24` 后执行：
+| 工作流 | 已有实现与证据 | 验证边界 |
+|---|---|---|
+| 雷达导航 | UTLiDAR/IMU → Point-LIO → 地形分析 → WP5/FAR → 局部规划/跟随 → safety gate；主链接口已静态盘点 | 干净环境全量构建、完整导航闭环和重复性能仍 `NOT VERIFIED` |
+| D435 / HSV | 蓝色多目标、蓝墙过滤、对齐深度粗定位、按原始时间戳转换 map、目标生命周期与 visited 空间记忆 | 外参仍 `PROVISIONAL / NOT CALIBRATED`；MAP 漂移根因未确认 |
+| 搜索与接近实验 | 独立 SEARCH → STOP_CONFIRM → MAP 锚点接近；5 m / 0.25 m/s 搜索、6 s 总确认预算；已审计一轮用户实测 9.5 cm 停稳，另有用户“两次都可以”反馈 | 单场景现场证据；5 m 路线终点、5 m ODOM 保护边界、重复精度和外部速度真值尚未验收 |
+| YOLO 工程 | 配置化数据准备、人工审核、按拍摄组划分、训练/评估/PT 与 ONNX 导出；独立 ROS 2 RGB-D 检测节点 | 与 HSV/运动链分离；真实 D435 连续推理、跨场景泛化及 Orin/NX 部署 `NOT VERIFIED` |
+| blue_cube pilot V2 | 20 张人工标注，14 train / 6 val，同场景按视频分组；实际 80 轮训练，已能拟合训练图 | 小样本、无 test；训练阶段有 NaN 记录，不能作为部署验收 |
+
+YOLO V2 在 `conf=0.25`、类别正确且 `IoU≥0.5` 的一对一匹配下：best 为训练 `13/0/1`、验证 `4/0/2`；last 为训练 `14/0/0`、验证 `4/0/2`（均为 TP/FP/FN）。详情见 [V2 对比报告](vision_training/reports/blue_cube_pilot_v2.md)，失败的 V1 结果见 [V1 报告](vision_training/reports/blue_cube_pilot_v1.md)与[失败分析](vision_training/reports/blue_cube_pilot_v1_failure_analysis.md)。这些是既有实验记录，本次未重跑。
+
+## 仓库入口
+
+| 路径 | 用途 |
+|---|---|
+| [code/](code/) | GO2 DDS 接口、传感器变换、Point-LIO、地形、探索/规划、跟随与安全门 |
+| [camera_ws/](camera_ws/README.md) | 独立 D435 感知、map 目标管理与用户授权的搜索接近实验 |
+| [vision_training/](vision_training/README.md) | 通用 YOLO 数据、训练、评估、导出与 PC ROS 2 推理 |
+| [PROJECT_STATUS.md](PROJECT_STATUS.md) | 当前状态、历史基线与验证边界 |
+| [TASKS.md](TASKS.md) | 阶段任务、阻塞和后续工作 |
+| [docs/interface_inventory.md](docs/interface_inventory.md) | 导航主链 ROS 2 接口静态清单 |
+| [camera_ws/docs/experiments.md](camera_ws/docs/experiments.md) | 感知与搜索接近实机记录、失败轮次与本地证据位置 |
+| [vision_training/VALIDATION.md](vision_training/VALIDATION.md) | 训练环境、工程检查及已知环境问题 |
+| [AGENTS.md](AGENTS.md) | 协作规则、证据等级和安全边界 |
+
+## 环境与开始使用
+
+PC 基础环境为 Ubuntu 22.04 / ROS 2 Humble。GO2 通过 ROS 2/CycloneDDS 发布 `/utlidar/cloud` 和 `/utlidar/imu`，本主线不需要额外启动 PC 侧雷达驱动。依赖与构建入口应按各工作流分别使用；全新主机完整复现仍待验证。
+
+导航构建入口：
 
 ```bash
-cd /home/czx666/today_full_20260901/today_full
+bash code/scripts/deploy_local.sh
+```
+
+只读传感器预检（先将连接 GO2 的有线网卡配置到 `192.168.123.0/24`）：
+
+```bash
 bash code/scripts/go2_lidar_preflight.sh <连接GO2的网卡名>
 ```
 
-只有 cloud 与 IMU 的类型正确且收到实时数据时检查才通过。主导航脚本也会执行
-同一项严格检查，雷达断流时直接退出，不再让 Point-LIO 空转。
+D435 构建和只读预览见 [camera_ws/README.md](camera_ws/README.md)；YOLO 的独立 venv、数据格式、人工审核和运行命令见 [vision_training/README.md](vision_training/README.md)。不要将训练依赖安装到系统 ROS Python 环境中。
 
-## 代码状态(回退版)
-- far: robot_dim=0.7, converge=0.30, graph去重
-- local: obstacleInflate=0.2, stopDisThre=0.2, useCost=false
-- WP5: min_goal_dis=0.8, arrive_dis=0.35, 簇门槛2, 超时硬排除, risk_weight=0.3, min_obs_dis=0.2
-- 注: 无 turn_thre / 走廊检查 / 方向惯性 / 净空惩罚(这些是今天后加又回退的)
+真实运动需要逐轮明确授权、物理急停、空旷环境和可确认的停止路径；默认采用只读检查或 `--dry-run --no-arm`。独立搜索接近实验不等于 FAR/WP5 导航闭环已通过。构建成功、节点启动、DDS 发现、安全门 ARMED 或 API 返回均不能单独证明真实运动有效。
 
-## 代表 run 结论
-- retest4(78s): 能走0.82m但94%时间在转
-- retest5(258s): 今天最远2.96m, 仍67%转
-- retest6(219s): 走廊检查误杀→几乎不动
-- retest8/9: 回退后, 能走一点
+## 数据与复现
 
-详见 today_representative.md(在 analysis 包 today_analysis_20260901.tar.gz)
+源码、配置、测试、报告与数据版本信息进入 Git；rosbag、原始图像/视频、大日志、训练权重、venv 和构建产物保留在本机并按 `.gitignore` 排除。单独 clone 仓库不会获得完整实验数据与权重。复现实验前需按对应报告准备原始数据、核对哈希和参数快照。
 
-## Project Management
+当前优先补充独立拍摄会话及弱光、边缘、小目标和干扰背景的人工标签，再评估泛化。未标注图不视作负样本，剩余标注包仍需人工审核。
 
-- `AGENTS.md`：ChatGPT 网页版与 Codex 的长期协作规则、安全边界和验证要求。
-- `PROJECT_STATUS.md`：当前可确认的系统状态、基线、问题和待验证项。
-- `TASKS.md`：当前阶段的项目接管与可复现性任务清单。
-- `docs/`：现有架构、设计决策和实验记录。
+## 历史导航基线
+
+`code/` 主线来自 2026-08-31 回退版，后续工程改动以 Git 历史为准。原 2026-09-01 完整包中的 retest4/5/6/8/9 是历史实验，存在转向占比高、移动有限和走廊误杀记录，不能代表当前分支重新验收。数值与原始 bag 位置已保留在 [docs/experiments.md](docs/experiments.md)；旧引用 `today_representative.md` 未进入仓库。

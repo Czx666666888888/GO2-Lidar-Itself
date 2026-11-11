@@ -1,7 +1,22 @@
 # Project Status
 
-更新日期：2026-10-06
+更新日期：2026-11-11
 状态来源：当前仓库静态阅读、根 `README.md` 的既有记录和 Git 历史。除非特别说明，本文件不代表本轮重新完成了真机构建或运行验证。
+
+## 最新状态摘要（2026-11-11）
+
+来源：当前分支 `feature/reusable-yolo-training`，实现基线 `5fa5cd0`、既有训练报告及
+`camera_ws/docs/experiments.md`。下文早期基线与分阶段记录保留其日期和验证边界。
+
+- 已有雷达导航链、独立 D435/HSV/map 目标管理、独立搜索接近与 YOLO 工程工作流。
+- 5 m / 0.25 m/s 搜索、6 s 确认版本已取得单场景用户实测 9.5 cm 停稳证据；
+  真实 5 m 路线终点、ODOM 边界、重复精度和正式相机外参仍待验收。
+- blue_cube V2 已完成 80 轮：conf0.25、IoU≥0.5 时 last 的训练 TP/FP/FN=14/0/0、
+  验证=4/0/2。20 图同场景 14/6，无 test；不证明泛化或部署可用。
+- 本次仅更新根 README、相机 README、状态与任务说明及 GitHub 简介；未重新训练、
+  构建、启动 ROS 或操作机器人。历史测试数字来自对应报告，不是本轮重跑。
+- 本地遗留 `science_goal_bridge.py` 及其测试改动、`audit_10mm_initial_lock.py` 和
+  `analysis/target_10mm_audit_20261108/` 为未完成工作的现状，本次保留且不纳入提交。
 
 ## Project Goal
 
@@ -117,7 +132,7 @@ README 对这些结果的总结属于既有实验记录，不等于当前 Git ba
 - 部分文档仍描述旧的 `go2_robot_sdk`/WebRTC 工作流，而当前根 README 的原生 UTLiDAR 主线不需要 PC 侧 LiDAR driver。
 - 运行路径、标定文件、网络接口和实时/仿真时间设置存在环境耦合。
 
-## Current Baseline
+## 初始接管基线（历史，2026-10-06）
 
 - Git baseline：`e5e133a chore: import existing GO2 project`
 - 分支：`main`

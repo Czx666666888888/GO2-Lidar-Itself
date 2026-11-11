@@ -4,30 +4,27 @@
 [vision_training工作流](../vision_training/README.md)。它使用独立venv与
 `/science/yolo/detections`、`/science/yolo_target_point`、`/science/yolo/debug_image`，
 不替换HSV，不发布原`/science/target_coarse_point`或导航/运动话题。
-下方旧实验内容仍保留其历史证据边界；蓝色立方体YOLO尚待人工标注后训练。
+更新日期：2026-11-11。blue_cube 已完成 20 张人工标注的 V1/V2 pilot；V2 已能拟合
+14 张训练图，同场景 6 张验证图仍有漏检，真实 D435 连续推理和泛化 `NOT VERIFIED`。
+见 [V2 报告](../vision_training/reports/blue_cube_pilot_v2.md)。下方 9 月环境数据为历史观测。
 
 ## Goal
 
 为安装在 Unitree GO2 前端的 Intel RealSense D435 建立独立 ROS 2 Humble 实验环境。最终系统将识别科学目标、读取目标像素处的对齐深度、由相机内参反投影为三维点，并在完成外参标定后转换到 GO2 雷达 SLAM 的 `map` 坐标系。
 
-## Current Scope
+## 当前范围与验证边界
 
-- 启动 D435 color、depth 和 aligned-depth-to-color 数据流。
-- 检查 RGB、aligned depth、color/depth `CameraInfo` 是否持续到达。
-- 输出 topic、消息类型、频率、`frame_id`、分辨率和 depth encoding。
-- 从运行时 `CameraInfo` 输出 `fx/fy/cx/cy`，禁止硬编码相机内参。
-- 完全独立于 `code/` 中的 Point-LIO、规划、safety gate 和 GO2 控制。
+- D435 color、raw depth、aligned depth、CameraInfo 诊断、预览及点击测距。
+- HSV 蓝色多目标与蓝墙过滤、相机系粗点、原始时间戳 TF2 map 转换。
+- map 目标生命周期、稳定 ID、visited 空间记忆和 RViz 输出。
+- 独立搜索/接近控制器复用 Point-LIO 和 safety gate；不启动 FAR/WP5/local planner/path follower。
+  2026-11-09 已审计轮取得用户实测 9.5 cm 停稳；5 m 路线与 ODOM 边界及重复精度待验收。
+- 独立 YOLO RGB-D 推理节点，尚未接入 manager、map 或运动控制。
+- camera → GO2 外参仍为 `PROVISIONAL / NOT CALIBRATED`，外部定位精度待验证。
 
-## Future Scope
-
-- 目标检测与分类。
-- 像素 `(u,v)` 对应的有效 aligned-depth 读取与异常值处理。
-- 像素和深度反投影为 camera optical frame 的 `(Xc,Yc,Zc)`。
-- 发布带准确 `header.frame_id` 的 `geometry_msgs/msg/PointStamped`。
-- 标定 camera frame 到 GO2 body/base frame 的外参。
-- 使用 TF2 转换到 SLAM `map` frame，并交给后续导航。
-
-上述内容均为 `Future integration / NOT IMPLEMENTED`。
+感知工作空间单独构建；仅相机预览不启动 GO2 控制。搜索接近须逐轮取得真实运动授权，
+操作与保护条件见 [接近说明](docs/science_target_approach.md)，结果见
+[实验记录](docs/experiments.md)，模块与接口见 [架构说明](docs/architecture.md)。
 
 ## Environment
 
@@ -100,11 +97,14 @@ ros2 launch go2_science_perception depth_viewer.launch.py
 ros2 launch go2_science_perception blue_surface_center.launch.py
 ```
 
-该 launch 使用 `config/blue_surface_center.yaml`。HSV mask 先执行 close/open，再保留最大连通区域；节点从目标 bounding box 上部 `top_region_ratio`（默认0.55）取得候选ROI并向内腐蚀一次，只反投影该区域的有效 aligned depth，随后拟合单个主平面。参数 `mount_pitch_deg`（默认向下45°）只用于拟合后的法向可靠性检查，不参与多平面竞争。可靠结果发布到 `/science/blue_surface_center`；没有足够深度点或可靠平面时显示并记录 `INVALID`，不发布伪造坐标。
+该 launch 使用 `config/blue_surface_center.yaml`：完整蓝色 mask 点云最多执行 4 平面
+顺序 RANSAC，先按 35° 法向门槛过滤，再比较支持度与残差；距离分段阈值为
+0.008 / 0.012 / 0.018 m。当前 `mount_pitch_deg=30.0`，只作法向可靠性判据，
+不是外参标定。仅 `GOOD` 发布精确相机系中心，其他质量保留调试观测；稳定精度尚未验收。
 
 ## Topics
 
-以下为本轮实测接口：
+以下相机基础接口来自 2026-09-28 实测；后续完整接口见架构说明：
 
 | Topic | Type | Purpose |
 |---|---|---|
@@ -134,7 +134,7 @@ ros2 launch go2_science_perception blue_surface_center.launch.py
 - RGB 与 aligned depth 均为 640x480，aligned depth 使用 color optical frame；视觉抽样显示两者有对应场景且深度非全零，但尚未做定量像素对齐/深度精度验证。
 - wrapper 使用硬件时钟并报告其可能周期性复位；后续跨传感器时间同步需要专项验证。
 - D435 不提供 IMU；配置显式禁用 gyro、accel 和 motion，不设计任何 IMU 依赖。
-- 已实现基于蓝色分割的局部上表面中心 `PointStamped`；尚无类别识别、外参或 map 转换。
+- 已实现 HSV 粗点与时间戳 map 转换，YOLO 类别检测为独立工作流；正式外参标定、跨场景分类与定位精度仍待验证。
 - 相机 optical、GO2 body 和 map 坐标严禁混用，参见 `docs/architecture.md`。
 
 D400 系列型号能力依据官方 datasheet；带 IMU 的对应型号是 D435i，而不是本项目的 D435：
