@@ -15,8 +15,9 @@ def row(data):
     distance = data.get('camera_distance_xy')
     d = 'n/a' if distance is None else f'{distance:.3f}'
     return (f"t={data.get('elapsed', 0):6.2f}s {data.get('state', '?'):16} "
-            f"XY={d:>6}m vx={data.get('vx', 0):+.3f} wz={data.get('wz', 0):+.3f} "
-            f"sport_vx={native[0]:+.3f} odom_v={data.get('actual_speed', 0):.3f} "
+            f"XY={d:>6}m vx={data.get('vx', 0):+.3f} vy={data.get('vy', 0):+.3f} "
+            f"wz={data.get('wz', 0):+.3f} sport_vx={native[0]:+.3f} "
+            f"sport_vy={native[1]:+.3f} odom_v={data.get('actual_speed', 0):.3f} "
             f"id={data.get('target_id')} samples={data.get('stationary_sample_count', '-')} "
             f"confirm={data.get('stop_confirm_reason', '')} {data.get('reason', '')}")
 

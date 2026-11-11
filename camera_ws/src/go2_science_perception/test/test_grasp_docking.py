@@ -1,4 +1,4 @@
-"""Three mounting cases and focused optional docking guard checks; no hardware."""
+"""Focused docking geometry, three-axis commands and independent guards; no hardware."""
 import math
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 from go2_science_perception.approach_control import ApproachControl, Settings
 from go2_science_perception.grasp_docking import GraspDocking
 from go2_science_perception.grasp_pose_geometry import (
-    DockSettings, docking_goal, geometry_report, target_in_s1,
+    DockSettings, docking_goal, geometry_report, rotate_xy, target_in_s1,
 )
 
 
@@ -24,21 +24,6 @@ def test_s1_positive_y_is_vehicle_right_and_unknown_height_is_retained():
     assert report['predicted_in_grasp_region'] and not report['physical_placement_verified']
 
 
-def dock_core(position=None, yaw=0.0):
-    core = ApproachControl(
-        Settings(stop_reference='camera_origin', allow_odom=True,
-                 odom_max_time=25, odom_max_distance=5), GraspDocking())
-    core.target = core.anchor_initial = (1., 0.)
-    core.lock_id = 1
-    core.search_origin = (0., 0., 0.)
-    core.state = 'LOCK_TARGET'
-    core.started = 10.
-    core.visual_time = 10.
-    for i in range(6):
-        tick(core, 10+i*.1, position or (0., 0.), yaw)
-    return core
-
-
 def tick(core, t, position, yaw=0.0):
     x, y = position
     core.camera_pose(x+.36*math.cos(yaw), y+.36*math.sin(yaw), t)
@@ -46,58 +31,171 @@ def tick(core, t, position, yaw=0.0):
     core.feedback_time, core.feedback_speed, core.feedback_yaw_rate = t, 0., 0.
 
 
-def test_position_alone_cannot_stop_and_settled_correct_pose_can():
-    goal = docking_goal((1, 0), 0)
-    core = dock_core(goal[:2], yaw=.1)
-    out = core.step(10.5)
-    assert out['docking_phase'] == 'FINAL_YAW' and out['state'] != 'STOP'
-    for i in range(1, 17):
+def dock_core(error=(.5, .1), yaw=0.0):
+    core = ApproachControl(
+        Settings(stop_reference='camera_origin', allow_odom=True,
+                 max_run_time=25, odom_max_time=25, odom_max_distance=5), GraspDocking())
+    core.target = core.anchor_initial = (1., 0.)
+    core.lock_id = 1
+    core.search_origin = (0., 0., 0.)
+    core.state = 'LOCK_TARGET'
+    core.started = 10.
+    core.visual_time = 10.5
+    goal = docking_goal(core.target, 0)
+    for i in range(6):
+        tick(core, 10+i*.1, (goal[0]-error[0], goal[1]-error[1]), yaw)
+    return core
+
+
+@pytest.mark.parametrize('error,yaw,sign', [
+    ((0, .3), 0, 1), ((0, -.3), 0, -1),
+    ((.3, 0), math.pi/2, -1), ((-.3, 0), math.pi/2, 1)])
+def test_lateral_direction_and_rotated_map_error(error, yaw, sign):
+    c = dock_core(error, yaw)
+    out = c.step(10.5)
+    assert out['vy']*sign > 0
+    assert out['docking_body_error_xy'] == pytest.approx(rotate_xy(-yaw, error))
+
+
+@pytest.mark.parametrize('error,yaw,sign', [
+    ((.5, .3), .25, 1), ((-.5, .3), -.25, -1)])
+def test_forward_backward_lateral_and_yaw_commands_can_be_simultaneous(error, yaw, sign):
+    c = dock_core(error, yaw=yaw)
+    out = c.step(10.5)
+    assert out['vx']*sign > 0 and out['vy'] > 0 and out['wz']*sign < 0
+    assert out['docking_phase'] == 'CONTROL_POSE'
+
+
+def test_planar_acceleration_speed_cap_and_braking_include_lateral_axis():
+    c = dock_core((1., 1.))
+    previous = (0., 0.)
+    for i in range(26):
         t = 10.5+i*.1
-        core.visual_time = t
-        tick(core, t, goal[:2])
-        out = core.step(t)
+        c.visual_time = t
+        tick(c, t+.001, c.robot[:2])  # Strictly increasing input timestamps.
+        out = c.step(t+.001)
+        current = (out['vx'], out['vy'])
+        assert math.hypot(*current) <= c.p.max_linear_speed+1e-12
+        assert math.dist(current, previous) <= c.p.max_acceleration*.101+1e-9
+        previous = current
+    assert math.hypot(*previous) == pytest.approx(.3)
+    # Exercise vector braking without simulating robot physics.
+    c.target = (c.robot[0]-.06, c.robot[1]-.31)
+    c.visual_time = 13.2
+    tick(c, 13.2, c.robot[:2])
+    out = c.step(13.2)
+    assert out['vy'] > 0  # Slew-limited braking, not instantaneous lateral reversal.
+    assert math.dist((out['vx'], out['vy']), previous) <= c.p.max_deceleration*.2+1e-9
+    assert math.hypot(out['vx'], out['vy']) < math.hypot(*previous)
+
+
+@pytest.mark.parametrize('error,yaw', [
+    ((.04, 0), math.radians(10)), ((.039, 0), math.radians(9.9)), ((0, -.039), 0)])
+def test_four_cm_ten_degrees_and_half_second_settle_without_hard_s1_rectangle(error, yaw):
+    c = dock_core(error, yaw)
+    out = c.step(10.5)
+    assert out['state'] != 'STOP'
+    for i in range(1, 8):
+        t = 10.5+i*.1
+        c.visual_time = t
+        tick(c, t, c.robot[:2], yaw)
+        out = c.step(t)
+        if i <= 4:
+            assert out['state'] != 'STOP'
     assert out['state'] == 'STOP' and out['grasp_docking_complete']
-    assert out['vx'] == out['wz'] == 0
-    assert out['grasp_docking']['predicted_target_s1_xy'] == pytest.approx([0, .31])
-    # The terminal marker must survive subsequent STOP reports used by the coordinator.
-    assert core.step(t+.01)['grasp_docking_complete']
+    assert out['vx'] == out['vy'] == out['wz'] == 0
+    if error[1] < 0:
+        assert not out['grasp_docking']['predicted_in_grasp_region']
+    assert c.step(t+.01)['grasp_docking_complete']
 
 
-def test_docking_uses_existing_odom_budget_and_no_lateral_command():
-    core = dock_core()
-    out = core.step(10.5)
-    assert out['state'] == 'APPROACH_TO_GRASP_POSE'
-    assert out['control_reference'] == 'MAP_GRASP_DOCK'
-    assert abs(out['wz']) <= .3 and 0 <= out['vx'] <= .3
-    core.lost_at, core.odom_travel = 10., 5.
-    out = core.step(10.6)
-    assert out['state'] == 'FAULT' and out['reason'] == 'odometry continuation limit'
-    assert out['vx'] == out['wz'] == 0
-
-
-def test_final_heading_survives_position_jitter_without_claiming_completion():
-    goal = docking_goal((1, 0), 0)
-    core = dock_core(goal[:2], yaw=.2)
-    assert core.step(10.5)['docking_phase'] == 'FINAL_YAW'
-    # Crossing the 2cm boundary previously switched back to bearing-to-point,
-    # abandoning final yaw repeatedly in the first physical trial.
-    tick(core, 10.6, (goal[0]-.025, goal[1]), yaw=.2)
-    out = core.step(10.6)
-    assert out['docking_phase'] == 'FINAL_YAW'
-    assert out['vx'] == 0 and out['wz'] < 0
-    assert not out['grasp_docking_complete']
-    # Completing yaw does not waive the original position requirement.
-    tick(core, 10.7, (goal[0]-.025, goal[1]), yaw=0)
-    out = core.step(10.7)
+@pytest.mark.parametrize('error,yaw', [((.041, 0), 0), ((0, 0), math.radians(10.1))])
+def test_outside_position_or_heading_tolerance_cannot_complete(error, yaw):
+    c = dock_core(error, yaw)
+    for i in range(8):
+        t = 10.5+i*.1
+        c.visual_time = t
+        tick(c, t+.001, c.robot[:2], yaw)
+        out = c.step(t+.001)
     assert out['state'] != 'STOP' and not out['grasp_docking_complete']
 
 
+@pytest.mark.parametrize('terminal', ['STOP', 'FAULT'])
+def test_terminal_states_zero_all_three_commands(terminal):
+    c = dock_core()
+    c.step(10.5)
+    if terminal == 'FAULT':
+        c.fault('manual emergency stop')
+    else:
+        c.state = 'STOP'
+    out = c.step(10.6)
+    assert out['vx'] == out['vy'] == out['wz'] == 0
+
+
+def test_progressing_docking_can_exceed_fixed_25_seconds():
+    c = dock_core((2., 0))
+    c.step(10.5)
+    x, y = c.robot[:2]
+    for i in range(1, 301):
+        t = 10.5+i*.1
+        c.visual_time = t
+        tick(c, t, (x+i*.002, y))
+        out = c.step(t)
+    assert out['elapsed'] > 25 and out['state'] == 'APPROACH_TO_GRASP_POSE'
+
+
+def test_stall_stops_even_with_fresh_localization_and_vision():
+    c = dock_core()
+    for i in range(110):
+        t = 10.5+i*.1
+        c.visual_time = t
+        tick(c, t+.001, c.robot[:2])
+        out = c.step(t+.001)
+        if out['state'] == 'FAULT':
+            break
+    assert out['reason'].startswith('grasp docking stalled')
+    assert out['vx'] == out['vy'] == out['wz'] == 0
+
+
+@pytest.mark.parametrize('budget', ['time', 'distance'])
+def test_independent_odom_limits_are_not_removed(budget):
+    c = dock_core()
+    c.step(10.5)
+    c.lost_at = 10.
+    c.visual_time = 9.9
+    now = 35.1 if budget == 'time' else 10.6
+    c.odom_travel = 5. if budget == 'distance' else 0.
+    c.last_tick = now-.1
+    tick(c, now, c.robot[:2])
+    out = c.step(now)
+    assert out['state'] == 'FAULT' and out['reason'] == 'odometry continuation limit'
+    assert out['vx'] == out['vy'] == out['wz'] == 0
+
+
+def test_localization_expiry_still_faults():
+    c = dock_core()
+    c.last_tick = 11.
+    out = c.step(11.1)
+    assert out['state'] == 'FAULT' and out['reason'] == 'localization timeout'
+    assert out['vx'] == out['vy'] == out['wz'] == 0
+
+
+def test_plain_map_keeps_zero_lateral_speed_and_original_runtime_limit():
+    c = dock_core()
+    c.docking = None
+    out = c.step(10.5)
+    assert out['vy'] == 0 and 'grasp_docking' not in out
+    c.last_tick = 35.
+    c.visual_time = 35.1
+    tick(c, 35.1, c.robot[:2])
+    out = c.step(35.1)
+    assert out['reason'] == 'run timeout' and out['vy'] == 0
+
+
 def test_new_tolerance_does_not_change_plain_map_stopping():
-    core = dock_core((.9, 0))
-    core.docking = None
-    core.camera = (.91, 0)
-    core.visual_time = 10.5
-    out = core.step(10.5)
+    c = dock_core()
+    c.docking = None
+    c.camera = (.91, 0)
+    out = c.step(10.5)
     assert out['state'] == 'STOP' and out['reason'] == 'camera XY aligned'
-    assert 'grasp_docking' not in out
-    assert DockSettings().position_tolerance == .02
+    assert out['vy'] == 0 and DockSettings().position_tolerance == .04

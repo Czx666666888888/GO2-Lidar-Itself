@@ -246,6 +246,9 @@ class ScienceTargetApproach(Node):
                                     if self.sport_velocity is not None else math.inf)
         self.core.feedback_yaw_rate = (float(msg.yaw_speed) if math.isfinite(msg.yaw_speed)
                                        else math.inf)
+        if self.grasp_docking_enabled and (
+                self.sport_velocity is None or not math.isfinite(msg.yaw_speed)):
+            self.core.fault('invalid GO2 velocity feedback')
 
     def _recording(self, msg):
         try:
@@ -329,6 +332,7 @@ class ScienceTargetApproach(Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'vehicle'
         msg.twist.linear.x, msg.twist.angular.z = report['vx'], report['wz']
+        msg.twist.linear.y = report['vy'] if self.grasp_docking_enabled else 0.0
         self.velocity.publish(msg)
         if self.core.state in ('STOP', 'FAULT') and self.stop_request is not None:
             self.stop_request.publish(Int8(data=1))

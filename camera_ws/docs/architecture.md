@@ -225,7 +225,9 @@ MAP XY散布检验与中位数锚定，不使用像素静止判据；确认后�
 ## 可选 MAP/S1 单目标任务（2026-11-12，源码已实现，实机未验收）
 
 旧SEARCH/STOP_CONFIRM -> MAP锚点 -> grasp_pose_geometry二维停车位 ->
-可选GraspDocking(vx/wz) -> 原唯一安全门 -> 停靠完成 -> 退出本轮速度控制 ->
+可选GraspDocking(vx/vy/wz) -> 原唯一安全门 -> 停靠完成 -> 退出本轮速度控制 ->
 SDK2 StandDown反馈确认 -> 原S1 socket grasp -> 新任务完成且ZERO_HOLD -> SDK2 StandUp。
 默认关闭；不修改Point-LIO、HSV/深度、相机外参或普通MAP的0.10m条件。
 完整任务与运动/入盒验收分离，具体命令和坐标边界见 map_s1_grasp_integration.md。
+
+2026-11-12接口补充：抓取停靠按机身二维误差同时发vx/vy/wz，linear.y接入原安全门已有横向通道；普通MAP保持vy=0。新模式4cm/10°且静止0.5s完成，S1预测矩形仅参考。固定停靠总时限取消，SEARCH/ODOM预算与定位保护保留，增加10s无进展停机。仅离线验证，真实横移与完整任务NOT VERIFIED。

@@ -21,9 +21,10 @@ class DockSettings:
     s1_base_y: float = 0.0
     target_s1_x: float = 0.0
     target_s1_y: float = 0.31
-    position_tolerance: float = 0.02
-    yaw_tolerance: float = 0.05
+    position_tolerance: float = 0.04
+    yaw_tolerance: float = math.radians(10)
     settled_sec: float = 0.5
+    progress_timeout: float = 10.0
     region_x_min: float = -0.05
     region_x_max: float = 0.05
     region_y_min: float = 0.29
@@ -32,7 +33,8 @@ class DockSettings:
     def __post_init__(self):
         if not all(math.isfinite(v) for v in vars(self).values()):
             raise ValueError('Dock geometry must be finite')
-        if min(self.position_tolerance, self.yaw_tolerance, self.settled_sec) <= 0:
+        if min(self.position_tolerance, self.yaw_tolerance,
+               self.settled_sec, self.progress_timeout) <= 0:
             raise ValueError('Dock tolerances and settling time must be positive')
         if not (self.region_x_min <= self.target_s1_x <= self.region_x_max and
                 0 < self.region_y_min <= self.target_s1_y <= self.region_y_max):

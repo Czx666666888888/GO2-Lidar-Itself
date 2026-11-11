@@ -47,6 +47,7 @@ class Experiment:
         self.folder.mkdir(exist_ok=True)
         self.tag = str(time.time_ns())
         self.control, self.recording = {}, {}
+        self.last_control_received = -float('inf')
         self.reports, self.children = [], []
         self.timer = None
         self.node.create_subscription(String, '/science/approach/status', self._status, 20)
@@ -60,6 +61,7 @@ class Experiment:
 
     def _status(self, msg):
         self.control = json.loads(msg.data)
+        self.last_control_received = time.monotonic()
         self.reports.append(self.control)
 
     def _recording(self, msg):
@@ -122,7 +124,9 @@ class Experiment:
                          if self.args.search else [])
         self.launch('go2_science_perception', 'science_target_approach', [
             '--params-file', str(share / 'config/science_target_approach.yaml'),
-            '-p', 'dry_run:=false', '-p', f'max_run_time:={self.args.timeout}',
+            '-p', 'dry_run:=false',
+            *(['-p', f'max_run_time:={self.args.timeout}']
+              if not getattr(self.args, 'grasp_pose', False) else []),
             '-p', f'log_directory:={self.folder}', *search_params,
             *(['--params-file', str(share / 'config/science_grasp_docking.yaml')]
               if getattr(self.args, 'grasp_pose', False) else [])], 'control')
@@ -164,19 +168,26 @@ class Experiment:
         if not transitions or '-> ARMED' not in transitions[-1]:
             raise RuntimeError('gate refused arming')
         started = time.monotonic()
-        total_timeout = self.args.timeout + (self.args.search_timeout if self.args.search else 0)
-        self.timer = threading.Timer(total_timeout+0.5,
-                                     lambda: self.stop.publish(Int8(data=1)))
-        self.timer.start()
+        # Docking is progress/validity bounded, not subject to the ordinary MAP
+        # total-run watchdog. SEARCH and lost-vision ODOM retain their own budgets.
+        total_timeout = (None if getattr(self.args, 'grasp_pose', False) else
+                         self.args.timeout + (self.args.search_timeout if self.args.search else 0))
+        if total_timeout is not None:
+            self.timer = threading.Timer(total_timeout+0.5,
+                                         lambda: self.stop.publish(Int8(data=1)))
+            self.timer.start()
         self.start.publish(Empty())
         seen = False
-        while time.monotonic()-started < total_timeout+1:
+        while total_timeout is None or time.monotonic()-started < total_timeout+1:
             self.spin(0.05)
             state = self.control.get('state')
             seen |= state in ('SEARCH', 'STOP_CONFIRM', 'LOCK_TARGET', 'ALIGN',
                               'APPROACH_VISUAL', 'APPROACH_ODOM', 'APPROACH_TO_GRASP_POSE')
             if state in ('STOP', 'FAULT'):
                 break
+            if (total_timeout is None and
+                    time.monotonic()-self.last_control_received > 1.0):
+                raise RuntimeError('docking controller status heartbeat lost')
             if (self.node.count_publishers('/cmd_vel_raw') != 1 or
                     any(p.poll() is not None for p, _ in self.children)):
                 raise RuntimeError('controller competition or child process exit')

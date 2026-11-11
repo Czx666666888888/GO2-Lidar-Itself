@@ -26,7 +26,8 @@ def parser():
                    help='operator has completed separate physical XY docking validation')
     p.add_argument('--search-distance', type=float, default=5.0)
     p.add_argument('--search-timeout', type=float, default=60.0)
-    p.add_argument('--timeout', type=float, default=25.0)
+    p.add_argument('--timeout', type=float,
+                   help='legacy argument accepted but ignored for grasp docking')
     p.add_argument('--no-log-terminal', action='store_true')
     p.add_argument('--arm-host', default='unitree@192.168.123.18')
     p.add_argument('--ssh-key', default='/home/czx666/.ssh/id_ed25519_go2')
@@ -58,8 +59,8 @@ def main():
             if getattr(args, name) is None:
                 setattr(args, name, profile[name])
     if not (0 < args.search_distance <= 5 and 0 < args.search_timeout <= 60 and
-            0 < args.timeout <= 60 and args.arm_timeout > 0):
-        p.error('Use original bounded search/run limits')
+            (args.timeout is None or 0 < args.timeout <= 60) and args.arm_timeout > 0):
+        p.error('Use original bounded search limits and positive arm timeout')
     if args.full and args.execute and (
             args.down_max_body_height_m is None or args.up_min_body_height_m is None or
             args.down_mode is None or args.up_mode is None or
@@ -78,6 +79,7 @@ def main():
                                         up_min_body_height_m=args.up_min_body_height_m,
                                         down_mode=args.down_mode, up_mode=args.up_mode),
                 sdk_cyclonedds_home=args.sdk_cyclonedds_home,
+                docking_fixed_timeout_sec=None, legacy_timeout_argument_ignored=args.timeout,
                 execute=args.execute, arm_service_validation='NOT VERIFIED')
     print(json.dumps(plan, indent=2), flush=True)
     if not args.execute:

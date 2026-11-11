@@ -113,6 +113,7 @@ class ApproachControl:
         self.last_tick = self.started = self.lost_at = None
         self.odom_travel = 0.0
         self.actual_speed = self.closing_speed = self.vx = 0.0
+        self.vy = 0.0
         self.pose_history = deque()
         self.initial_distance = None
         self.camera = None
@@ -150,6 +151,7 @@ class ApproachControl:
         if self.state not in ('STOP', 'FAULT'):
             self.state, self.reason = 'FAULT', reason
         self.vx = 0.0
+        self.vy = 0.0
 
     def pose(self, x, y, yaw, now):
         """Use transformed body-center positions for velocity and loss travel."""
@@ -579,10 +581,10 @@ class ApproachControl:
                 self.fault('camera TF timeout')
             elif now - self.feedback_time > self.p.feedback_timeout:
                 self.fault('GO2 feedback timeout')
-            elif (self.state not in ('SEARCH', 'STOP_CONFIRM') and
+            elif (self.docking is None and self.state not in ('SEARCH', 'STOP_CONFIRM') and
                   now-self.started > self.p.max_run_time):
                 self.fault('run timeout')
-        out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'wz': 0.0,
+        out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'vy': 0.0, 'wz': 0.0,
                'target_id': self.lock_id, 'target': self.target, 'robot': self.robot,
                'actual_speed': self.actual_speed, 'camera_speed': self.camera_speed,
                'camera': self.camera, 'target_map_anchor': self.target,

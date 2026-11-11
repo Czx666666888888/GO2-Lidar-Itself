@@ -4,7 +4,7 @@
 本文是手动操作说明，不是自动执行脚本。按顺序逐段复制；标注“真实运动”的命令才会启动运动。
 
 **当前结论：旧 MAP 搜索接近已有实测成功记录；S1 抓取停靠实验版仍未通过末端停靠，不能当作已验证的一键抓取版本。**
-本轮实测版本为集成分支 `865946a`；记录此版本号用于定位，不要求以后一直停在此提交。
+历史实测为集成分支 `865946a` 的vx/wz版本。当前已加入vx/vy/wz三自由度停靠并取消固定总时限，**新控制尚未实机验证**。
 
 ## 0．先记住目录和终端
 
@@ -249,7 +249,7 @@ bash camera_ws/scripts/watch_approach_logs.sh
 ```
 
 以下测试每次只选一项，不能同时启动；都有SEARCH最大5m、0.25m/s、SEARCH总60s、STOP_CONFIRM总6s。
-接近速度上限0.30m/s，接近运行上限25s。没有自动避障，路线必须由人保证空旷。
+合成接近速度上限0.30m/s。普通MAP接近仍限25s；抓取停靠取消固定总时限，保留10s无进展停机及独立ODOM 5m/25s保护。没有自动避障，路线必须由人保证空旷。
 
 ### A．普通MAP搜索接近，不做S1右侧停靠、不趴下抓取【真实运动】
 
@@ -270,11 +270,11 @@ S1安装在狗上时仍应保持ZERO_HOLD；这个旧入口本身没有新增S1�
 cd /tmp/go2_map_s1_integration_20261111
 export SCIENCE_APPROACH_OVERLAY=/tmp/science_s1_install/setup.bash
 bash camera_ws/scripts/run_map_s1_task.sh \
-  --execute --search-distance 5 --search-timeout 60 --timeout 25
+  --execute --search-distance 5 --search-timeout 60
 ```
 
 流程：SEARCH → STOP_CONFIRM → APPROACH_TO_GRASP_POSE → STOP。
-位置、航向、S1预测区域和静止条件都要通过，不能只看“离物块很近”。
+位置≤4cm、航向≤10°且静止持续0.5s才完成；S1预测矩形仅记录参考。新控制同时允许前后、左右和转向，不能只看“离物块很近”。
 停车后实际测量目标相对S1基座XY：+X是狗后方，+Y是狗右侧；与日志预测分别记录。
 
 ### C．完整单目标流程【真实运动＋趴下＋机械臂抓取＋起立】
@@ -283,7 +283,7 @@ bash camera_ws/scripts/run_map_s1_task.sh \
 cd /tmp/go2_map_s1_integration_20261111
 export SCIENCE_APPROACH_OVERLAY=/tmp/science_s1_install/setup.bash
 bash camera_ws/scripts/run_map_s1_task.sh --execute --full \
-  --search-distance 5 --search-timeout 60 --timeout 25 \
+  --search-distance 5 --search-timeout 60 \
   --posture-profile camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json
 ```
 
@@ -513,7 +513,10 @@ LD_LIBRARY_PATH=/home/unitree/cyclonedds_ws/install/cyclonedds/lib
 看`stop_confirm_attempts`、有效样本数、时间跨度、散布和是否真的静止。
 原总预算6s、至少5个样本、至少0.6s跨度等条件仍保留；不要只看状态名就判断已经确认。
 
-### 抓取停靠run timeout
+### 抓取停靠超时与卡滞
 
-当前仍未解决的实机问题。最近一次位置误差约9.94cm、航向约8.64°，未达到2cm/0.05rad完成条件，
-因此没有触发抓取。保留录像、状态和实际XY测量；不要直接调大超时或把普通MAP的0.10m条件套到抓取完成上。
+历史vx/wz版本最近一次位置误差约9.94cm、航向约8.64°，未达到当时2cm/0.05rad条件。
+当前三自由度版本使用4cm/10°，已取消固定25s总任务时限；旧`--timeout 25`在S1入口仅保留兼容、不会限制停靠。
+若新版本出现`odometry continuation limit`，是独立的视觉丢失ODOM 5m/25s约束；
+若出现`grasp docking stalled`，是10s没有有效位姿/停稳进展。两者都需保留日志分析，不自动扩大保护。
+完整新控制与抓取仍需实机验证，原S1模块继续自行检查可观测性和可达性。

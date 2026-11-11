@@ -24,17 +24,61 @@ vehicle：X 前、Y 左；S1：X 后、Y 右，二维相对旋转为 π。
 复用旧 SEARCH / STOP_CONFIRM、MAP 目标关联、定位有效性、安全门、速度/制动参数。
 新功能默认关闭；只通过 `science_grasp_docking.yaml` 启用。
 新模式控制参考是 `MAP_GRASP_DOCK`，不是相机视觉伺服。
-只发 vx/wz：转向停车点、平移、制动、最终航向调整、静止确认。
-到达位置区后锁定最终航向目标，先制动；位置抖动不立刻切回朝向停车点。
-航向完成后仍须检查原位置门限，不因锁定阶段放宽完成条件。
+以机身坐标系下的二维位置误差同时控制vx、vy、wz，不再使用TURN_TO_POSITION/TRANSLATE切换：
 
-完成需要位置误差≤0.02m、航向误差≤0.05rad、预测 S1 XY 在
-X=[-0.05,+0.05]、Y=[0.29,0.33]m、原反馈静止条件持续0.5秒。
-预测不等于物理测量；推荐矩形也不是完整验证的机械臂安全工作空间。
-普通 MAP 模式原0.10m阈值不变。
-SEARCH 5m/0.25m/s/60s，STOP_CONFIRM 总预算6s，接近最大0.30m/s。
-原搜索配置 ODOM 接续为5m/25s，视觉有效0.5s；不扩大这些限制。
-最后一段额外记录剩余预算和运动时间下界；超限直接失败，不启动抓取。
+```text
+dx = x_goal - x;  dy = y_goal - y
+ex = cos(yaw)*dx + sin(yaw)*dy
+ey = -sin(yaw)*dx + cos(yaw)*dy
+etheta = wrap(yaw_goal - yaw)
+vx_raw = kp_linear * ex
+vy_raw = kp_linear * ey
+wz = clamp(kp_angular * etheta, ±max_angular_speed)
+```
+
+Kx=Ky，沿用原kp_linear与kp_angular，没有新增横移增益。
+先按合成平面速度限制到原max_linear_speed（本配置0.30m/s），
+再沿用原max_deceleration、braking_latency和实际平面速度计算制动速度上界。
+对MAP中的平面指令向量施加加速度/减速度范数限幅，再转换回机身vx/vy，
+避免转动机身时把历史速度误认成新方向。接近位置区时平滑制动；航向可同时调整。
+STOP/FAULT后三个分量都为0。
+
+普通MAP模式vy=0、原0.10m停车条件和运行时限不变；
+SEARCH仍为5m/0.25m/s/60s，STOP_CONFIRM总预算6s。
+
+## 当前完成条件和时间保护（2026-11-12，仅离线验证）
+
+完成条件为MAP位置误差≤0.04m、航向误差≤10°（0.174532925rad），
+并满足原静止反馈条件持续0.5秒。原推荐S1矩形
+X=[-0.05,+0.05]、Y=[0.29,0.33]m只记录参考，不再拒绝停车。
+仍输出predicted_target_s1_xy及predicted_in_grasp_region。
+这些条件只代表导航停靠；原S1/D455模块仍须确认目标可观测、可达，不能保证抓取成功。
+
+四种时间/可信度条件分别处理：
+
+| 条件 | 当前处理 |
+|---|---|
+| 抓取停靠固定总运行时间 | core与runner均取消，不再因25s或SEARCH+25s计时失败 |
+| 视觉丢失后的ODOM接续 | 原搜索配置5m/25s不变；到限仍FAULT，并记录剩余预算 |
+| 定位、相机TF、Sport反馈新鲜度 | 原0.4s/0.5s等有效性检查保留；无效反馈、接口竞争和人工停止仍停止 |
+| 无有效进展 | 新增dock_progress_timeout=10s；归一化位姿误差未累计改善0.25则FAULT并零速 |
+
+进展量为hypot(max(0,d-0.04)/0.04, max(0,abs(etheta)-10°)/10°)。
+改善门槛单轴时对应约1cm或2.5°，微小往复抖动不能续期；10秒是卡滞窗口，不是总任务时限。
+runner另外监控控制状态心跳（1s）与子进程退出。
+ODOM运动时间下界改为平移和转动所需时间的max，适配同时运动；预算本身不变。
+因此长时间完全看不到目标时，即便停靠正在改善，仍可能在ODOM25s触发保护；
+是否需要单独调整定位可信度策略，必须根据下一次实测的剩余路径、视觉丢失时刻及定位误差评估。
+本轮未扩大ODOM预算，也未重复采集姿态高度。
+
+vy正向按现有vehicle/键盘遥控约定为GO2左侧，S1的+Y则为GO2右侧。
+安全门已有linear.y读入并发布Move JSON的y分量，不新增Sport控制节点，也不改安全门。
+现有Sport反馈的XY用于hypot计算速度大小，方向闭环来自MAP->vehicle姿态；
+本轮只静态核对接口与符号，真实横移方向和反馈跟随仍NOT VERIFIED。
+参考：[官方SDK2 Move接口](https://github.com/unitreerobotics/unitree_sdk2_python/blob/master/unitree_sdk2py/go2/sport/sport_client.py)。
+
+三自由度横移控制已实现，但尚未实机验证。历史两次vx/wz失败记录保留在experiments.md，
+不能作为新控制器的运动证据。
 
 完整模式先退出本轮控制器和安全门，确认没有其他速度发布者，再交给 SDK2 SportClient。
 StandDown/StandUp 通过已有 SDK2 接口；S1 只通过原 `arm_task_client.py` 和
@@ -107,14 +151,14 @@ bash camera_ws/scripts/run_map_s1_task.sh --full
 真实单独停靠（会移动 GO2，须空旷区域、单个目标、遥控急停在手）：
 
 ```bash
-bash camera_ws/scripts/run_map_s1_task.sh --execute --search-distance 5 --search-timeout 60 --timeout 25
+bash camera_ws/scripts/run_map_s1_task.sh --execute --search-distance 5 --search-timeout 60
 ```
 
 完整流程（会移动GO2、趴下、抓取、起立；本轮已经完成姿态参数实测）：
 
 ```bash
 bash camera_ws/scripts/run_map_s1_task.sh --full --execute \
-  --search-distance 5 --search-timeout 60 --timeout 25 \
+  --search-distance 5 --search-timeout 60 \
   --posture-profile camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json
 ```
 
