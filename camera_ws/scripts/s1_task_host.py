@@ -133,9 +133,13 @@ def main():
         initial = feedback()
         if initial['velocity_xy_mps'] > 0.05 or abs(initial['yaw_rate']) > 0.10:
             raise RuntimeError('GO2 is not stopped before posture handoff')
-        code = sdk.StopMove()
-        if code != 0:
-            raise RuntimeError('StopMove RPC failed: '+str(code))
+        # StandUp follows a continuously guarded down/quiet state and ZERO_HOLD.
+        # This GO2 returns -1 for StopMove while down; do not use a walking-mode
+        # RPC as an extra precondition for leaving an already stopped posture.
+        if direction == 'down':
+            code = sdk.StopMove()
+            if code != 0:
+                raise RuntimeError('StopMove RPC failed: '+str(code))
         holding_down[0] = False
         code = sdk.StandDown() if direction == 'down' else sdk.StandUp()
         log('POSTURE_RPC', dict(direction=direction, code=code))

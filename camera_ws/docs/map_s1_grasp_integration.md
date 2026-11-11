@@ -110,21 +110,30 @@ bash camera_ws/scripts/run_map_s1_task.sh --full
 bash camera_ws/scripts/run_map_s1_task.sh --execute --search-distance 5 --search-timeout 60 --timeout 25
 ```
 
-完整流程命令：趴下/站立 mode 与 body_height 完成边界须由当前机器实测填写，
-不是 S1 基座高度；本轮尚未取得趴下数据，不能凭空填值。
-`--docking-geometry-verified` 只记录操作者是否已做实际 XY 测量，不能伪造确认。
+完整流程（会移动GO2、趴下、抓取、起立；本轮已经完成姿态参数实测）：
 
 ```bash
-: "${DOWN_MAX_HEIGHT_M:?填入当前机器实测趴下高度边界}"
-: "${UP_MIN_HEIGHT_M:?填入当前机器实测站立高度边界}"
-: "${DOWN_MODE:?填入趴下反馈mode}"
-: "${UP_MODE:?填入站立反馈mode}"
 bash camera_ws/scripts/run_map_s1_task.sh --full --execute \
   --search-distance 5 --search-timeout 60 --timeout 25 \
-  --down-max-body-height-m "$DOWN_MAX_HEIGHT_M" \
-  --up-min-body-height-m "$UP_MIN_HEIGHT_M" \
-  --down-mode "$DOWN_MODE" --up-mode "$UP_MODE"
+  --posture-profile camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json
 ```
+
+实测配置为趴下反馈高度上限0.084m、起立下限0.304m，两种反馈mode都为0。
+阈值来自本次稳定采样范围外扩1cm；它们不是S1基座物理高度，也不独立证明腹部支撑。
+本轮趴下稳定已由用户现场确认；更改安装或支撑构型后需要重新核对。
+`--docking-geometry-verified`只记录实际XY验证，未做测量不传该参数。
+
+GO2 SDK2 Python编译绑定的DDS与系统默认DDS不同：系统默认库写请求会段错误。
+协调器仅给姿态子进程指定以下环境，不更改系统库、相机或S1服务环境：
+
+```bash
+CYCLONEDDS_HOME=/home/unitree/cyclonedds_ws/install/cyclonedds
+LD_LIBRARY_PATH=/home/unitree/cyclonedds_ws/install/cyclonedds/lib
+```
+
+可用`--sdk-cyclonedds-home`指定另一台机器实测有效的匹配安装目录。
+趴下前仍必须StopMove成功；已经趴下、静止且S1恢复ZERO_HOLD后直接StandUp，
+因为本机趴下时StopMove返回-1，不把行走停止API作为起立的必要条件。
 
 PC 软件停止（物理遥控急停仍须保留）：
 

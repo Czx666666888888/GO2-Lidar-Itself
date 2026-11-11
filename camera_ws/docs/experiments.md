@@ -1182,3 +1182,64 @@ ODOM保护边界、外部速度真值与正式外参标定均为NOT VERIFIED。
   针对性用例覆盖该抖动触发；44项测试通过，flake8/bash语法通过，单包构建成功。
 - 修复后实机停靠、实际推荐抓取区、趴下完成判据、完整S1任务、自动起立：NOT VERIFIED。
   未进行自动重复试验，未合入稳定分支。
+
+## 2026-11-12 00:25–00:33 — 实测姿态配置与完整任务入口测试
+
+用户指示“直接填写然后测试”，授权本轮姿态动作和单目标完整任务；随后确认目标已摆好。
+测试源码为 fa8e3c3 上的本次SDK环境/姿态配置修正；没有合入视觉伺服分支。
+
+### 已实测的姿态与SDK问题
+
+- `/usr/bin/python3` 使用GO2默认DDS库时，SDK2申请Sport租约发生原生段错误，退出139。
+  faulthandler崩溃路径：cyclonedds/pub.py:189 write -> channel.py:144 ->
+  client_stub.SendRequest -> lease_client.__Apply，尚未调用StandDown。
+- Python绑定0.10.2的编译路径在 `/home/unitree/cyclonedds_ws/install/cyclonedds`；
+  实际默认加载 `/usr/local/lib/libddsc.so.0`。任务进程同时指定CYCLONEDDS_HOME及
+  LD_LIBRARY_PATH为前者后，租约成功、正常退出；没有重装或覆盖系统DDS/相机/S1环境。
+  依据：本机源码/ldd和实际A/B初始化结果；官方SDK依赖说明亦要求0.10.2。
+- 00:28左右StandDown实际返回0；最后3秒15个反馈样本高度范围
+  [0.0733307153,0.0733730495]m，median=0.0733568147m，mode全为0。
+  最大XY速度1.04e-7m/s，最大yaw_rate0.01704rad/s、gyro0.02450rad/s。
+  用户现场回复“趴下稳定”，并确认支撑/线束条件。
+- 趴下时StopMove返回-1，起立前置检查因此退出，未调用StandUp。
+  修正为：趴下前仍须StopMove成功；已确认趴下且静止、S1为ZERO_HOLD时直接StandUp。
+- 00:30左右StandUp实际返回0；最后3秒15样本高度范围
+  [0.3300811350,0.3300972581]m，median=0.3300901949m，mode全为0。
+  原站立采样另约0.31438m；不能仅以mode区分姿态。
+- 配置 `science_s1_posture_go2_20261112.json`：down上限0.084m，up下限0.304m，mode均0。
+  由实测稳定范围外扩1cm并向外取整至1mm得到，记录原始文件SHA256。
+  数值是反馈判据，不是S1基座高度、独立腹部接触传感或精确物理高度真值。
+
+### 完整入口的真实结果
+
+命令：`bash camera_ws/scripts/run_map_s1_task.sh --execute --full --search-distance 5 --search-timeout 60 --timeout 25 --posture-profile camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json`。
+
+1. 00:31首次启动在SEARCH前即被定位保护拒绝：localization jump or time regression；
+   当时位置出现约(-12.27,-52.95)m异常值。未行走、未请求抓取。
+   原只读链在此前姿态采样后已失稳，直接因果尚未确定。
+   保留日志后只重启本轮SLAM/感知，未改Point-LIO、外参或保护参数。
+2. 00:32重启后再启动：SEARCH成功；STOP_CONFIRM一次成功，6样本、spread=0.02024m，
+   总2.400s（停车1.400s、静止采样1.000s）。首次发现约2.006m，停车请求1.784m。
+3. 进入MAP_GRASP_DOCK；锚点更新58次，拒绝0。最近位置误差0.031615m，
+   未进入0.02m位置容差，因而本轮没有进入BRAKE_FOR_FINAL_YAW或FINAL_YAW。
+   末端仍在TURN_TO_POSITION与TRANSLATE之间切换，证明仅保持最终航向的前次修复不足。
+4. 接近运行25s后FAULT=run timeout；停车清理后的最后位置误差0.099415m，
+   航向误差0.150791rad（8.64°），预测S1 XY=(-0.138857,+0.354112)m，区域判定false。
+   目标MAP=(1.853580,-0.014789)，停车目标=(1.914928,0.294947,-0.004349rad)。
+5. 本轮控制器/安全门/录像进程退出，最终速度指令为0，录像关闭553帧。
+   完整任务中的StandDown、grasp、StandUp均未触发；前述姿态动作是独立参数实测。
+   物理停车误差、实际抓取、入盒和一键完成：NOT VERIFIED；不自动再试。
+
+原始数据位于主工作区 `camera_ws/records/`：
+- `s1_posture_measurement_down_20261112.jsonl`（默认DDS失败）；
+  `s1_posture_measurement_down_fixed_20261112.jsonl`（实测趴下）；
+  `s1_posture_measurement_up_20261112.jsonl`、`s1_posture_measurement_up_returncode_20261112.jsonl`
+  （StopMove前置条件失败）；`s1_posture_measurement_up_fixed_20261112.jsonl`（实测起立）。
+- `run_1794414693037744519.json`、`science_approach_1794414693816367225.jsonl`：启动定位失败。
+- `run_1794414768992776436.json`、`science_approach_1794414769750593837.jsonl`：真实停靠超时。
+- `approach_20261112_003249_839125.mp4`及`_raw.mp4`：553帧录像；
+  `s1_slam_restart_20261112.log`：原参数重启记录。
+
+静态/离线：44项相关回归通过，flake8及diff检查通过；实际配置加载和显式CLI覆盖通过。
+改动仅直接执行的协调脚本与JSON，无全仓库构建；完整抓取协调仍未实机验收。
+下一步应解决非横移末端停车位置收敛，不扩大完成区、速度或超时来宣称成功。

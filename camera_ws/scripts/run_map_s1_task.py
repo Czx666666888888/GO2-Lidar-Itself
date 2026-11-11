@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone
 import json
+from pathlib import Path
 import shlex
 import subprocess
 import time
@@ -35,6 +36,11 @@ def parser():
     p.add_argument('--arm-socket', default='/tmp/s1-arm-integration.sock')
     p.add_argument('--task-host-script', default='/home/unitree/go2_map_s1/s1_task_host.py')
     p.add_argument('--go2-interface', default='eth0')
+    p.add_argument('--sdk-cyclonedds-home',
+                   default='/home/unitree/cyclonedds_ws/install/cyclonedds',
+                   help='GO2 SDK Python build-matched DDS; affects posture process only')
+    p.add_argument('--posture-profile', type=Path,
+                   help='measured GO2 posture JSON; explicit CLI values take precedence')
     p.add_argument('--down-max-body-height-m', type=float)
     p.add_argument('--up-min-body-height-m', type=float)
     p.add_argument('--down-mode', type=int)
@@ -46,6 +52,11 @@ def parser():
 def main():
     p = parser()
     args = p.parse_args()
+    if args.posture_profile is not None:
+        profile = json.loads(args.posture_profile.read_text())
+        for name in ('down_max_body_height_m', 'up_min_body_height_m', 'down_mode', 'up_mode'):
+            if getattr(args, name) is None:
+                setattr(args, name, profile[name])
     if not (0 < args.search_distance <= 5 and 0 < args.search_timeout <= 60 and
             0 < args.timeout <= 60 and args.arm_timeout > 0):
         p.error('Use original bounded search/run limits')
@@ -62,6 +73,11 @@ def main():
                 s1_base_vehicle_xy_m=[-.06, 0], desired_target_s1_xy_m=[0, .31],
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),
+                posture_profile=str(args.posture_profile) if args.posture_profile else None,
+                posture_boundaries=dict(down_max_body_height_m=args.down_max_body_height_m,
+                                        up_min_body_height_m=args.up_min_body_height_m,
+                                        down_mode=args.down_mode, up_mode=args.up_mode),
+                sdk_cyclonedds_home=args.sdk_cyclonedds_home,
                 execute=args.execute, arm_service_validation='NOT VERIFIED')
     print(json.dumps(plan, indent=2), flush=True)
     if not args.execute:
@@ -109,7 +125,9 @@ def main():
               flush=True)
         rclpy.shutdown()
         return
-    command = [args.host_python, args.task_host_script, '--execute', '--require-heartbeat',
+    command = ['env', 'CYCLONEDDS_HOME='+args.sdk_cyclonedds_home,
+               'LD_LIBRARY_PATH='+str(Path(args.sdk_cyclonedds_home)/'lib'),
+               args.host_python, args.task_host_script, '--execute', '--require-heartbeat',
                '--arm-client', args.arm_client, '--socket', args.arm_socket,
                '--interface', args.go2_interface,
                '--down-max-body-height-m', str(args.down_max_body_height_m),

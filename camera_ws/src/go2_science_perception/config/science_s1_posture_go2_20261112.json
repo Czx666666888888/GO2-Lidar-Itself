@@ -1,0 +1,53 @@
+{
+  "down_max_body_height_m": 0.084,
+  "up_min_body_height_m": 0.304,
+  "down_mode": 0,
+  "up_mode": 0,
+  "measured_date": "2026-11-12",
+  "host": "unitree@192.168.123.18",
+  "down_belly_support_user_confirmed": true,
+  "s1_base_height": null,
+  "boundary_basis": "Down max + 0.01m, up minimum across pre-down and post-up - 0.01m; rounded outward to 1mm. These are feedback posture boundaries, not measured physical base heights.",
+  "measurements": {
+    "down": {
+      "event": "measurement",
+      "action": "down",
+      "n": 15,
+      "height_min": 0.07333071529865265,
+      "height_max": 0.07337304949760437,
+      "height_median": 0.07335681468248367,
+      "modes": {
+        "0": 15
+      },
+      "max_speed": 1.038963548582992e-07,
+      "max_yaw_rate": 0.017044229432940483,
+      "max_gyro": 0.024501079693436623
+    },
+    "up": {
+      "event": "measurement",
+      "action": "up",
+      "n": 15,
+      "height_min": 0.33008113503456116,
+      "height_max": 0.3300972580909729,
+      "height_median": 0.330090194940567,
+      "modes": {
+        "0": 15
+      },
+      "max_speed": 1.5820670368764945e-07,
+      "max_yaw_rate": 0.021305285394191742,
+      "max_gyro": 0.041545309126377106
+    },
+    "pre_down_height_min": 0.31434884667396545,
+    "pre_down_height_max": 0.3143523335456848
+  },
+  "raw_evidence": [
+    {
+      "file": "s1_posture_measurement_down_fixed_20261112.jsonl",
+      "sha256": "4b2590895ccbef1d94a5170946b3c020cd9d1f974a1e1705aa622bf39ad7bc05"
+    },
+    {
+      "file": "s1_posture_measurement_up_fixed_20261112.jsonl",
+      "sha256": "ceedc3cdc064729d49a344d9f65fefd2adbd9518657bf5be4c96e790f515c8a7"
+    }
+  ]
+}
