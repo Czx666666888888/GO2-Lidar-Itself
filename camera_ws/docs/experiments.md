@@ -1192,3 +1192,19 @@ ODOM保护边界、外部速度真值与正式外参标定均为NOT VERIFIED。
 - 最小改动仅为独立实时日志窗口增加`ref=`和`assoc=`显示，源语法/格式化检查通过；
   控制器、matcher、SEARCH/STOP_CONFIRM、外参、HSV、Point-LIO、增益和安全门未修改。
   用户后续自行启动的新轮尚无结果，本轮不擅自补写或再次执行运动。
+
+### 同日晚间用户自行启动失败与只读定位恢复
+
+用户反馈“怎么无法启动”后只读核查：有线已恢复UP/carrier1，PC .99到GO2 .18走enp12s0。
+最新用户启动run_1794409495172097165.json（约23:04:55）在运动前elapsed=0直接FAULT，
+原因为`localization jump or time regression`；当时robot XY约(224.47,-27.66)m，
+camera差分速度50.22m/s，这些是异常估计，不能记为实际运动。gate记录StopMove及解除武装，
+该轮没有SEARCH/STOP_CONFIRM/接近证据。用户运行的控制/安全门/42帧录像日志保留原位。
+
+仅停止本轮旧只读launch，保留GO2现有唯一相机，按原launch/参数重建SLAM/TF/manager。
+恢复预检7s：RGB约14.9Hz、depth14.3Hz、odom14.8Hz，原时间戳TF查询成功；
+位姿回到约(-0.30,-0.07)m，odom age约-0.066至-0.054s。随后4s只读采样59条位姿，
+端点XY变化0.01227m、最大相邻步长0.00900m，raw发布者0。新会话短窗未再出现数百米跳变，
+不证明长期稳定、静止精度或后续运动成功；异常定位底层根因仍未隔离证明。
+原始只读证据`camera_ws/records/visual_servo_recovery_pose_20261111.json`；
+只读链日志`/tmp/visual_servo_readonly_recovery_20261111.log`。没有再次启动运动或放宽参数。
