@@ -1,0 +1,269 @@
+schema: 1
+kind: post_hoc_failed_trial_analysis
+source_control: science_approach_1794409702384120997.jsonl
+control_sha256: f7452d99e9469e1d658ed9252b42ffc3f60db6011249fa462ffaf8a1c006f989
+source_recording: approach_20261111_230822_502632.jsonl
+recording_sha256: 747dbf22ca21077470a5a065477e2758e619c0195140990a04bb9262353126fc
+user_result: 'FAILED: multiple STOP_CONFIRM, never approached; stopped by user'
+parameters:
+  stop_reference: camera_origin
+  visual_servo_enabled: true
+  stop_xy_tolerance: 0.1
+  anchor_window_sec: 1.0
+  anchor_min_observations: 5
+  anchor_max_spread: 0.08
+  anchor_association_radius: 0.2
+  anchor_alpha: 0.15
+  stop_distance: 0.8
+  distance_tolerance: 0.03
+  kp_linear: 1.5
+  kp_angular: 2.0
+  align_yaw_threshold: 0.15
+  max_acceleration: 0.15
+  max_deceleration: 0.3
+  max_linear_speed: 0.3
+  max_angular_speed: 0.3
+  control_rate_hz: 10.0
+  lock_stability_sec: 3.0
+  visual_timeout: 0.5
+  odom_timeout: 0.4
+  feedback_timeout: 0.5
+  target_jump_m: 0.15
+  localization_jump_m: 0.3
+  localization_max_speed: 0.8
+  localization_max_yaw_rate: 1.0
+  max_target_range: 5.0
+  speed_window_sec: 0.5
+  braking_latency: 0.3
+  max_run_time: 25.0
+  allow_odom: true
+  odom_max_time: 25.0
+  odom_max_distance: 5.0
+  search_enabled: true
+  search_speed: 0.25
+  search_distance: 5.0
+  search_timeout: 60.0
+  search_cross_track_limit: 0.2
+  search_trigger_range_m: 1.8
+  search_trigger_observations: 3
+  stop_confirm_timeout: 6.0
+  stop_confirm_stable_sec: 0.2
+  stop_confirm_min_span_sec: 0.6
+  stop_confirm_speed_mps: 0.05
+  stop_confirm_yaw_rate: 0.1
+  search_cooldown_sec: 0.75
+  confirmation_max_gap_sec: 0.3
+state_counts:
+  IDLE: 19
+  SEARCH: 287
+  STOP_CONFIRM: 180
+  FAULT: 23
+attempts:
+- attempt: 1
+  start_elapsed_s: 6.268341067003348
+  start_utc: '2026-11-11T15:08:30.591023+00:00'
+  trigger_range_m: 1.6426512360121124
+  duration_s: 6.000127949999296
+  outcome:
+    candidate:
+      id: 1
+      map:
+      - 2.5747977277668883
+      - -0.08638765523589564
+      trigger_stamp_ns: 1794409710109665039
+    result: TIMEOUT
+    stop_request_range_m: 1.6426512360121124
+    stop_stable_range_m: 1.5420459572935932
+    stopped_after_sec: 2.100234149998869
+    reason: waiting for measured stop
+    elapsed: 6.000127949999296
+  first_settled_after_s: 2.100234149998869
+  last_settled_after_s: 2.100234149998869
+  settled_windows: 1
+  settled_resets_in_control_ticks: 1
+  ticks: 60
+  ticks_exceeding_logged_speed_limit: 20
+  reason_counts:
+    transition: 1
+    waiting for measured stop: 22
+    candidate missing or spatially ambiguous: 8
+    collecting new stationary observations: 29
+  peak_stationary_samples: 3
+  best_stationary_span_s: 0.20158789100000002
+  best_stationary_spread_m: 0.012373767370087744
+  best_samples:
+  - observed_ns: 1794409712730201660
+    map:
+    - 2.6744199869413663
+    - -0.13096632557461182
+    id: 1
+    camera_range_m: 1.5538472716009195
+  - observed_ns: 1794409712864593506
+    map:
+    - 2.6631566759561363
+    - -0.1287521632442044
+    id: 1
+    camera_range_m: 1.5425254269114654
+  - observed_ns: 1794409712931789551
+    map:
+    - 2.675377732229234
+    - -0.13069017833672333
+    id: 1
+    camera_range_m: 1.5500172256172333
+  max_body_speed_mps: 0.2701123486990223
+  max_camera_speed_mps: 0.262180631966076
+  max_sport_xy_speed_mps: 0.16451651366605224
+  nonzero_command_ticks: 0
+- attempt: 2
+  start_elapsed_s: 16.068248720002885
+  start_utc: '2026-11-11T15:08:40.390965+00:00'
+  trigger_range_m: 1.0999284570727696
+  duration_s: 6.000071105998359
+  outcome:
+    candidate:
+      id: 1
+      map:
+      - 2.6594937647827175
+      - -0.15892279444779706
+      trigger_stamp_ns: 1794409719987074951
+    result: TIMEOUT
+    stop_request_range_m: 1.0999284570727696
+    stop_stable_range_m: null
+    stopped_after_sec: 4.20016960599969
+    reason: waiting for measured stop
+    elapsed: 6.000071105998359
+  first_settled_after_s: 2.0000738609996915
+  last_settled_after_s: 4.20016960599969
+  settled_windows: 2
+  settled_resets_in_control_ticks: 2
+  ticks: 60
+  ticks_exceeding_logged_speed_limit: 26
+  reason_counts:
+    transition: 1
+    waiting for measured stop: 42
+    candidate missing or spatially ambiguous: 4
+    collecting new stationary observations: 13
+  peak_stationary_samples: 3
+  best_stationary_span_s: 0.268773193
+  best_stationary_spread_m: 0.006318177480098963
+  best_samples:
+  - observed_ns: 1794409724959496338
+    map:
+    - 2.6613821477140895
+    - -0.11496911778406135
+    id: 1
+    camera_range_m: 0.9415489174507807
+  - observed_ns: 1794409725093883057
+    map:
+    - 2.6611089506605143
+    - -0.12128138600079197
+    id: 1
+    camera_range_m: 0.941681547550514
+  - observed_ns: 1794409725228269531
+    map:
+    - 2.6572125723795383
+    - -0.11640660425455071
+    id: 1
+    camera_range_m: 0.9413413605914106
+  max_body_speed_mps: 0.289869745387554
+  max_camera_speed_mps: 0.3039889250383564
+  max_sport_xy_speed_mps: 0.2641330421463527
+  nonzero_command_ticks: 0
+- attempt: 3
+  start_elapsed_s: 24.06823661100134
+  start_utc: '2026-11-11T15:08:48.390951+00:00'
+  trigger_range_m: 0.9067251927902213
+  duration_s: 6.000091758000053
+  outcome:
+    candidate:
+      id: 1
+      map:
+      - 2.6403475786997124
+      - -0.14729556345733308
+      trigger_stamp_ns: 1794409727983168945
+    result: TIMEOUT
+    stop_request_range_m: 0.9067251927902213
+    stop_stable_range_m: null
+    stopped_after_sec: 5.700082761999511
+    reason: candidate missing or spatially ambiguous
+    elapsed: 6.000091758000053
+  first_settled_after_s: 2.1004916580022837
+  last_settled_after_s: 5.700082761999511
+  settled_windows: 3
+  settled_resets_in_control_ticks: 2
+  ticks: 60
+  ticks_exceeding_logged_speed_limit: 17
+  reason_counts:
+    transition: 1
+    waiting for measured stop: 28
+    candidate missing or spatially ambiguous: 11
+    collecting new stationary observations: 20
+  peak_stationary_samples: 5
+  best_stationary_span_s: 0.537543212
+  best_stationary_spread_m: 0.020232874920738254
+  best_samples:
+  - observed_ns: 1794409731947549561
+    map:
+    - 2.646435056012555
+    - -0.07684048520311446
+    id: 1
+    camera_range_m: 0.7685828914598911
+  - observed_ns: 1794409732081935547
+    map:
+    - 2.6509656763853786
+    - -0.08827703887461169
+    id: 1
+    camera_range_m: 0.7719071342736132
+  - observed_ns: 1794409732216321289
+    map:
+    - 2.648420310695426
+    - -0.09697572772468288
+    id: 1
+    camera_range_m: 0.7706818731952093
+  - observed_ns: 1794409732350707031
+    map:
+    - 2.644510836153397
+    - -0.09015872045162704
+    id: 1
+    camera_range_m: 0.7684675853195222
+  - observed_ns: 1794409732485092773
+    map:
+    - 2.6542854718171878
+    - -0.08634568346306659
+    id: 1
+    camera_range_m: 0.7708867221930849
+  max_body_speed_mps: 0.26621648317390095
+  max_camera_speed_mps: 0.2600089418608673
+  max_sport_xy_speed_mps: 0.24235594231828897
+  nonzero_command_ticks: 0
+first_detection_range_m: 2.669646960461223
+max_search_progress_m: 4.934202979607249
+final:
+  state: FAULT
+  reason: localization timeout
+  elapsed: 48.96835208000266
+  target_id: null
+  target: null
+control_references: {}
+detection_receipt_delay_s:
+  min: 0.32372180700000003
+  median: 0.3635757405
+  max: 0.40336169200000005
+camera_relative_decisions:
+  IDLE: 509
+videos:
+  approach_20261111_230822_502632.mp4:
+    decoded: 710
+    container_frames: 710
+    sha256: 6c2a7fde9faa0f74e232e0f3534f10b72adc437a51c86844821616b6ca45748c
+  approach_20261111_230822_502632_raw.mp4:
+    decoded: 710
+    container_frames: 710
+    sha256: 47a686d02214081cff6efbe2194ee0a9e55bcbe3c41182aeecb9546b2d5d5d35
+original_runner_summary_present: false
+interpretation_limits:
+- Tick speed checks exclude unlogged pose_yaw_rate and input ages.
+- Detection receipt delay does not distinguish clocks from transport/processing.
+- Source-time MAP transforms and track snapshots were not continuously recorded.
+- Control log localization timeout is distinct from user physical stop.
+- 'No approach: visual/MAP switching, relock and final accuracy unverified.'

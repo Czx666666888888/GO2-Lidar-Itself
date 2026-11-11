@@ -1208,3 +1208,19 @@ camera差分速度50.22m/s，这些是异常估计，不能记为实际运动。
 不证明长期稳定、静止精度或后续运动成功；异常定位底层根因仍未隔离证明。
 原始只读证据`camera_ws/records/visual_servo_recovery_pose_20261111.json`；
 只读链日志`/tmp/visual_servo_readonly_recovery_20261111.log`。没有再次启动运动或放宽参数。
+
+### 2026-11-11 23:08 — 用户自行运行三次STOP_CONFIRM失败并要求收工
+
+用户报告“多次stop_confirm但是都没有靠近，刚才已停止”，按失败记录，不重试。
+实际配置visual_servo_enabled=true，控制实现547c273，启动时文档HEAD59e8050。
+三次确认分别在SEARCH elapsed6.268/16.068/24.068s开始，均6秒超时；最佳同窗样本为
+3帧/0.202s、3帧/0.269s、5帧/0.538s，均未满足5帧且≥0.60s。停稳门槛多次失效并清空，
+第三次有明确1秒源样本保留窗口淘汰证据；已记录最大散布2.495cm，小于8cm阈值。
+全程未进入LOCK_TARGET/APPROACH，CAMERA_RELATIVE未参与控制，不能把失败归为视觉
+控制接近效果差。四个停车确认方法AST与e15c66c一致；不修改程序或参数。
+日志最后为localization timeout，用户实际停止另记；不推断本轮再次网线脱落。
+双视频710/710帧完整，原runner摘要缺失，已标注post-hoc失败审计并保留原始哈希。
+按用户要求关闭PC全部本轮节点/日志订阅及GO2相机；远端相机SIGINT未退出，SIGTERM
+后PID不存在，未停止其他服务。用户后续先使用稳定MAP版，本实验版留待以后调整。
+完整逐次表、原因证据与原始记录路径见
+[失败分析](visual_servo_stop_confirm_20261111.md)；本轮无新运动或算法更改。
