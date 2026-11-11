@@ -1148,3 +1148,47 @@ ODOM保护边界、外部速度真值与正式外参标定均为NOT VERIFIED。
 未在本轮逐一关联run文件或重新解析日志，不将其推断为额外两次新增运行，亦不填写
 各轮距离、耗时、散布或成功率。
 本次仅补充文档并推送已有实验实现07292cd及本次文档提交，不新增运动实验。
+
+## 2026-11-11 — 视觉优先5m搜索实机中断与用户接手
+
+- 版本：fetch核对实验分支 `feature/d435-visual-servo-optional` 为
+  `547c273b85d2bc942e68acc779278eaa9402e19c`；稳定分支仍为e15c66c，未修改/合并。
+  独立工作树 `/tmp/go2_visual_servo_test_20261111`，仅本包构建成功，overlay
+  `/tmp/science_visual_servo_install/setup.bash`；未全仓构建或调整算法/阈值。
+- 前置处理：GO2初为2022年、D435未枚举；用户本地输入sudo完成对时，重插后枚举
+  8086:0b07，现有GO2 Foxy驱动只启动一份。PC有线192.168.123.99，GO2 .18。
+  连续预检RGB/Depth约14.5–14.9Hz、cloud/odom约14.8Hz、IMU约250Hz，
+  `/lf/sportmodestate`实收约20Hz，三个必要TF查询成功，无raw竞争发布者。
+  发现PC timesyncd以-500ppm校时、GO2 NTP未启用；一次预检图像/位姿超前0.32/0.38s，
+  重对时并重建只读链后观测又有约0.4s图像延迟。未放宽0.10s未来容差或原新鲜度限制。
+  预检脚本一次float32的JSON保存错误已纠正；预检不是物理运行验收。
+- 用户明确“直接执行…边走边搜索…最大5m”后通过原runner执行：
+  `--execute --search --visual-servo --search-distance 5.0 --search-timeout 60 --timeout 25`。
+  原控制器JSONL首行实证加载visual_servo_enabled=true、dry_run=false、搜索0.25m/s、
+  确认6s、接近max0.30m/s、视觉0.5s、ODOM5m/25s、XY容差0.10m。
+  SEARCH profile原kp_linear=1.5/kp_angular=2.0/braking_latency=0.30均沿用，未改默认配置。
+- 运行：2026-11-11 22:56:58开始记录；22:57:02.234首次SEARCH（elapsed0.078s）；
+  约22:57:31.334进入FAULT `localization timeout`（elapsed29.178s）。
+  SEARCH最大里程计沿起始航向投影2.503m，未走满5m。首次检测记录相机距离1.028m；
+  没有进入STOP_CONFIRM/APPROACH/STOP。首次有检测不等于已满足连续、唯一、时差与
+  空间一致的停车触发条件，本轮缺少足够逐次trigger拒绝原因，不能指定唯一未触发根因。
+- 早期命令已0.25而Sport反馈近零，记录mode0/error100；后续反馈XY峰值0.3448m/s，
+  不能把早期低速外推为整轮没动。尝试原/stop时enp12s0已不可用，停止请求未能发出，
+  已立即要求用户遥控/物理急停确认。用户随后报告“网线掉了”，并要求重测，之后改为
+  “直接给我测试命令行吧我来”。该轮按断链中断记录，不算视觉算法成功/失败；没有收到
+  独立的物理停稳或停车距离确认。网卡之后恢复carrier=1，旧controller/gate已退出。
+- 视觉/MAP：control_reference从未进入CAMERA_RELATIVE或MAP_FALLBACK，视觉接受计数0；
+  因尚未进入接近，两模式占比、丢失/恢复与重关联均为NOT VERIFIED。不能据开启开关
+  认定视觉参与真实控制。缓存源码按后继源stamp到来时冲刷，末帧和完整帧时效尚未实测。
+- 停车精度：无到达STOP，无最终MAP到达误差、无人工物理距离；不可与11月9日9.5cm
+  成功基线作精度比较，尚无抓取集成准入证据。
+- 原始证据在主checkout的camera_ws/records：
+  `science_approach_1794409018724657565.jsonl`（348条状态），
+  `1794409017924839849_{control,gate,recorder}.log`，
+  `approach_20261111_225658_863394{,_raw}.mp4`及同名JSONL。
+  双视频均482/482帧完整解码。断网收尾未生成runner run摘要；
+  `visual_servo_interrupted_20261111_audit.json`明确是原日志重建的post-hoc审计，非原run。
+  时钟/预检/运行console与只读链日志保存于`visual_servo_20261111_preparation/`，媒体不入Git。
+- 最小改动仅为独立实时日志窗口增加`ref=`和`assoc=`显示，源语法/格式化检查通过；
+  控制器、matcher、SEARCH/STOP_CONFIRM、外参、HSV、Point-LIO、增益和安全门未修改。
+  用户后续自行启动的新轮尚无结果，本轮不擅自补写或再次执行运动。

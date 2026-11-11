@@ -18,6 +18,8 @@ def row(data):
             f"XY={d:>6}m vx={data.get('vx', 0):+.3f} wz={data.get('wz', 0):+.3f} "
             f"sport_vx={native[0]:+.3f} odom_v={data.get('actual_speed', 0):.3f} "
             f"id={data.get('target_id')} samples={data.get('stationary_sample_count', '-')} "
+            f"ref={data.get('control_reference', '-')} "
+            f"assoc={data.get('camera_relative_association', {}).get('decision', '-')} "
             f"confirm={data.get('stop_confirm_reason', '')} {data.get('reason', '')}")
 
 

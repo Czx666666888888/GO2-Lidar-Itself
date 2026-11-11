@@ -319,3 +319,11 @@ USB实收D435；GO2时钟退回2022年，经用户本地输入sudo密码恢复�
 后续用户报告当前版本“实测两次都可以”，并要求推送。已记录为用户现场反馈；所述
 两次未逐一关联原始run并审计，不补写距离/耗时或定量重复精度。实验实现为07292cd，
 参数保持搜索5 m/0.25 m/s/60 s、确认6 s、SEARCH专用ODOM路径5 m/25 s。
+
+## 2026-11-11 — 视觉优先实验实机中断
+
+来源：远端547c273、实收控制JSONL/录像与用户网线脱落反馈。实验分支
+feature/d435-visual-servo-optional，未修改稳定e15c66c。开关实际true；SEARCH约29.18s
+后定位timeout，最大投影2.503m，未进入STOP_CONFIRM或APPROACH。双录像482帧完整。
+没有视觉控制/接续/恢复或停车精度验收；用户改为自行按命令重试，后续结果NOT VERIFIED。
+本轮仅改善只读日志的control_reference/association显示。详情见camera_ws/docs/experiments.md。
