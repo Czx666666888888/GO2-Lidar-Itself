@@ -1,0 +1,17 @@
+# Official wrapper 4.54.1 (Foxy); these profile names differ from PC wrapper 4.58.4.
+/camera/camera:
+  ros__parameters:
+    enable_color: true
+    enable_depth: true
+    enable_infra1: false
+    enable_infra2: false
+    enable_gyro: false
+    enable_accel: false
+    rgb_camera.profile: '640x480x15'
+    depth_module.profile: '640x480x15'
+    align_depth.enable: true
+    enable_sync: true
+    pointcloud.enable: false
+    publish_tf: true
+    tf_publish_rate: 0.0
+    initial_reset: false

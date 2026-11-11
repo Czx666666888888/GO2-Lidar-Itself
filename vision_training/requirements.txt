@@ -1,0 +1,11 @@
+# Install the CUDA-specific torch/torchvision pair first; see README.
+torch==2.5.1
+torchvision==0.20.1
+ultralytics==8.3.40
+numpy==1.26.4
+opencv-python==4.10.0.84
+PyYAML==6.0.2
+Pillow==11.0.0
+onnx==1.17.0
+onnxruntime==1.20.1
+pytest==8.3.4

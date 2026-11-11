@@ -1,0 +1,187 @@
+[
+  {
+    "run": "run_1794147715951131870.json",
+    "metrics": {
+      "search_first_detection_range_m": 1.1544396338225575,
+      "stop_request_range_m": 1.156861635187029,
+      "stop_stable_range_m": 1.1520147931827265,
+      "stopped_after_sec": 0.7999580619998596,
+      "stationary_confirmation_sec": 0.9002425789994959,
+      "confirmation_spread_m": 0.016266543683779396,
+      "confirmation_count": 6,
+      "confirmation_attempts": [
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              1.2180558662508385,
+              -0.033365541952442346
+            ],
+            "trigger_stamp_ns": 1794147720472791992
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 1.156861635187029,
+          "stop_stable_range_m": 1.1520147931827265,
+          "stopped_after_sec": 0.7999580619998596,
+          "stationary_confirmation_sec": 0.9002425789994959,
+          "spread": 0.016266543683779396,
+          "count": 6,
+          "elapsed": 1.7002006409993555
+        }
+      ],
+      "approach_visual_loss_count": 1,
+      "final_map_xy_error_m": 0.11396527524303127,
+      "terminal_state": "STOP",
+      "terminal_reason": "camera XY aligned",
+      "physical_distance_m": 0.09,
+      "physical_result": "USER_CONFIRMED_STOPPED_9CM"
+    },
+    "first_stop_map_xy_error_m": 0.09597138150041234,
+    "physical_result": "USER_CONFIRMED_STOPPED_9CM",
+    "user_observation": "\u5df2\u5b8c\u6210\uff0c9cm",
+    "video": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_222156_798690.mp4",
+    "decoded_frames": {
+      "video": 233,
+      "raw_video": 233
+    },
+    "max_stationary_samples": 5,
+    "max_stationary_source_span_sec": 0.470324463
+  },
+  {
+    "run": "run_1794147915207444642.json",
+    "metrics": {
+      "search_first_detection_range_m": null,
+      "stop_request_range_m": null,
+      "stop_stable_range_m": null,
+      "stopped_after_sec": null,
+      "stationary_confirmation_sec": null,
+      "confirmation_spread_m": null,
+      "confirmation_count": null,
+      "confirmation_attempts": [],
+      "approach_visual_loss_count": 0,
+      "final_map_xy_error_m": null,
+      "terminal_state": "STOP",
+      "terminal_reason": "search route ended without target",
+      "physical_distance_m": null,
+      "physical_result": "USER_CONFIRMED_STOPPED_ROUTE_ENDED"
+    },
+    "first_stop_map_xy_error_m": null,
+    "physical_result": "USER_CONFIRMED_STOPPED_ROUTE_ENDED",
+    "user_observation": "\u5b8c\u6210",
+    "video": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_222516_034701.mp4",
+    "decoded_frames": {
+      "video": 184,
+      "raw_video": 184
+    },
+    "max_stationary_samples": 0,
+    "max_stationary_source_span_sec": 0
+  },
+  {
+    "run": "run_1794148121523671539.json",
+    "metrics": {
+      "search_first_detection_range_m": 1.978075824225194,
+      "stop_request_range_m": 1.441967790579722,
+      "stop_stable_range_m": null,
+      "stopped_after_sec": null,
+      "stationary_confirmation_sec": null,
+      "confirmation_spread_m": null,
+      "confirmation_count": null,
+      "confirmation_attempts": [
+        {
+          "candidate": {
+            "id": 37,
+            "map": [
+              2.1519508094226727,
+              0.06782594388208507
+            ],
+            "trigger_stamp_ns": 1794148128002138916
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.441967790579722,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": null,
+          "reason": "waiting for measured stop",
+          "elapsed": 2.000082530000327
+        }
+      ],
+      "approach_visual_loss_count": 0,
+      "final_map_xy_error_m": null,
+      "terminal_state": "STOP",
+      "terminal_reason": "search route ended without target",
+      "physical_distance_m": null,
+      "physical_result": "PENDING_USER_OBSERVATION"
+    },
+    "first_stop_map_xy_error_m": null,
+    "physical_result": "USER_REPORTED_FORWARD_TREND_DURING_CONFIRMATION",
+    "user_observation": "\u6709\u5411\u524d\u7684\u8d8b\u52bf\uff0c\u628a\u786e\u5b9a\u65f6\u95f4\u5ef6\u957f\u4e3a4s",
+    "video": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_222842_367393.mp4",
+    "decoded_frames": {
+      "video": 203,
+      "raw_video": 203
+    },
+    "max_stationary_samples": 0,
+    "max_stationary_source_span_sec": 0
+  },
+  {
+    "run": "run_1794148350256621251.json",
+    "metrics": {
+      "search_first_detection_range_m": 1.6072820610055207,
+      "stop_request_range_m": 1.1652406829126274,
+      "stop_stable_range_m": 1.1520946386774287,
+      "stopped_after_sec": 3.300163779000286,
+      "stationary_confirmation_sec": null,
+      "confirmation_spread_m": null,
+      "confirmation_count": null,
+      "confirmation_attempts": [
+        {
+          "candidate": {
+            "id": 39,
+            "map": [
+              2.1571394638885875,
+              0.03462950304396112
+            ],
+            "trigger_stamp_ns": 1794148363903107422
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.3407658070937591,
+          "stop_stable_range_m": 1.189608149833704,
+          "stopped_after_sec": 3.700194924999778,
+          "reason": "waiting for measured stop",
+          "elapsed": 4.099805066999579
+        },
+        {
+          "candidate": {
+            "id": 39,
+            "map": [
+              2.14881436060615,
+              -0.02152255332776172
+            ],
+            "trigger_stamp_ns": 1794148369410677002
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.1652406829126274,
+          "stop_stable_range_m": 1.1520946386774287,
+          "stopped_after_sec": 3.300163779000286,
+          "reason": "collecting new stationary observations",
+          "elapsed": 4.000363680999726
+        }
+      ],
+      "approach_visual_loss_count": 0,
+      "final_map_xy_error_m": null,
+      "terminal_state": "STOP",
+      "terminal_reason": "search timeout without target",
+      "physical_distance_m": null,
+      "physical_result": "PENDING_USER_OBSERVATION"
+    },
+    "first_stop_map_xy_error_m": null,
+    "physical_result": "PENDING_USER_OBSERVATION",
+    "user_observation": null,
+    "video": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_223231_137141.mp4",
+    "decoded_frames": {
+      "video": 394,
+      "raw_video": 394
+    },
+    "max_stationary_samples": 3,
+    "max_stationary_source_span_sec": 0.201498047
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "aft_mapped_to_sensor",
+    "science_target_manager",
+    "transform_everything",
+    "sensor_to_vehicle",
+    "laserMapping",
+    "base_odom_node",
+    "map_to_camera_init",
+    "coarse_target_locator",
+    "camera_target_to_map",
+    "map_drift_readonly_audit",
+    "camera"
+  ],
+  "cmd_vel_raw_publishers": [],
+  "approach_far_wp5_nodes": []
+}

@@ -1,0 +1,1680 @@
+dataset_fingerprint: f2cb59d2fac89f27eb510628272b3815fcb2601d0bc8db30ed34ea769d1b4679
+checkpoint_sha256:
+  v1:
+    best: f8d9b0b775180046b541377bf2bbbab2a468c5b59e47262d3aeaab8e6b2bf979
+    last: 8de90dbfbadfc1ad20ad354bc4632247029dcf146b971104ea526b06f7ce96f7
+  v2:
+    best: 1685e80fa123c4f7f861c3ff463715c97209ae78399d2a774feeb2bff4f6decc
+    last: 5e651ddffc23896f2e13853ae1063f33c007841b60fc049d3b57516bc4b70bf2
+matching: One class-0 ground truth per image; class-correct IoU>=0.5; one TP maximum,
+  duplicate predictions are FP; NMS IoU=.7 max_det=300
+v1:
+  train:
+    images: 14
+    models:
+      best:
+        '0.01':
+          predictions: 976
+          tp: 3
+          fp: 973
+          fn: 11
+          wrong_class: 0
+          background_iou_below_01: 961
+          localization_iou_01_to_05: 12
+        '0.05':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+      last:
+        '0.01':
+          predictions: 1681
+          tp: 12
+          fp: 1669
+          fn: 2
+          wrong_class: 0
+          background_iou_below_01: 1635
+          localization_iou_01_to_05: 31
+        '0.05':
+          predictions: 87
+          tp: 2
+          fp: 85
+          fn: 12
+          wrong_class: 0
+          background_iou_below_01: 85
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 30
+          tp: 0
+          fp: 30
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 30
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 11
+          tp: 0
+          fp: 11
+          fn: 14
+          wrong_class: 0
+          background_iou_below_01: 11
+          localization_iou_01_to_05: 0
+    width_640:
+      min: 26.11008
+      median: 35.94496
+      max: 69.10976
+    height_640:
+      min: 13.35984
+      median: 36.13008
+      max: 68.37024000000001
+    area_640:
+      min: 348.8264911872
+      median: 1245.1860903936
+      max: 4626.5977319424
+    top_clipped: 1
+    area_below_32_squared: 2
+  val:
+    images: 6
+    models:
+      best:
+        '0.01':
+          predictions: 428
+          tp: 1
+          fp: 427
+          fn: 5
+          wrong_class: 0
+          background_iou_below_01: 423
+          localization_iou_01_to_05: 3
+        '0.05':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 0
+          tp: 0
+          fp: 0
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+      last:
+        '0.01':
+          predictions: 676
+          tp: 0
+          fp: 676
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 675
+          localization_iou_01_to_05: 1
+        '0.05':
+          predictions: 27
+          tp: 0
+          fp: 27
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 27
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 9
+          tp: 0
+          fp: 9
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 9
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 3
+          tp: 0
+          fp: 3
+          fn: 6
+          wrong_class: 0
+          background_iou_below_01: 3
+          localization_iou_01_to_05: 0
+    width_640:
+      min: 23.63968
+      median: 32.8
+      max: 37.710080000000005
+    height_640:
+      min: 13.40016
+      median: 20.97
+      max: 27.84
+    area_640:
+      min: 316.7754943488
+      median: 773.1012480000002
+      max: 874.4521728000001
+    top_clipped: 3
+    area_below_32_squared: 6
+v2:
+  train:
+    images: 14
+    models:
+      best:
+        '0.01':
+          predictions: 16
+          tp: 14
+          fp: 2
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.05':
+          predictions: 15
+          tp: 14
+          fp: 1
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 13
+          tp: 13
+          fp: 0
+          fn: 1
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 13
+          tp: 13
+          fp: 0
+          fn: 1
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+      last:
+        '0.01':
+          predictions: 15
+          tp: 14
+          fp: 1
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.05':
+          predictions: 15
+          tp: 14
+          fp: 1
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 14
+          tp: 14
+          fp: 0
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 14
+          tp: 14
+          fp: 0
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+    width_640:
+      min: 26.11008
+      median: 35.94496
+      max: 69.10976
+    height_640:
+      min: 13.35984
+      median: 36.13008
+      max: 68.37024000000001
+    area_640:
+      min: 348.8264911872
+      median: 1245.1860903936
+      max: 4626.5977319424
+    top_clipped: 1
+    area_below_32_squared: 2
+  val:
+    images: 6
+    models:
+      best:
+        '0.01':
+          predictions: 6
+          tp: 6
+          fp: 0
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.05':
+          predictions: 5
+          tp: 5
+          fp: 0
+          fn: 1
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 4
+          tp: 4
+          fp: 0
+          fn: 2
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 4
+          tp: 4
+          fp: 0
+          fn: 2
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+      last:
+        '0.01':
+          predictions: 6
+          tp: 6
+          fp: 0
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.05':
+          predictions: 6
+          tp: 6
+          fp: 0
+          fn: 0
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.1':
+          predictions: 5
+          tp: 5
+          fp: 0
+          fn: 1
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+        '0.25':
+          predictions: 4
+          tp: 4
+          fp: 0
+          fn: 2
+          wrong_class: 0
+          background_iou_below_01: 0
+          localization_iou_01_to_05: 0
+    width_640:
+      min: 23.63968
+      median: 32.8
+      max: 37.710080000000005
+    height_640:
+      min: 13.40016
+      median: 20.97
+      max: 27.84
+    area_640:
+      min: 316.7754943488
+      median: 773.1012480000002
+      max: 874.4521728000001
+    top_clipped: 3
+    area_below_32_squared: 6
+snapshots:
+- epoch: 1
+  counts:
+    train:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 14
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 14
+    val:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 4
+  optimizer_step_calls: 0
+- epoch: 5
+  counts:
+    train:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 14
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 14
+    val:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 20
+  optimizer_step_calls: 13
+- epoch: 10
+  counts:
+    train:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 14
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 14
+    val:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 40
+  optimizer_step_calls: 33
+- epoch: 15
+  counts:
+    train:
+      '0.05':
+        tp: 0
+        fp: 26
+        fn: 14
+      '0.25':
+        tp: 0
+        fp: 13
+        fn: 14
+    val:
+      '0.05':
+        tp: 0
+        fp: 12
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 6
+        fn: 6
+  batches: 60
+  optimizer_step_calls: 53
+- epoch: 20
+  counts:
+    train:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 14
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 14
+    val:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 80
+  optimizer_step_calls: 73
+- epoch: 25
+  counts:
+    train:
+      '0.05':
+        tp: 0
+        fp: 4200
+        fn: 14
+      '0.25':
+        tp: 0
+        fp: 4200
+        fn: 14
+    val:
+      '0.05':
+        tp: 0
+        fp: 1800
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 1800
+        fn: 6
+  batches: 100
+  optimizer_step_calls: 93
+- epoch: 30
+  counts:
+    train:
+      '0.05':
+        tp: 3
+        fp: 0
+        fn: 11
+      '0.25':
+        tp: 2
+        fp: 0
+        fn: 12
+    val:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 6
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 120
+  optimizer_step_calls: 113
+- epoch: 35
+  counts:
+    train:
+      '0.05':
+        tp: 13
+        fp: 3
+        fn: 1
+      '0.25':
+        tp: 11
+        fp: 0
+        fn: 3
+    val:
+      '0.05':
+        tp: 2
+        fp: 1
+        fn: 4
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 140
+  optimizer_step_calls: 133
+- epoch: 40
+  counts:
+    train:
+      '0.05':
+        tp: 13
+        fp: 4
+        fn: 1
+      '0.25':
+        tp: 9
+        fp: 0
+        fn: 5
+    val:
+      '0.05':
+        tp: 3
+        fp: 0
+        fn: 3
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 6
+  batches: 160
+  optimizer_step_calls: 153
+- epoch: 45
+  counts:
+    train:
+      '0.05':
+        tp: 13
+        fp: 3
+        fn: 1
+      '0.25':
+        tp: 13
+        fp: 0
+        fn: 1
+    val:
+      '0.05':
+        tp: 4
+        fp: 0
+        fn: 2
+      '0.25':
+        tp: 4
+        fp: 0
+        fn: 2
+  batches: 180
+  optimizer_step_calls: 173
+- epoch: 50
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 2
+        fn: 0
+      '0.25':
+        tp: 13
+        fp: 0
+        fn: 1
+    val:
+      '0.05':
+        tp: 6
+        fp: 0
+        fn: 0
+      '0.25':
+        tp: 4
+        fp: 0
+        fn: 2
+  batches: 200
+  optimizer_step_calls: 193
+- epoch: 55
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 1
+        fn: 0
+      '0.25':
+        tp: 13
+        fp: 0
+        fn: 1
+    val:
+      '0.05':
+        tp: 4
+        fp: 0
+        fn: 2
+      '0.25':
+        tp: 4
+        fp: 0
+        fn: 2
+  batches: 220
+  optimizer_step_calls: 213
+- epoch: 60
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 2
+        fn: 0
+      '0.25':
+        tp: 13
+        fp: 0
+        fn: 1
+    val:
+      '0.05':
+        tp: 4
+        fp: 0
+        fn: 2
+      '0.25':
+        tp: 3
+        fp: 0
+        fn: 3
+  batches: 240
+  optimizer_step_calls: 233
+- epoch: 65
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 1
+        fn: 0
+      '0.25':
+        tp: 13
+        fp: 0
+        fn: 1
+    val:
+      '0.05':
+        tp: 4
+        fp: 0
+        fn: 2
+      '0.25':
+        tp: 3
+        fp: 0
+        fn: 3
+  batches: 260
+  optimizer_step_calls: 253
+- epoch: 70
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 1
+        fn: 0
+      '0.25':
+        tp: 13
+        fp: 0
+        fn: 1
+    val:
+      '0.05':
+        tp: 5
+        fp: 0
+        fn: 1
+      '0.25':
+        tp: 4
+        fp: 0
+        fn: 2
+  batches: 280
+  optimizer_step_calls: 273
+- epoch: 75
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 1
+        fn: 0
+      '0.25':
+        tp: 14
+        fp: 0
+        fn: 0
+    val:
+      '0.05':
+        tp: 6
+        fp: 0
+        fn: 0
+      '0.25':
+        tp: 4
+        fp: 0
+        fn: 2
+  batches: 300
+  optimizer_step_calls: 293
+- epoch: 80
+  counts:
+    train:
+      '0.05':
+        tp: 14
+        fp: 1
+        fn: 0
+      '0.25':
+        tp: 14
+        fp: 0
+        fn: 0
+    val:
+      '0.05':
+        tp: 6
+        fp: 0
+        fn: 0
+      '0.25':
+        tp: 4
+        fp: 0
+        fn: 2
+  batches: 320
+  optimizer_step_calls: 313
+runtime_setup:
+  ultralytics: 8.3.40
+  trainer_source_sha256: 09df7940b2770b87e7728397d5881ab8b03d69655845dd46eb1d00bb6c57f3a9
+  nbs: 4
+  batch: 4
+  patience: 80
+  warmup_epochs: 3.0
+  warmup_batch_boundary: 100
+  batches_per_epoch: 4
+  initial_accumulate: 1
+  optimizer: AdamW
+  optimizer_groups:
+  - lr: 0.002
+    weight_decay: 0.0
+  - lr: 0.002
+    weight_decay: 0.0005
+  - lr: 0.002
+    weight_decay: 0.0
+  step_counter: torch optimizer post-step hook; AMP skipped steps do not call hook;
+    a called step with lr=0 is not an effective parameter update
+monitoring:
+  optimizer_step_calls: 313
+  batches: 320
+  monitor_seconds: 5.418839847000072
+train_result:
+  metrics:
+    metrics/precision(B): 1.0
+    metrics/recall(B): 0.9305603697908624
+    metrics/mAP50(B): 0.995
+    metrics/mAP50-95(B): 0.7186832727272727
+    fitness: 0.7463149454545455
+  dataset_fingerprint: f2cb59d2fac89f27eb510628272b3815fcb2601d0bc8db30ed34ea769d1b4679
+  names:
+    '0': blue_cube
+  train_call_seconds: 87.84984536399998
+  monitor_every: 5
+  weights:
+    best.pt: 1685e80fa123c4f7f861c3ff463715c97209ae78399d2a774feeb2bff4f6decc
+    last.pt: 5e651ddffc23896f2e13853ae1063f33c007841b60fc049d3b57516bc4b70bf2
+best_checkpoint:
+  date: '2026-11-10T18:33:39.790153'
+  train_metrics:
+    metrics/precision(B): 1.0
+    metrics/recall(B): 0.93141
+    metrics/mAP50(B): 0.995
+    metrics/mAP50-95(B): 0.74461
+    val/box_loss: 1.26014
+    val/cls_loss: 1.00979
+    val/dfl_loss: 1.03393
+    fitness: 0.76965
+  candidate_epochs:
+  - 70
+nonfinite_csv_events:
+- epoch: 24
+  column: val/box_loss
+  raw_value: nan
+- epoch: 24
+  column: val/cls_loss
+  raw_value: nan
+- epoch: 24
+  column: val/dfl_loss
+  raw_value: nan
+- epoch: 25
+  column: val/box_loss
+  raw_value: nan
+- epoch: 25
+  column: val/cls_loss
+  raw_value: nan
+- epoch: 25
+  column: val/dfl_loss
+  raw_value: nan
+- epoch: 26
+  column: val/cls_loss
+  raw_value: nan
+- epoch: 27
+  column: val/box_loss
+  raw_value: nan
+- epoch: 27
+  column: val/cls_loss
+  raw_value: nan
+- epoch: 27
+  column: val/dfl_loss
+  raw_value: nan
+runtime_accumulate_values:
+- 1
+amp_skipped_batch_indices:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+- 8
+per_image:
+- filename: approach_20261108_211245_917119_raw_00000000.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9079643766773785
+        matched_confidence: 0.9118370413780212
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9079643766773785
+        matched_confidence: 0.9118370413780212
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8998191523954895
+        matched_confidence: 0.9440485835075378
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8998191523954895
+        matched_confidence: 0.9440485835075378
+- filename: approach_20261108_211245_917119_raw_00000075.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.95949452121449
+        matched_confidence: 0.9049022197723389
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.95949452121449
+        matched_confidence: 0.9049022197723389
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9591862867200076
+        matched_confidence: 0.9377852082252502
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9591862867200076
+        matched_confidence: 0.9377852082252502
+- filename: approach_20261108_222156_798690_raw_00000000.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9075417318895124
+        matched_confidence: 0.894807755947113
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9075417318895124
+        matched_confidence: 0.894807755947113
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9200982066177514
+        matched_confidence: 0.933961033821106
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9200982066177514
+        matched_confidence: 0.933961033821106
+- filename: approach_20261108_222156_798690_raw_00000060.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9091128524674794
+        matched_confidence: 0.8546931147575378
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9091128524674794
+        matched_confidence: 0.8546931147575378
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.909890761826858
+        matched_confidence: 0.9019890427589417
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.909890761826858
+        matched_confidence: 0.9019890427589417
+- filename: approach_20261108_222156_798690_raw_00000075.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9295616056885863
+        matched_confidence: 0.8580377101898193
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9295616056885863
+        matched_confidence: 0.8580377101898193
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9461437909387868
+        matched_confidence: 0.911199688911438
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9461437909387868
+        matched_confidence: 0.911199688911438
+- filename: approach_20261108_222156_798690_raw_00000105.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9129792527211711
+        matched_confidence: 0.8500983119010925
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9129792527211711
+        matched_confidence: 0.8500983119010925
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9455151857611754
+        matched_confidence: 0.9226831793785095
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9455151857611754
+        matched_confidence: 0.9226831793785095
+- filename: approach_20261108_222156_798690_raw_00000120.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9777245812822507
+        matched_confidence: 0.8885871767997742
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9777245812822507
+        matched_confidence: 0.8885871767997742
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9738998113069084
+        matched_confidence: 0.9206265211105347
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9738998113069084
+        matched_confidence: 0.9206265211105347
+- filename: approach_20261108_222156_798690_raw_00000135.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9417703208494036
+        matched_confidence: 0.8426393866539001
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9417703208494036
+        matched_confidence: 0.8426393866539001
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9590649840300262
+        matched_confidence: 0.8986144661903381
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9590649840300262
+        matched_confidence: 0.8986144661903381
+- filename: approach_20261108_222516_034701_raw_00000045.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8416601927723473
+        matched_confidence: 0.09242693334817886
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8781451445886016
+        matched_confidence: 0.3791833817958832
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8781451445886016
+        matched_confidence: 0.3791833817958832
+- filename: approach_20261108_222516_034701_raw_00000120.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 1
+        fn: 0
+        best_iou: 0.9120680656785913
+        matched_confidence: 0.7311064004898071
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9120680656785913
+        matched_confidence: 0.7311064004898071
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 1
+        fn: 0
+        best_iou: 0.9408713550971879
+        matched_confidence: 0.8764737844467163
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9408713550971879
+        matched_confidence: 0.8764737844467163
+- filename: approach_20261108_222516_034701_raw_00000135.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9388513532752807
+        matched_confidence: 0.878224790096283
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9388513532752807
+        matched_confidence: 0.878224790096283
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9341743109712045
+        matched_confidence: 0.9097422957420349
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9341743109712045
+        matched_confidence: 0.9097422957420349
+- filename: approach_20261108_222516_034701_raw_00000150.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9483797266888463
+        matched_confidence: 0.8691859245300293
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9483797266888463
+        matched_confidence: 0.8691859245300293
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9617688671281701
+        matched_confidence: 0.9022718071937561
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9617688671281701
+        matched_confidence: 0.9022718071937561
+- filename: approach_20261108_222516_034701_raw_00000165.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9309421979273441
+        matched_confidence: 0.8413951396942139
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9309421979273441
+        matched_confidence: 0.8413951396942139
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9485847885613785
+        matched_confidence: 0.8979287147521973
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9485847885613785
+        matched_confidence: 0.8979287147521973
+- filename: approach_20261108_222516_034701_raw_00000180.jpg
+  split: train
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9425815509966728
+        matched_confidence: 0.8352281451225281
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9425815509966728
+        matched_confidence: 0.8352281451225281
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9395830666709821
+        matched_confidence: 0.8629216551780701
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9395830666709821
+        matched_confidence: 0.8629216551780701
+- filename: approach_20261108_222842_367393_raw_00000000.jpg
+  split: val
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9017475511365083
+        matched_confidence: 0.061388615518808365
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9025137011850776
+        matched_confidence: 0.11416486650705338
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+- filename: approach_20261108_222842_367393_raw_00000045.jpg
+  split: val
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8286107420947452
+        matched_confidence: 0.05446987971663475
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+- filename: approach_20261108_222842_367393_raw_00000090.jpg
+  split: val
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8035298801570411
+        matched_confidence: 0.5877964496612549
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8035298801570411
+        matched_confidence: 0.5877964496612549
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.7866250957026906
+        matched_confidence: 0.6858360171318054
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.7866250957026906
+        matched_confidence: 0.6858360171318054
+- filename: approach_20261108_222842_367393_raw_00000105.jpg
+  split: val
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8721748937363454
+        matched_confidence: 0.5597696304321289
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8721748937363454
+        matched_confidence: 0.5597696304321289
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9022337941347562
+        matched_confidence: 0.6880161762237549
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.9022337941347562
+        matched_confidence: 0.6880161762237549
+- filename: approach_20261108_222842_367393_raw_00000120.jpg
+  split: val
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.829695954935673
+        matched_confidence: 0.3374049961566925
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.829695954935673
+        matched_confidence: 0.3374049961566925
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8513822962706291
+        matched_confidence: 0.4136538505554199
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8513822962706291
+        matched_confidence: 0.4136538505554199
+- filename: approach_20261108_222842_367393_raw_00000135.jpg
+  split: val
+  models:
+    v1_best:
+      '0.05':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+      '0.25':
+        tp: 0
+        fp: 0
+        fn: 1
+        best_iou: null
+        matched_confidence: null
+    v2_best:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8369498858014369
+        matched_confidence: 0.5603691935539246
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8369498858014369
+        matched_confidence: 0.5603691935539246
+    v2_last:
+      '0.05':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8545154902866511
+        matched_confidence: 0.6633158326148987
+      '0.25':
+        tp: 1
+        fp: 0
+        fn: 0
+        best_iou: 0.8545154902866511
+        matched_confidence: 0.6633158326148987
+preservation:
+  files_checked: 236
+  all_unchanged: true
+  official_pretrained_sha256: 0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1
+  arguments_changed:
+    data:
+    - /home/czx666/today_full_20260901/today_full/vision_training/runs/blue_cube_pilot_v1/train_v1/data.yaml
+    - /home/czx666/today_full_20260901/today_full/vision_training/runs/blue_cube_pilot_v2/train_v2/data.yaml
+    epochs:
+    - 50
+    - 80
+    name:
+    - train_v1
+    - train_v2
+    nbs:
+    - 64
+    - 4
+    patience:
+    - 15
+    - 80
+    project:
+    - /home/czx666/today_full_20260901/today_full/vision_training/runs/blue_cube_pilot_v1
+    - /home/czx666/today_full_20260901/today_full/vision_training/runs/blue_cube_pilot_v2
+    save_dir:
+    - /home/czx666/today_full_20260901/today_full/vision_training/runs/blue_cube_pilot_v1/train_v1
+    - /home/czx666/today_full_20260901/today_full/vision_training/runs/blue_cube_pilot_v2/train_v2
+  ultralytics_trainer_unchanged: true

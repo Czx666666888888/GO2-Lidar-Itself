@@ -58,3 +58,40 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - The referenced `today_representative.md` and `today_analysis_20260901.tar.gz` are not tracked in this repository.
 - Exact metric calculation methods, per-run commit hashes, parameter dumps and environment metadata are not recorded in the root README.
 - Future experiment entries should include commit hash, parameter snapshot, command, host/robot configuration, bag checksum, safety conditions and analysis command.
+
+## 2026-11-10 — blue_cube_pilot_v1（PC真实GPU，小样本）
+
+- 来源：用户CVAT First 30.zip；20图20框。按4个视频14 train/6 val，无test；同lab场景。
+- 原annotation_v1 181图哈希未变，161张未标注图未当负样本。
+- 既有RTX4060/venv，YOLO11n 640/batch4/epochs50/patience15/device0；实际20轮早停。
+- 独立val P=0.003333、R=1、mAP50=0.00996661、mAP50-95=0.00712589。
+- conf0.25：6张val与12张未标注观察图均0框，模型不可用，无成功案例；后者不算定量测试。
+- 90次预热后GPU推理均值6.385ms、同步predict墙钟8.969ms；不代表持续FPS/ROS。
+- 本机证据vision_training/runs/blue_cube_pilot_v1，报告及参数/版本/权重哈希见
+  [pilot报告](../vision_training/reports/blue_cube_pilot_v1.md)。18项针对性检查通过。
+- 未全仓构建、未重装框架、未启动ROS/GO2；真实部署和跨场景性能NOT VERIFIED。
+
+## 2026-11-10 — 已有pilot权重失败分析（无新训练）
+
+- 基线b7a2e46，20图真实GPU四阈值、类别及IoU≥0.5的一对一真值匹配。
+- best conf0.01：train TP/FP/FN=3/973/11，val=1/427/5；conf0.05/0.10/0.25均0框。
+- 最高候选分数约0.0128–0.0132，多为背景；不能用候选框总数当正确识别。
+- 20图GT裁剪复核无明显错对象；验证目标更小/更靠上；同视频高度近似，有效多样性不足。
+- 训练cls损失5→20轮下降52.4%，但best未可靠拟合train；last高分输出全为背景FP。
+- 固定源码默认预热100batch，本次仅80batch；推算17个optimizer_step调用点，非实测有效更新数。
+- 主要支持A，建议先补多样标签、从官方权重建新基线并适配更新预算；唯一根因未证实。
+- 报告：[失败分析](../vision_training/reports/blue_cube_pilot_v1_failure_analysis.md)。
+  本机完整证据vision_training/runs/blue_cube_pilot_v1/analysis_v2；21项检查通过。
+- 未训练、未改框架/ROS/HSV/MAP/控制、未全仓编译或启动GO2；改进效果NOT VERIFIED。
+
+## 2026-11-10 — blue_cube_pilot_v2（一次80轮配置修正）
+
+- 基线3ea9fbc；同20图14/6、同官方YOLO11n与增强；nbs64→4，epochs50→80，patience15→80。
+- warmup3仍有100batch下限；实际320batch累积均1，optimizer post-step hook313次，AMP跳步7次。
+- conf0.25、IoU≥0.5：V1 best train/val=0/0/14、0/0/6；V2 best=13/0/1、4/0/2；last=14/0/0、4/0/2。
+- conf0.05：V2 best train/val=14/1/0、5/0/1；last=14/1/0、6/0/0，FP1为重复框。
+- best第70轮，last第80轮；训练调用87.85秒，CSV累计74.69秒（口径含监测等，非纯GPU时间）。
+- 第24–27轮10项验证loss为NaN，后期有限；原CSV保留，分析显式null并记事件，不声明全程稳定。
+- 结论：已具备训练图拟合能力；同场景val仍漏边缘小目标，不证明跨场景泛化。
+- 236个V1/数据保护文件和库trainer源码hash未变；30项检查通过，无全仓构建/GO2运行。
+- [对比报告](../vision_training/reports/blue_cube_pilot_v2.md)；本机完整证据vision_training/runs/blue_cube_pilot_v2。

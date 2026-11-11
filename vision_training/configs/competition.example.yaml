@@ -1,0 +1,22 @@
+# Copy to competition.yaml and point to the real, reviewed competition dataset.
+project: competition_target
+data: ../datasets/competition_v1/data.yaml
+model: yolo11n.pt
+output: ../runs
+name: baseline_v1
+imgsz: 640
+epochs: 100
+batch: 8
+device: 0
+patience: 20
+workers: 4
+seed: 42
+augmentation:
+  hsv_h: 0.015
+  hsv_s: 0.5
+  hsv_v: 0.4
+  translate: 0.1
+  scale: 0.3
+  fliplr: 0.5
+  mosaic: 0.5
+  close_mosaic: 10

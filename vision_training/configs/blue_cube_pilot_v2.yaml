@@ -1,0 +1,27 @@
+# Small sample experiment; explicit --pilot required. No independent test set.
+project: blue_cube_pilot_v2
+name: train_v2
+data: ../datasets/blue_cube_pilot_v1/data.yaml
+model: yolo11n.pt
+output: ../runs
+imgsz: 640
+epochs: 80
+batch: 4
+nbs: 4
+warmup_epochs: 3.0  # Preserve V1; installed trainer floor is 100 batches.
+patience: 80
+device: 0
+workers: 0
+seed: 42
+augmentation:
+  hsv_h: 0.0
+  hsv_s: 0.2
+  hsv_v: 0.25
+  translate: 0.05
+  scale: 0.15
+  degrees: 0.0
+  fliplr: 0.5
+  flipud: 0.0
+  mosaic: 0.0
+  mixup: 0.0
+  close_mosaic: 0

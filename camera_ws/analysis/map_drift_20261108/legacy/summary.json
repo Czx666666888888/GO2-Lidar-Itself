@@ -1,0 +1,20 @@
+{
+  "source": "camera_ws/records/approach_20261107_173154_217135.jsonl",
+  "detections": 175,
+  "accepted_frames": 80,
+  "time_difference_definition": "RGB minus depth, milliseconds",
+  "legacy_float_timestamp_roundoff": true,
+  "all": {
+    "min_ms": -67.508992,
+    "median_ms": 0.0,
+    "max_ms": 0.0,
+    "abs_p95_ms": 67.1935488
+  },
+  "accepted": {
+    "min_ms": -67.501312,
+    "median_ms": 0.0,
+    "max_ms": 0.0,
+    "abs_p95_ms": 67.1925888
+  },
+  "map_statistics": "NOT VERIFIED: no timestamped raw MAP measurement events"
+}
