@@ -1,0 +1,9 @@
+path: .
+train: images/train
+val: images/val
+test: images/test
+nc: 3
+names:
+  0: color_block
+  1: rock_compact
+  2: rock_spiky

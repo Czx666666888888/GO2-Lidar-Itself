@@ -106,6 +106,35 @@ def import_images(args):
     print(f'{len(rows)} images imported; still UNREVIEWED')
 
 
+def import_rgbd(args):
+    """Import original RGB from capture sidecars, keeping full RGB-D provenance."""
+    root, session = Path(args.dataset).resolve(), Path(args.session).resolve()
+    safe_group(args.group)
+    session_meta = json.loads((session / 'session.json').read_text())
+    rows, copies = [], []
+    for sidecar in sorted(session.glob('*/sample.json')):
+        meta = json.loads(sidecar.read_text())
+        source = sidecar.parent / meta['rgb_file']
+        name = f"{session_meta['session_id']}_{meta['frame_index']:08d}_{meta['rgb_stamp_ns']}.png"
+        target = root / 'pool/images' / args.group / name
+        if target.exists():
+            raise ValueError(f'Existing image: {target}')
+        rows.append(dict(image=str(target.relative_to(root)), group=args.group,
+                         source=str(source), source_video=meta.get('source_video'),
+                         frame_index=meta['frame_index'], scene=meta['scene'],
+                         session_id=meta['session_id'], rgb_stamp_ns=meta['rgb_stamp_ns'],
+                         rgbd_sidecar=str(sidecar), geometry_usable=meta['geometry_usable'],
+                         tags=args.tags, reviewed=False))
+        copies.append((source, target))
+    if not rows:
+        raise ValueError('No captured RGB samples')
+    for source, target in copies:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+    add_pool(root, rows)
+    print(f'{len(rows)} RGB images imported UNREVIEWED; no labels created')
+
+
 def review_group(args):
     root = Path(args.dataset).resolve()
     names = class_names(read_yaml(root / 'data.yaml')['names'])
@@ -209,6 +238,11 @@ def main():
         cmd.add_argument('--dataset', required=True)
         cmd.add_argument('--group', required=True)
         cmd.add_argument('--tags', nargs='*', default=[])
+    rgbd = sub.add_parser('import-rgbd')
+    rgbd.add_argument('--dataset', required=True)
+    rgbd.add_argument('--session', required=True)
+    rgbd.add_argument('--group', required=True)
+    rgbd.add_argument('--tags', nargs='*', default=[])
     rev = sub.add_parser('review-group')
     rev.add_argument('--dataset', required=True)
     rev.add_argument('--group', required=True)
@@ -230,7 +264,8 @@ def main():
                               fingerprint=manifest['fingerprint']), indent=2))
     else:
         {'extract': extract, 'import': import_images, 'review-group': review_group,
-         'review-dataset': review_dataset, 'split': split_groups}[args.command](args)
+         'review-dataset': review_dataset, 'split': split_groups,
+         'import-rgbd': import_rgbd}[args.command](args)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,27 @@
+# Formal three-class baseline. Do not train until all splits/classes are reviewed.
+project: science_targets_v1
+name: baseline_v1
+data: ../datasets/science_targets_v1/data.yaml
+model: yolo11n.pt
+output: ../runs
+imgsz: 640
+device: 0
+batch: 4
+nbs: 4  # Provisional no-accumulation baseline; reassess after actual dataset count.
+epochs: 100
+patience: 30
+warmup_epochs: 3.0  # Ultralytics 8.3.40: max(round(3 * batches_per_epoch), 100).
+workers: 0
+seed: 42
+augmentation:
+  hsv_h: 0.0  # Preserve the six real block colors.
+  hsv_s: 0.2
+  hsv_v: 0.3
+  degrees: 10.0
+  fliplr: 0.5
+  flipud: 0.0
+  scale: 0.15
+  translate: 0.05
+  mosaic: 0.0
+  mixup: 0.0
+  close_mosaic: 0

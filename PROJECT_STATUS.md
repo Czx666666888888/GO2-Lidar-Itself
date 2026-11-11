@@ -3,6 +3,23 @@
 更新日期：2026-11-11
 状态来源：当前仓库静态阅读、根 `README.md` 的既有记录和 Git 历史。除非特别说明，本文件不代表本轮重新完成了真机构建或运行验证。
 
+## 正式科学目标视觉准备（2026-11-11）
+
+来源：开始前实际远端 `bfa7425`、本轮源代码/真实历史20图哈希核对与针对性测试。
+当前开发分支 `feature/science-targets-perception`；下方原研发分支摘要为上一轮记录。
+
+- 采用 RGB YOLO11n + D435 Aligned Depth，相机系类别/多框/粗点输出；仅视觉范围。
+- 新增 science_targets_v1 三类：color_block / rock_compact / rock_spiky。
+  20份旧blue_cube人工标签复制并映射为类0，原数据不改；同实验室组整体保留，新三类
+  完整性待人工复查；没有岩石样本、正式split、三类权重或正式训练。
+- 新增CVAT Detection导入、RGB-D近时间匹配采集与原值保存、训练预算检查及操作指南。
+  34项针对性测试、静态lint、原V2配置解析通过；仅本机隔离域采集节点两秒启动退出、0帧。
+- 本机未枚举D435，真实采集/时差/对齐与三类识别粗定位为 `NOT VERIFIED`。
+  nbs4暂作batch4无累积起点，正式批次数与更新数须待真实划分后核对。
+- 未修改HSV、深度阈值、MAP转换、导航/运动；原bridge/10mm未完成改动保留并排除提交。
+- 操作入口：`vision_training/SCIENCE_TARGETS_GUIDE.md`；证据与限制：
+  `vision_training/reports/science_targets_v1_setup.md`。未全仓构建、训练或启动GO2运动。
+
 ## 最新状态摘要（2026-11-11）
 
 来源：当前分支 `feature/reusable-yolo-training`，实现基线 `5fa5cd0`、既有训练报告及

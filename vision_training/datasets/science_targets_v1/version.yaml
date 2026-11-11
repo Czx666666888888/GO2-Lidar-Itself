@@ -1,0 +1,12 @@
+version: science_targets_v1
+created: '2026-11-11'
+base_commit: bfa7425cd47cbf2b8f690dbd23ce19a4710e28c8
+status: collecting_and_annotating
+protocol: independent_capture_session_or_scene_train_val_test
+legacy_images: 20
+legacy_group: legacy_lab_session_20261108
+legacy_review: pending_three_class_completeness_review
+rock_compact_images: 0
+rock_spiky_images: 0
+rock_dimensions_and_material: unknown_needs_measurement
+training_started: false

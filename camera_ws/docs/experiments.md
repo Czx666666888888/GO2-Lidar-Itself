@@ -1172,3 +1172,12 @@ ZIP逐张与原图hash一致，无损坏、无自动标签。筛选不是人工�
 完整送标步骤和独立小规模补采建议见
 `../../vision_training/datasets/blue_cube/ANNOTATION_GUIDE.md`，计数和包hash见annotation_report.yaml。
 17项针对性检查通过；沿用既有环境，无重装/全仓构建/GO2运动。
+
+## 2026-11-11 — 正式三类视觉准备（无运动、无训练）
+
+远端基线bfa7425，新分支feature/science-targets-perception。真实历史20图与标签核对哈希后
+复制到三类别池；不生成岩石样本。新增只读RGB-D原值采集与源时间关联、CVAT导入及
+采集说明。34项针对性检查和lint通过，原V2配置解析兼容。
+本机USB未枚举D435；隔离本机ROS域211两秒启动退出，0接收/0保存，不能作为真实采集
+验收。真实RGB-D与三类别识别粗定位均NOT VERIFIED。没有全仓构建、训练或GO2运动。
+完整命令与限制见`../../vision_training/reports/science_targets_v1_setup.md`。

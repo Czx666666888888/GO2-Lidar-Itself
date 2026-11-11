@@ -2,7 +2,13 @@
 
 基于 ROS 2 的 Unitree GO2 自主导航与科学目标感知实验项目，包含机载 UTLiDAR/IMU、Point-LIO、FAR/局部规划、安全运动门、D435 RGB-D 定位，以及可复用的 YOLO 训练与独立推理工作流。
 
-更新日期：2026-11-11。当前研发分支：`feature/reusable-yolo-training`；本次整理依据代码基线 `5fa5cd0` 和仓库实验报告，未重新进行训练、构建或真机实验。
+更新日期：2026-11-11。当前研发分支：`feature/science-targets-perception`；本次视觉开发依据远端基线 `bfa7425` 和仓库实验报告，未重新进行训练、构建或真机实验。
+
+正式三类别视觉准备已加入 `feature/science-targets-perception`：
+`color_block / rock_compact / rock_spiky` 数据目录、CVAT导入、历史标签映射与只读RGB-D采集。
+可立即开始三类标注，尚待真实岩石/六色/负样本和独立会话数据，未启动正式训练。
+操作见 [科学目标采集标注指南](vision_training/SCIENCE_TARGETS_GUIDE.md)，
+本轮证据见 [验证记录](vision_training/reports/science_targets_v1_setup.md)。
 
 ## 当前进展
 

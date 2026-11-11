@@ -1,0 +1,4 @@
+# Replace these with actual pool group IDs after collecting and reviewing data.
+train: [legacy_lab_session_20261108, session_A]
+val: [session_B]
+test: [session_C]

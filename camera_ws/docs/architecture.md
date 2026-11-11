@@ -14,6 +14,17 @@ JSON额外保留深度时刻、时间差及每帧耗时。没有有效深度时�
 不接map/manager/visited/FAR、HSV正式点话题或任何运动输出；深度ROI粗点不等于
 正式标定、目标身份/表面真值或导航验收。实际验证见`../../vision_training/VALIDATION.md`。
 
+## 正式三类采集分支（2026-11-11）
+
+`rgbd_capture`只订阅RGB/Aligned Depth/Color CameraInfo，无publisher；沿用CvBridge与
+sensor QoS，等待0.2s后从有界Depth/Info缓存选择最近源stamp。保存原RGB PNG、原数值
+Depth NPY、完整CameraInfo、各源stamp/差值与session/scene。超配置时差、frame/尺寸
+不符或缺流时样本标记geometry_usable=false，不把候选视作同步真值。
+`dataset.py import-rgbd`仅复制RGB到人工标注池，同时保存原sidecar关联，不生成标签。
+三类由数据/权重定义，原YOLO detector/geometry和HSV接口不变；新工具不接map、
+目标管理或运动。当前只有无相机节点启动和文件读回检查，真实采集NOT VERIFIED。
+详见`../../vision_training/SCIENCE_TARGETS_GUIDE.md`及对应setup报告。
+
 ## Isolation Boundary
 
 `camera_ws` 是独立 ROS 2 Humble 工作空间。本阶段不引用、不启动也不修改现有 Point-LIO、terrain、WP5/NBV、FAR、local planner、path follower、safety gate、GO2 Sport API 或主导航 launch。

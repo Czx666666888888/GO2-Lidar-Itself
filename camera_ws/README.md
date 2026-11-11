@@ -8,6 +8,10 @@
 14 张训练图，同场景 6 张验证图仍有漏检，真实 D435 连续推理和泛化 `NOT VERIFIED`。
 见 [V2 报告](../vision_training/reports/blue_cube_pilot_v2.md)。下方 9 月环境数据为历史观测。
 
+正式三类视觉采集已提供只读 `rgbd_capture` 源码/console入口，保存原RGB、原数值深度、
+CameraInfo和各源时间戳；操作见 [采集标注指南](../vision_training/SCIENCE_TARGETS_GUIDE.md)。
+本轮本机D435未枚举，真实采集为 `NOT VERIFIED`。
+
 ## Goal
 
 为安装在 Unitree GO2 前端的 Intel RealSense D435 建立独立 ROS 2 Humble 实验环境。最终系统将识别科学目标、读取目标像素处的对齐深度、由相机内参反投影为三维点，并在完成外参标定后转换到 GO2 雷达 SLAM 的 `map` 坐标系。

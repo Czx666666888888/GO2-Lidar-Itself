@@ -1,0 +1,408 @@
+class_mapping:
+  0: blue_cube -> color_block (0)
+group: legacy_lab_session_20261108
+images: 20
+original_archive_sha256: db0be76353abaa6a75b78a40d71c6dae6744dde5b1324d8b0cb15e55a5aafee3
+records:
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 0
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_211245_917119_raw_00000000.jpg
+  image_sha256: 304919be4ef6522a50aefe6949fc8fd4635ce8b02814527d34f9c37337ca83c1
+  label_sha256: 727bc5850b2eb3c694f423ef02fc440fd130abaaca6e0c6a50d6a5889cc3145a
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_211245_917119_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 727bc5850b2eb3c694f423ef02fc440fd130abaaca6e0c6a50d6a5889cc3145a
+  source_seconds: 0.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 75
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_211245_917119_raw_00000075.jpg
+  image_sha256: 92addc0483406cd5f367e3b8488725e0c9a9ab347c7a4622b81debfde366d1c0
+  label_sha256: 1cb8c4bdb55712fffd13079c532411194883b3fce58421d2cc9c5f818edd98fe
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_211245_917119_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 1cb8c4bdb55712fffd13079c532411194883b3fce58421d2cc9c5f818edd98fe
+  source_seconds: 5.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 0
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222156_798690_raw_00000000.jpg
+  image_sha256: c988ea4e3a98e6d766d59cb41a1dd638a451f221ebe863831afbbc829cb971a0
+  label_sha256: 1f6897ad908997a64fdfb762090ceb7a8d06164b23947d154632b88c5667c131
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222156_798690_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 1f6897ad908997a64fdfb762090ceb7a8d06164b23947d154632b88c5667c131
+  source_seconds: 0.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 60
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222156_798690_raw_00000060.jpg
+  image_sha256: 5397ea4234b2158809948ff8036d523d2b55827255a82e1c25827fff8049c568
+  label_sha256: 5d61b693318b3704a2476b7a476f4aa1fb8ba3d38934607f8f20eda88d0575c4
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222156_798690_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 5d61b693318b3704a2476b7a476f4aa1fb8ba3d38934607f8f20eda88d0575c4
+  source_seconds: 4.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 75
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222156_798690_raw_00000075.jpg
+  image_sha256: b5d8f53e05094aebdb697e27d875a25672b117cb0c0ac1ee45b58b5ba82cdffd
+  label_sha256: e7876fa1f6764ee2bf16c84706af8b297741ff00580c3c2e7ede7c13834858db
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222156_798690_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: e7876fa1f6764ee2bf16c84706af8b297741ff00580c3c2e7ede7c13834858db
+  source_seconds: 5.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 105
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222156_798690_raw_00000105.jpg
+  image_sha256: 133e97568663bcc2d1996426c723abd4aa85d105853416f332fbf4c2b3ad3546
+  label_sha256: d67c3e5bb090aec23d3d6e5a40a981215ca8bba3d474b3c56ce973a793a04cc7
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222156_798690_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: d67c3e5bb090aec23d3d6e5a40a981215ca8bba3d474b3c56ce973a793a04cc7
+  source_seconds: 7.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 120
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222156_798690_raw_00000120.jpg
+  image_sha256: c764f90793f9ea716deccf16ce85024415807117c368f1aef39592324f1cceaa
+  label_sha256: 17e8d8c9acc2004a4a8025494081b7b31b9cf4783a615a2c419dd48ac7152b2d
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222156_798690_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 17e8d8c9acc2004a4a8025494081b7b31b9cf4783a615a2c419dd48ac7152b2d
+  source_seconds: 8.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 135
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222156_798690_raw_00000135.jpg
+  image_sha256: 5f07be8a4498a89ea2883a5780739ab9915e4105512b8f0bba4da7c783f59bb6
+  label_sha256: 1eb0a78e7c3c66a643180d168d9f1653d572be071f52051c91910eda8703bf6a
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222156_798690_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 1eb0a78e7c3c66a643180d168d9f1653d572be071f52051c91910eda8703bf6a
+  source_seconds: 9.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 45
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222516_034701_raw_00000045.jpg
+  image_sha256: 4c373f24ddc7fb6a44a41d08e2de97b3f7452875c74d73a457e6289cf1baf3d9
+  label_sha256: 309bd4e9b10233f373db61fcdc1336643844a1ea2fc6495f5e780872668c144c
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222516_034701_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 309bd4e9b10233f373db61fcdc1336643844a1ea2fc6495f5e780872668c144c
+  source_seconds: 3.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 120
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222516_034701_raw_00000120.jpg
+  image_sha256: 5faa1793b4d8f4eed597a63ff86b191a3f920d6cda398ffc9b691ff774156195
+  label_sha256: ebff863eb6cbfe4d29045ac8e03adfb0b05d98ed7d239d6d2251a2b1781e3bf3
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222516_034701_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: ebff863eb6cbfe4d29045ac8e03adfb0b05d98ed7d239d6d2251a2b1781e3bf3
+  source_seconds: 8.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 135
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222516_034701_raw_00000135.jpg
+  image_sha256: 7f8d694bc0d19261ae36bdc1accfb50e9ebaffd77b5d170e597fa6028213eed4
+  label_sha256: 4c96e9a00efe6f2a763e81f8d70105a7d96bf22ad38c7b6ec8fc3e308b8b7f89
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222516_034701_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 4c96e9a00efe6f2a763e81f8d70105a7d96bf22ad38c7b6ec8fc3e308b8b7f89
+  source_seconds: 9.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 150
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222516_034701_raw_00000150.jpg
+  image_sha256: 926c5c6202448303137f1864770ce958c9aa4bb19271e987fb392d9fa88a4417
+  label_sha256: 3e6736214c5e6615c012612f87da410142eb30dbb4d349fee7da6cba8d06e5c7
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222516_034701_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 3e6736214c5e6615c012612f87da410142eb30dbb4d349fee7da6cba8d06e5c7
+  source_seconds: 10.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 165
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222516_034701_raw_00000165.jpg
+  image_sha256: fcf5de4aa853c41664688fe713b00969e823b311371ad711a4aa5f16a93b7dea
+  label_sha256: 56763f070c2abb1fef833420e479a2c79fad623a3ee45e5ccdf95cae60c768d6
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222516_034701_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 56763f070c2abb1fef833420e479a2c79fad623a3ee45e5ccdf95cae60c768d6
+  source_seconds: 11.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 180
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222516_034701_raw_00000180.jpg
+  image_sha256: be090f67b6c119f8558358af9b7a753efcae0dd39da7acad319ed8bda446dd9f
+  label_sha256: 17d67a610dd8c24ca296a149c58f0ae60ceef165b0409bf8c01708413278aaba
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222516_034701_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 17d67a610dd8c24ca296a149c58f0ae60ceef165b0409bf8c01708413278aaba
+  source_seconds: 12.0
+  source_split: train
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 0
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222842_367393_raw_00000000.jpg
+  image_sha256: 033399eb4c757c8514d61586ed1a6b8836fa6d986d4cd5ef35d7722ea65538d0
+  label_sha256: 6fe0723155b6bd166c25874f15b3089e0e5b3696a05b75da21aa1d6b376da45c
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222842_367393_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 6fe0723155b6bd166c25874f15b3089e0e5b3696a05b75da21aa1d6b376da45c
+  source_seconds: 0.0
+  source_split: val
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 45
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222842_367393_raw_00000045.jpg
+  image_sha256: 1f8b9ca3dc5f55cfe130a6dc7d2dbdf76848ae7bf35de368b236ceaa2eebf645
+  label_sha256: 72c2177edaff28ac6b81fca0ca095bf368deeac2e073ef72ff6f54ac5b38d026
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222842_367393_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 72c2177edaff28ac6b81fca0ca095bf368deeac2e073ef72ff6f54ac5b38d026
+  source_seconds: 3.0
+  source_split: val
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 90
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222842_367393_raw_00000090.jpg
+  image_sha256: 40760e662f21c99a2da7a256bb9d4c4308086b027b0bc323a7015d6ed4b25d36
+  label_sha256: 5708b4098caf2fd44721f7069574d53855d5a26a2d23635bba011c105e45f87a
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222842_367393_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 5708b4098caf2fd44721f7069574d53855d5a26a2d23635bba011c105e45f87a
+  source_seconds: 6.0
+  source_split: val
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 105
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222842_367393_raw_00000105.jpg
+  image_sha256: fd72dedcc461f077c146859981d695f694149d9ad138c5fd98227a2787afdf3a
+  label_sha256: 4fb12207b858d8e2d1e8742625e83fc5ee000d438d8603941c0daeac108aaa9a
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222842_367393_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 4fb12207b858d8e2d1e8742625e83fc5ee000d438d8603941c0daeac108aaa9a
+  source_seconds: 7.0
+  source_split: val
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 120
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222842_367393_raw_00000120.jpg
+  image_sha256: d5db2e9bba812ab436f07b87fbe19cdb3f24b89d627bf11abcd725553369937b
+  label_sha256: 37d676cdfdb1685b534cd39e639b90cb077117a74641d6f62f5ead903039109d
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222842_367393_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 37d676cdfdb1685b534cd39e639b90cb077117a74641d6f62f5ead903039109d
+  source_seconds: 8.0
+  source_split: val
+  tags:
+  - legacy_blue_cube
+- annotation_status: historical_positive_needs_three_class_review
+  class_mapping:
+    0:
+      source: blue_cube
+      target: color_block
+      target_id: 0
+  frame_index: 135
+  group: legacy_lab_session_20261108
+  image: pool/images/legacy_lab_session_20261108/approach_20261108_222842_367393_raw_00000135.jpg
+  image_sha256: db7da2dbddac91796524e2c5e1dec5ff9ee5816ff3ba9064d8edea0dc60eab6d
+  label_sha256: 1b78eb9e70a6a8f1518a1e4b9b3dc7c8560fb02a4bc767aba57eb71454370aac
+  reviewed: false
+  scene: historical_lab_floor
+  source: approach_20261108_222842_367393_raw.mp4
+  source_dataset: blue_cube_pilot_v1
+  source_label_sha256: 1b78eb9e70a6a8f1518a1e4b9b3dc7c8560fb02a4bc767aba57eb71454370aac
+  source_seconds: 9.0
+  source_split: val
+  tags:
+  - legacy_blue_cube
+reviewed: false
+source_version_sha256: 4c044ac00129e9415b94718da0668e9758e3f6c3bfe90bf87cb400a3872fc954

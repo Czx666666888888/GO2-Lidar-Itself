@@ -4,6 +4,11 @@
 正式目标公布后新建数据目录、标注并换 YAML 即可，不改训练核心或检测逻辑。
 旧 HSV 与真实接近程序保持原样；本节点不接 manager/地图/导航/运动。
 
+正式比赛三类 `color_block / rock_compact / rock_spiky` 的数据版本、RGB-D采集和CVAT流程
+见 [SCIENCE_TARGETS_GUIDE.md](SCIENCE_TARGETS_GUIDE.md) 与
+[science_targets_v1](datasets/science_targets_v1/README.md)。旧blue_cube/pilot保持原样；
+正式数据尚未完成，不启动训练。
+
 ## 目录
 
 ```text
