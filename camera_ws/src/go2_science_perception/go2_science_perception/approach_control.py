@@ -95,13 +95,16 @@ def angle(value):
 class ApproachControl:
     """Lock one ID on confirmation; STOP/FAULT require reset and confirmation."""
 
-    def __init__(self, settings=None):
+    def __init__(self, settings=None, docking=None):
         """Initialize without a target or motion permission."""
         self.p = settings or Settings()
+        self.docking = docking
         self.reset()
 
     def reset(self):
         """Clear all previous observations as well as the terminal latch."""
+        if self.docking is not None:
+            self.docking.reset()
         self.state, self.reason = 'IDLE', ''
         self.robot = self.target = self.lock_id = None
         self.tracks = []
@@ -647,6 +650,8 @@ class ApproachControl:
                 out.update(vx=0.0, wz=0.0)
             out.update(state=self.state, reason=self.reason)
             return out
+        if self.docking is not None:
+            return self.docking.step(self, now, out, dt, active)
         reference = self.reference()
         if self.robot is None or self.target is None or reference is None:
             return out

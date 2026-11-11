@@ -319,3 +319,14 @@ USB实收D435；GO2时钟退回2022年，经用户本地输入sudo密码恢复�
 后续用户报告当前版本“实测两次都可以”，并要求推送。已记录为用户现场反馈；所述
 两次未逐一关联原始run并审计，不补写距离/耗时或定量重复精度。实验实现为07292cd，
 参数保持搜索5 m/0.25 m/s/60 s、确认6 s、SEARCH专用ODOM路径5 m/25 s。
+
+## 2026-11-12 — 单目标 MAP/S1 集成实验分支
+
+基于远端稳定 e15c66c，新模式默认关闭：右侧抓取停靠二维几何、MAP 局部停靠、
+SDK2 姿态交接及原 S1 socket 任务协调已实现。普通 MAP 参数未改。
+43项初始定向测试通过，单包构建通过；末端切换修复后44项定向测试通过。
+GO2 已接 D435/D455、S1串口，交付包离线预检通过；S1第二次启动进入 ZERO_HOLD。
+首次真实停靠试验 SEARCH/STOP_CONFIRM成功，末端阶段切换后run timeout，未趴下/抓取。
+新增最终航向阶段锁定及先制动修复；修复后实机结果尚待记录，不得把本次失败写成完整抓取成功。
+实际XY测量、趴下姿态完成判据、StandDown/grasp/StandUp均 NOT VERIFIED。
+详见 camera_ws/docs/map_s1_grasp_integration.md 和 camera_ws/docs/experiments.md。

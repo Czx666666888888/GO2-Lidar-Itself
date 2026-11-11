@@ -1,0 +1,15 @@
+# Optional overlay AFTER existing approach/search profiles. Ordinary MAP mode unchanged.
+science_target_approach:
+  ros__parameters:
+    grasp_docking_enabled: true
+    dock_s1_base_x: -0.06  # User-measured 0.36m behind nominal lidar +0.30m.
+    dock_s1_base_y: 0.0
+    dock_target_s1_x: 0.0
+    dock_target_s1_y: 0.31
+    dock_position_tolerance: 0.02  # Provisional; physical XY measurement still required.
+    dock_yaw_tolerance: 0.05
+    dock_settled_sec: 0.5
+    dock_region_x_min: -0.05
+    dock_region_x_max: 0.05
+    dock_region_y_min: 0.29
+    dock_region_y_max: 0.33

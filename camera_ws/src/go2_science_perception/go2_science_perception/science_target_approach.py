@@ -20,6 +20,8 @@ from tf2_ros import Buffer, TransformException, TransformListener
 from unitree_go.msg import SportModeState
 
 from .approach_control import ApproachControl, Settings
+from .grasp_pose_geometry import DockSettings
+from .grasp_docking import GraspDocking
 
 
 class ScienceTargetApproach(Node):
@@ -36,8 +38,15 @@ class ScienceTargetApproach(Node):
                             'require_recording': False, 'recording_timeout': 2.0,
                             'log_directory': '/tmp'}.items():
             self.declare_parameter(name, value)
+        self.declare_parameter('grasp_docking_enabled', False)
+        for field in fields(DockSettings()):
+            self.declare_parameter('dock_' + field.name, getattr(DockSettings(), field.name))
+        self.grasp_docking_enabled = self.get_parameter('grasp_docking_enabled').value
+        docking = GraspDocking(DockSettings(**{
+            f.name: self.get_parameter('dock_' + f.name).value for f in fields(DockSettings())
+        })) if self.grasp_docking_enabled else None
         self.core = ApproachControl(Settings(**{
-            f.name: self.get_parameter(f.name).value for f in fields(defaults)}))
+            f.name: self.get_parameter(f.name).value for f in fields(defaults)}), docking=docking)
         self.dry_run = self.get_parameter('dry_run').value
         self.map_frame = self.get_parameter('map_frame').value
         self.future_tolerance = self.get_parameter('future_tolerance').value
@@ -53,6 +62,11 @@ class ScienceTargetApproach(Node):
         self.log_file = open(self.log_path, 'x', buffering=1)
         self.log_file.write(json.dumps({'parameters': vars(self.core.p),
                                         'dry_run': self.dry_run}) + '\n')
+        if docking is not None:
+            self.log_file.write(json.dumps({
+                'grasp_docking_enabled': True, 'docking_parameters': vars(docking.p),
+                'vehicle_pose_source': 'exact_stamp_map_to_vehicle_TF',
+                's1_base_z': None}) + '\n')
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.last_stamp = None
@@ -196,6 +210,18 @@ class ScienceTargetApproach(Node):
             if abs(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w - 1) > 0.01:
                 raise ValueError('invalid orientation quaternion')
             yaw = math.atan2(2*(q.w*q.z + q.x*q.y), 1-2*(q.y*q.y + q.z*q.z))
+            if self.grasp_docking_enabled:
+                # map->vehicle already includes the sensor offset: never subtract it twice.
+                vehicle_tf = self.tf_buffer.lookup_transform(
+                    self.map_frame, 'vehicle', rclpy.time.Time.from_msg(msg.header.stamp))
+                v = vehicle_tf.transform.translation
+                q = vehicle_tf.transform.rotation
+                if not all(math.isfinite(n) for n in (v.x, v.y, v.z, q.x, q.y, q.z, q.w)):
+                    raise ValueError('nonfinite vehicle TF')
+                if abs(q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w-1) > 0.01:
+                    raise ValueError('invalid vehicle TF quaternion')
+                p.x, p.y, p.z = v.x, v.y, v.z
+                yaw = math.atan2(2*(q.w*q.z + q.x*q.y), 1-2*(q.y*q.y + q.z*q.z))
             # Sample time, not callback frequency, determines measured velocity.
             sample_time = time.monotonic()-age
             if self.core.p.stop_reference == 'camera_origin':

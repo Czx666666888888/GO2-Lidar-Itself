@@ -36,9 +36,11 @@ def flow_metrics(reports):
 class Experiment:
     """Own only this run's processes; always stop, disarm and finalize video."""
 
-    def __init__(self, args):
+    def __init__(self, args, navigation_guard=None):
         """Create monitoring and existing manual-control topic clients."""
         self.args = args
+        self.navigation_guard = navigation_guard
+        self.last_navigation_audit = -float('inf')
         self.node = rclpy.create_node('science_map_anchor_experiment')
         self.root = Path(__file__).resolve().parents[2]
         self.folder = self.root / 'camera_ws/records'
@@ -67,6 +69,10 @@ class Experiment:
         """Continue monitoring callbacks while waiting for an expected event."""
         end = time.monotonic() + seconds
         while time.monotonic() < end:
+            if (self.navigation_guard is not None and
+                    time.monotonic()-self.last_navigation_audit >= 0.5):
+                self.navigation_guard()
+                self.last_navigation_audit = time.monotonic()
             rclpy.spin_once(self.node, timeout_sec=0.01)
 
     def launch(self, package, executable, arguments, label):
@@ -117,7 +123,9 @@ class Experiment:
         self.launch('go2_science_perception', 'science_target_approach', [
             '--params-file', str(share / 'config/science_target_approach.yaml'),
             '-p', 'dry_run:=false', '-p', f'max_run_time:={self.args.timeout}',
-            '-p', f'log_directory:={self.folder}', *search_params], 'control')
+            '-p', f'log_directory:={self.folder}', *search_params,
+            *(['--params-file', str(share / 'config/science_grasp_docking.yaml')]
+              if getattr(self.args, 'grasp_pose', False) else [])], 'control')
         self.launch('go2_science_perception', 'approach_video_recorder', [
             '-p', f'output_directory:={self.folder}'], 'recorder')
         self.spin(2)
@@ -166,7 +174,7 @@ class Experiment:
             self.spin(0.05)
             state = self.control.get('state')
             seen |= state in ('SEARCH', 'STOP_CONFIRM', 'LOCK_TARGET', 'ALIGN',
-                              'APPROACH_VISUAL', 'APPROACH_ODOM')
+                              'APPROACH_VISUAL', 'APPROACH_ODOM', 'APPROACH_TO_GRASP_POSE')
             if state in ('STOP', 'FAULT'):
                 break
             if (self.node.count_publishers('/cmd_vel_raw') != 1 or
@@ -179,6 +187,7 @@ class Experiment:
 
     def close(self):
         """Finalize evidence even when setup or execution fails."""
+        self.navigation_guard = None
         self.stop.publish(Int8(data=1))
         self.spin(0.2)
         if self.timer:
@@ -210,6 +219,8 @@ def main():
     parser.add_argument('--target-xy', nargs=2, type=float,
                         help='optional approved MAP XY position')
     parser.add_argument('--no-log-terminal', action='store_true')
+    parser.add_argument('--grasp-pose', action='store_true',
+                        help='opt into MAP S1 docking; no posture or arm actions')
     parser.add_argument('--search', action='store_true', help='search then approach automatically')
     parser.add_argument('--search-distance', type=float, default=5.0)
     parser.add_argument('--search-timeout', type=float, default=60.0)

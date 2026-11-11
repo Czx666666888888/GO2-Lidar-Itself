@@ -221,3 +221,11 @@ MAP XY散布检验与中位数锚定，不使用像素静止判据；确认后�
 视觉/SLAM/TF链及camera_link原点XY停车语义不变；独立SEARCH配置覆盖参数，人工接近
 配置保留。原始视频/检测/控制日志共同记录SEARCH与APPROACH。实机结果与验证边界见
 同目录experiments.md，源代码/参数存在不等于所有现场条件通过。
+
+## 可选 MAP/S1 单目标任务（2026-11-12，源码已实现，实机未验收）
+
+旧SEARCH/STOP_CONFIRM -> MAP锚点 -> grasp_pose_geometry二维停车位 ->
+可选GraspDocking(vx/wz) -> 原唯一安全门 -> 停靠完成 -> 退出本轮速度控制 ->
+SDK2 StandDown反馈确认 -> 原S1 socket grasp -> 新任务完成且ZERO_HOLD -> SDK2 StandUp。
+默认关闭；不修改Point-LIO、HSV/深度、相机外参或普通MAP的0.10m条件。
+完整任务与运动/入盒验收分离，具体命令和坐标边界见 map_s1_grasp_integration.md。
