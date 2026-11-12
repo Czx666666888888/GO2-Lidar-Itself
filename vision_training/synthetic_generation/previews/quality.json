@@ -1,0 +1,18 @@
+{
+  "manifest_sha256": "f18aee5742fc060e3371d1fd9d56c5232dc5c140e730a941dd98648373e977e0",
+  "images": 12,
+  "primary_class_counts": [
+    4,
+    4,
+    4
+  ],
+  "scenes": 6,
+  "splits": {
+    "train": 6,
+    "val": 6
+  },
+  "automatic_checks": "PASS",
+  "stl_world_ground_checks": 18,
+  "visual_review": "PASS",
+  "visual_review_note": "Inspected all 12 preview tiles and full-resolution compact slope/spiky scenes plus material sheet. No observed floating/penetration or ordinary-rock labels after sign and separation fixes. Development acceptance only."
+}

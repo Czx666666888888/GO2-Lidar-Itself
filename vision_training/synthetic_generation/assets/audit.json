@@ -1,0 +1,118 @@
+[
+  {
+    "file": "科学目标1.stl",
+    "sha256": "d2f8d7d6311c6f075d76148da0b7cced61df2a0731c7ffe1e003f89af3fdb11d",
+    "stl_unit": "unknown",
+    "raw_vertices": 24954,
+    "unique_vertices": 4161,
+    "triangles": 8318,
+    "bbox_raw": [
+      [
+        0.08547026664018631,
+        0.06947837024927139,
+        -0.0009536715224385262
+      ],
+      [
+        0.1026262566447258,
+        0.09094651788473129,
+        0.01811969466507435
+      ]
+    ],
+    "dimensions_raw": [
+      0.01715599000453949,
+      0.0214681476354599,
+      0.019073366187512875
+    ],
+    "configured_scale": 1.0,
+    "bbox_import_m": [
+      [
+        0.08547026664018631,
+        0.06947837024927139,
+        -0.0009536715224385262
+      ],
+      [
+        0.1026262566447258,
+        0.09094651788473129,
+        0.01811969466507435
+      ]
+    ],
+    "dimensions_import_m": [
+      0.01715599000453949,
+      0.0214681476354599,
+      0.019073366187512875
+    ],
+    "physical_size_verified": false,
+    "watertight": true,
+    "winding_consistent": true,
+    "zero_area_faces": 0,
+    "near_zero_area_faces": 0,
+    "near_zero_area_threshold_raw_squared": 1e-12,
+    "nonfinite_vertices": 0,
+    "duplicate_faces": 0,
+    "self_intersections": "NOT VERIFIED",
+    "signed_volume_raw_cubed": 3.1890651471653815e-06,
+    "outward_winding_volume": true,
+    "stored_zero_normals": 0,
+    "stored_nonfinite_normals": 0,
+    "stored_normals_opposite_winding": 0,
+    "stored_normals_deviation_over_1deg": 0
+  },
+  {
+    "file": "科学目标2.stl",
+    "sha256": "3217dec5543868f0d333420f7f19908b823063e8c8e331e5ceec5432241907e1",
+    "stl_unit": "unknown",
+    "raw_vertices": 155406,
+    "unique_vertices": 25903,
+    "triangles": 51802,
+    "bbox_raw": [
+      [
+        -0.0164579376578331,
+        -0.01868395321071148,
+        -1.0488818996027883e-20
+      ],
+      [
+        0.02315683476626873,
+        0.01460918691009283,
+        0.032736409455537796
+      ]
+    ],
+    "dimensions_raw": [
+      0.03961477242410183,
+      0.03329314012080431,
+      0.032736409455537796
+    ],
+    "configured_scale": 1.0,
+    "bbox_import_m": [
+      [
+        -0.0164579376578331,
+        -0.01868395321071148,
+        -1.0488818996027883e-20
+      ],
+      [
+        0.02315683476626873,
+        0.01460918691009283,
+        0.032736409455537796
+      ]
+    ],
+    "dimensions_import_m": [
+      0.03961477242410183,
+      0.03329314012080431,
+      0.032736409455537796
+    ],
+    "physical_size_verified": false,
+    "watertight": true,
+    "winding_consistent": true,
+    "zero_area_faces": 0,
+    "near_zero_area_faces": 8,
+    "near_zero_area_threshold_raw_squared": 1e-12,
+    "nonfinite_vertices": 0,
+    "duplicate_faces": 0,
+    "self_intersections": "NOT VERIFIED",
+    "signed_volume_raw_cubed": 1.1802687777681602e-05,
+    "outward_winding_volume": true,
+    "stored_zero_normals": 0,
+    "stored_nonfinite_normals": 0,
+    "stored_normals_opposite_winding": 0,
+    "stored_normals_deviation_over_1deg": 0
+  }
+]

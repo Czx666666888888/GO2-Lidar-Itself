@@ -1,0 +1,40 @@
+[
+  {
+    "class_name": "rock_compact",
+    "file": "科学目标1.stl",
+    "sha256": "d2f8d7d6311c6f075d76148da0b7cced61df2a0731c7ffe1e003f89af3fdb11d",
+    "blender_vertices": 4161,
+    "blender_triangles": 8318,
+    "dimensions_before": [
+      0.01715599000453949,
+      0.0214681476354599,
+      0.01907336711883545
+    ],
+    "dimensions_after_m_assumption": [
+      0.01715599000453949,
+      0.0214681476354599,
+      0.01907336711883545
+    ],
+    "scale": 1.0,
+    "physical_size_verified": false
+  },
+  {
+    "class_name": "rock_spiky",
+    "file": "科学目标2.stl",
+    "sha256": "3217dec5543868f0d333420f7f19908b823063e8c8e331e5ceec5432241907e1",
+    "blender_vertices": 25903,
+    "blender_triangles": 51802,
+    "dimensions_before": [
+      0.03961477428674698,
+      0.033293139189481735,
+      0.032736409455537796
+    ],
+    "dimensions_after_m_assumption": [
+      0.03961477428674698,
+      0.033293139189481735,
+      0.032736409455537796
+    ],
+    "scale": 1.0,
+    "physical_size_verified": false
+  }
+]

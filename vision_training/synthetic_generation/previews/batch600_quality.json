@@ -1,0 +1,68 @@
+{
+  "manifest_sha256": "1ad62aabc3f36e33b2dda7b48fc4094fd3eacc6b75d19b426b913d8ad33c9a31",
+  "images": 600,
+  "primary_class_counts": [
+    200,
+    200,
+    200
+  ],
+  "scenes": 300,
+  "splits": {
+    "train": 480,
+    "val": 120
+  },
+  "automatic_checks": "PASS",
+  "stl_world_ground_checks": 812,
+  "visual_review": "PASS: sampled final montage, not all 600 images",
+  "box_counts": [
+    392,
+    368,
+    444
+  ],
+  "file_counts": {
+    "images": 600,
+    "labels": 600,
+    "masks": 600,
+    "metadata": 600
+  },
+  "colors": {
+    "green": 70,
+    "red": 84,
+    "blue": 78,
+    "yellow": 70,
+    "natural_wood": 90
+  },
+  "camera_source": "synthetic_camera",
+  "stl_scales": [
+    1.0,
+    1.0
+  ],
+  "physical_size_verified": false,
+  "final_test_source": "d435_real_required",
+  "parameter_ranges": {
+    "distance_m": [
+      0.3004152438123633,
+      0.7976681719135521
+    ],
+    "depression_deg": [
+      25.067538507234133,
+      64.74439234455836
+    ],
+    "slope_deg": [
+      0.05119224063067862,
+      5.995146545347979
+    ],
+    "light_energy": [
+      1.5123335592455427,
+      11.996651542266958
+    ],
+    "supplement_energy": [
+      0.055661654986868,
+      1.1995172363733106
+    ]
+  },
+  "visible_fraction_range": [
+    0.44396551724137934,
+    1.0
+  ]
+}

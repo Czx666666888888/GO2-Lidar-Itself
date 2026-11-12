@@ -21,3 +21,6 @@ datasets/*/*.cache
 
 # Pilot media remain local; tracked version metadata uses YAML.
 datasets/*/label_review.jpg
+
+# Synthetic datasets: keep render output, sidecars and masks local.
+datasets/science_targets_synthetic*/

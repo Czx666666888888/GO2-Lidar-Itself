@@ -95,3 +95,17 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 结论：已具备训练图拟合能力；同场景val仍漏边缘小目标，不证明跨场景泛化。
 - 236个V1/数据保护文件和库trainer源码hash未变；30项检查通过，无全仓构建/GO2运行。
 - [对比报告](../vision_training/reports/blue_cube_pilot_v2.md)；本机完整证据vision_training/runs/blue_cube_pilot_v2。
+
+
+## 2026-11-12：BlenderProc科学目标合成数据（非真机）
+
+- 来源：实际Blender4.2.1/BlenderProc2.8.0 CPU渲染、原STL/发布ZIP核对、mask与原STL世界坐标独立检查。
+- 50mm立方体/0.5mm倒角实际创建；五个已知材质+第六色未确认占位，后者不采样。
+- 本地原STL默认scale1.0，单位和实物尺寸未知；原始文件未改，哈希/拓扑/导入尺寸见合成assets审计。
+- 600张：每类主目标200；实际框数[392, 368, 444]；300场景，每场景2视角，train480/val120，无test。
+- 全600张自动标签/掩码/来源/场景泄漏检查通过；原STL接地812次通过。
+  小批量发现并修复坡面悬空及间距问题，历史悬空样本回归拒绝；最终预览抽查通过。
+- 数据位置：`vision_training/datasets/science_targets_synthetic_v1/`；原始日志在合成runtime/batch600.log。
+  统计/哈希：`vision_training/synthetic_generation/previews/batch600_quality.json`；详见该目录REPORT。
+- 证据等级：合成渲染与离线数据检查，不是真实D435或GO2运行。synthetic_camera，实物尺寸、
+  第六色、真实CameraInfo/Depth/GPU/泛化为NOT VERIFIED。最终test必须独立真实D435；未训练/未改ROS或运动。

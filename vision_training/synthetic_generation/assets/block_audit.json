@@ -1,0 +1,66 @@
+{
+  "base_meshes": 1,
+  "bevel_m": 0.0005000000237487257,
+  "materials": [
+    {
+      "color": "red",
+      "dimensions_m": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "confirmed": true,
+      "material": "red"
+    },
+    {
+      "color": "green",
+      "dimensions_m": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "confirmed": true,
+      "material": "green"
+    },
+    {
+      "color": "blue",
+      "dimensions_m": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "confirmed": true,
+      "material": "blue"
+    },
+    {
+      "color": "yellow",
+      "dimensions_m": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "confirmed": true,
+      "material": "yellow"
+    },
+    {
+      "color": "natural_wood",
+      "dimensions_m": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "confirmed": true,
+      "material": "natural_wood"
+    },
+    {
+      "color": "color_6_pending",
+      "dimensions_m": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "confirmed": false,
+      "material": "color_6_pending"
+    }
+  ]
+}

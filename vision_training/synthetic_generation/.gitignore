@@ -1,0 +1,8 @@
+.venv/
+runtime/
+assets/*.stl
+assets/*.STL
+assets/*.blend
+__pycache__/
+assets/*.blend1
+assets/materials.png

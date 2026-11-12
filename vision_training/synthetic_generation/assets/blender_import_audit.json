@@ -1,0 +1,30 @@
+{
+  "科学目标2.stl": {
+    "blender_dimensions_before": [
+      0.03961477242410183,
+      0.03329314012080431,
+      0.032736409455537796
+    ],
+    "blender_dimensions_after_m_assumption": [
+      0.03961477242410183,
+      0.033293141052126884,
+      0.032736409455537796
+    ],
+    "scale": 1.0,
+    "physical_size_verified": false
+  },
+  "科学目标1.stl": {
+    "blender_dimensions_before": [
+      0.01715599000453949,
+      0.0214681476354599,
+      0.019073366187512875
+    ],
+    "blender_dimensions_after_m_assumption": [
+      0.01715599000453949,
+      0.0214681476354599,
+      0.01907336711883545
+    ],
+    "scale": 1.0,
+    "physical_size_verified": false
+  }
+}

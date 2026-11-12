@@ -1,0 +1,41 @@
+seed: 20261112
+classes: [color_block, rock_compact, rock_spiky]
+assets:
+  rock_compact: 科学目标1.stl
+  rock_spiky: 科学目标2.stl
+# STL has no declared unit. 1.0 deliberately retains raw coordinate magnitudes.
+rock_compact_scale: 1.0
+rock_spiky_scale: 1.0
+physical_scale_confirmed: false
+block:
+  size_m: 0.05
+  bevel_m: 0.0005
+  roughness: 0.65
+  colors:
+    red: [0.65, 0.018, 0.012, 1]
+    green: [0.025, 0.38, 0.025, 1]
+    blue: [0.015, 0.055, 0.65, 1]
+    yellow: [0.85, 0.62, 0.015, 1]
+    natural_wood: [0.48, 0.29, 0.12, 1]
+    color_6_pending: null
+camera:
+  camera_info: null
+  width: 640
+  height: 480
+  K: [615, 0, 320, 0, 615, 240, 0, 0, 1]
+  distance_m: [0.3, 0.8]
+  depression_deg: [25, 65]
+render:
+  samples: 16
+  views_per_scene: 2
+  min_pixels: 80
+  min_visible_fraction: 0.3
+  max_attempts_per_scene: 32
+  save_depth: false
+scene:
+  slope_deg: [0, 6]
+  additional_targets: [0, 2]
+  background_rocks: [3, 8]
+  light_energy: [1.5, 12]
+  supplement_energy: [0.05, 1.2]
+  world_strength: [0.005, 0.08]
