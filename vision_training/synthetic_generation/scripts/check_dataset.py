@@ -13,6 +13,9 @@ def check(root, preview=None):
     scenes, counts, tiles = {}, [0,0,0], []
     vertex_cache = {}
     geometry_checks = 0
+    if manifest.get('run', {}).get('config_sha256'):
+        import yaml
+        assert hashlib.sha256(yaml.safe_dump(manifest['config'], sort_keys=True).encode()).hexdigest() == manifest['run']['config_sha256'], 'Config hash mismatch'
     records = manifest['records']
     assert records, 'Empty dataset'
     assert len({r['id'] for r in records}) == len(records), 'Duplicate IDs'
@@ -31,6 +34,7 @@ def check(root, preview=None):
             if 'path' in source and Path(source['path']).exists():
                 if source['path'] not in vertex_cache:
                     import trimesh
+                    assert hashlib.sha256(Path(source['path']).read_bytes()).hexdigest() == source['sha256'], 'Model hash mismatch'
                     vertex_cache[source['path']] = np.asarray(trimesh.load_mesh(source['path'],process=False).vertices)
                 vertices = vertex_cache[source['path']] - np.array(source['origin_translation_raw'])
                 matrix = np.array(target['pose'])
@@ -38,6 +42,15 @@ def check(root, preview=None):
                 slope = np.deg2rad(row['slope_deg'])
                 signed = world[:,0]*np.sin(slope) + world[:,2]*np.cos(slope)
                 assert abs(float(signed.min())) < 2e-6, 'STL ground contact mismatch'
+                if target.get('stability') is not None:
+                    from sampling import support_stability
+                    mesh = trimesh.load_mesh(source['path'], process=False)
+                    local_com = mesh.center_mass-np.array(source['origin_translation_raw'])
+                    com = matrix[:3,:3] @ local_com + matrix[:3,3]
+                    cfg = manifest['config']['rock_poses'][['color_block','rock_compact','rock_spiky'][target['class_id']]]
+                    support = support_stability(world, com, slope, cfg['support_tolerance_m'], cfg['support_margin_m'])
+                    assert support['stable'], 'Unstable rock support'
+                    assert np.allclose(com, target['stability']['com_world'], atol=2e-6), 'COM mismatch'
                 geometry_checks += 1
         im = Image.open(root/'images'/split/(name+'.png')).convert('RGB')
         mask = np.load(root/'masks'/split/(name+'.npy'), allow_pickle=False)
@@ -56,10 +69,25 @@ def check(root, preview=None):
             expected = [(exact[0]+exact[2])/2/im.width,(exact[1]+exact[3])/2/im.height,
                         (exact[2]-exact[0])/im.width,(exact[3]-exact[1])/im.height]
             assert np.allclose(box, expected, atol=1e-7)
+            assert min(exact[2]-exact[0], exact[3]-exact[1]) >= manifest['config']['render'].get('min_bbox_side_px', 0), 'Small bbox side'
             assert ann['visible_pixels'] >= manifest['config']['render']['min_pixels']
             assert ann['visible_fraction'] >= manifest['config']['render']['min_visible_fraction']
             draw.rectangle(exact, outline=['red','lime','cyan'][ann['class_id']], width=2)
             draw.text((exact[0],max(0,exact[1]-12)),str(ann['class_id']), fill='white')
+        if row.get('targets'):
+            assert set(row['targets']) == {a['name'] for a in row['annotations']}, 'Missing or background annotation'
+        if 'sampling_request' in row:
+            band = manifest['config']['camera']['distance_bands'][row['sampling_request']['distance_band']]['range_m']
+            assert band[0] <= row['distance_m'] <= band[1], 'Distance outside requested band'
+            placement = row['image_placement']
+            bounds = np.array(placement['projected_bbox_unclipped'])
+            if placement['visibility'] == 'full':
+                assert bounds[0] >= 1 and bounds[1] >= 1 and bounds[2] <= im.width-1 and bounds[3] <= im.height-1, 'Full target out of frame'
+            else:
+                side = placement['side']
+                assert {'left':bounds[0]<0, 'right':bounds[2]>im.width, 'top':bounds[1]<0, 'bottom':bounds[3]>im.height}[side], 'Partial target not clipped'
+            dep = row['camera']['depression_deg']
+            assert dep[0] <= row['depression_deg'] <= dep[1], 'Optical depression out of range'
         counts[row['primary_class']] += 1
         if counts[row['primary_class']] <= 4:
             im.thumbnail((320,240))

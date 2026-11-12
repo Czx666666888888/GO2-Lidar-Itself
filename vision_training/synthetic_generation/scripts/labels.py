@@ -16,6 +16,9 @@ def visible_annotations(mask, mapping, targets, full_areas, thresholds):
             rejected.append(dict(name=name, area=area, visible_fraction=visible))
             continue
         x0, y0, x1, y1 = int(xs.min()), int(ys.min()), int(xs.max())+1, int(ys.max())+1
+        if min(x1-x0, y1-y0) < thresholds.get('min_bbox_side_px', 0):
+            rejected.append(dict(name=name, area=area, visible_fraction=visible, reason='bbox_side_too_small'))
+            continue
         annotations.append(dict(name=name, instance_id=int(idx), class_id=target['class_id'],
                                 bbox_xyxy=[x0,y0,x1,y1], visible_pixels=area,
                                 amodal_inframe_pixels=full, visible_fraction=visible,

@@ -109,3 +109,16 @@ The entries below are a structured transcription of the root `README.md`. No ros
   统计/哈希：`vision_training/synthetic_generation/previews/batch600_quality.json`；详见该目录REPORT。
 - 证据等级：合成渲染与离线数据检查，不是真实D435或GO2运行。synthetic_camera，实物尺寸、
   第六色、真实CameraInfo/Depth/GPU/泛化为NOT VERIFIED。最终test必须独立真实D435；未训练/未改ROS或运动。
+
+
+## 2026-11-12：合成生成器采样审查（0张新渲染）
+
+- 源码审查：移除目标尺寸触发的隐式距离放大及失败换段；新增三段距离、七区域、稳定岩石姿态。
+- 实际检查：11项离线测试通过；Blender原STL多姿态支撑/投影检查，不调用渲染器。
+  compact 16组合中14通过、2因坡面支撑不稳定被过滤；spiky 16通过，均非实物姿态验收。
+- 不覆盖与固定far失败路径实际执行：3次仍在far内，无降门槛、无COMPLETE、0次渲染调用。
+- 新版检查器只读回归原600张通过，输出写临时视图；原812次STL接地核对通过。
+- 2455个既有数据/正式池/模型资产文件的hash及集合不变；既有600张不变。
+- 证据：vision_training/synthetic_generation/GENERATOR_REVIEW.md与reports/sampling_*.json。
+- NOT VERIFIED：新采样RGB/Mask实际效果/全分布覆盖、实物尺寸/重心、D435实际CameraInfo。
+  未导正式池、未训练、未操作机器人；最小预览命令仅提供，未执行。

@@ -1,0 +1,76 @@
+{
+  "rgb_images_generated": 0,
+  "results": [
+    {
+      "class_name": "rock_compact",
+      "stable_pose_ranks": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "accepted_support_checks": 14,
+      "predicted_bbox_wh_px": {
+        "0.4": [
+          33.42594269726828,
+          28.469566459034354
+        ],
+        "0.8": [
+          16.72062172819153,
+          14.209298293374076
+        ],
+        "1.5": [
+          8.91957986889986,
+          7.571997674003711
+        ],
+        "2.5": [
+          5.352274547080526,
+          4.541478130558573
+        ]
+      },
+      "blender_projection_max_error_px": 0.5000921801114373
+    },
+    {
+      "class_name": "rock_spiky",
+      "stable_pose_ranks": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "accepted_support_checks": 16,
+      "predicted_bbox_wh_px": {
+        "0.4": [
+          55.42728072386012,
+          59.75401337272342
+        ],
+        "0.8": [
+          27.929818384450414,
+          29.710822829888684
+        ],
+        "1.5": [
+          14.950325258176747,
+          15.804981888449078
+        ],
+        "2.5": [
+          8.985201966445345,
+          9.471872192428577
+        ]
+      },
+      "blender_projection_max_error_px": 0.5001069551394153
+    }
+  ],
+  "assumption": "uniform_density_not_real_prop_validation",
+  "code_hashes": {
+    "audit_assets.py": "d7dc5569d542418dda90ef3566c94311630e270883f1201dde80326560cdeaec",
+    "build_block.py": "b2a9d1d49d695c08a751c34ca0a4e9415cb14b69f15d98bc6b8d93df2e7dcc4e",
+    "check_dataset.py": "300a021161aa336ad107ab0cd23228fed0df83f3ddf81104d18e2ef14ffb030f",
+    "check_generator_guards.py": "a56ff0258d9677fbedbc0cd75c0ec97a7bdefd3b162cda9533eef1a93abcd082",
+    "check_geometry.py": "d61703419917631fbbe6fdfd32fb7661dab774fb39179d08dbb17edc8b7f7b3a",
+    "generate.py": "de5cf57996a0f9ebc9167e2fa76fa44803aafc0bb6b21cde93f082b4d71972cb",
+    "import_pool.py": "866ba8fb52db2ff8d42e3ab80b60eddde5bd6a3e6ad41bbbab54274615f67eab",
+    "inspect_import.py": "6e9d75991976f0305a3ec6fa709acc5177fef06ee954068cb3e4ff4cca414ba5",
+    "labels.py": "e86491e3bf4977bb98bfde495cf98c6283f4ac3cfb26ffed4d7adbb33beb9657",
+    "sampling.py": "37adecf334367ad5581abb75bdf6e214807574d27e313ffa202c61b166a0cc35"
+  }
+}

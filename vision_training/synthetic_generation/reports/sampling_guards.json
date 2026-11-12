@@ -1,0 +1,43 @@
+{
+  "rgb_images_generated": 0,
+  "render_calls": 0,
+  "no_overwrite": "PASS",
+  "pinned_far_request": "PASS",
+  "no_threshold_relaxation": "PASS",
+  "failure_manifest": "PASS",
+  "rejected_attempts": [
+    {
+      "scene_id": "c0_s0000",
+      "view": 0,
+      "attempt": 0,
+      "request": {
+        "distance_band": "far",
+        "image_region": "center"
+      },
+      "distance_m": 1.7783045955569956,
+      "reason": "projected_target_too_small"
+    },
+    {
+      "scene_id": "c0_s0000",
+      "view": 0,
+      "attempt": 1,
+      "request": {
+        "distance_band": "far",
+        "image_region": "center"
+      },
+      "distance_m": 2.27702711819723,
+      "reason": "projected_target_too_small"
+    },
+    {
+      "scene_id": "c0_s0000",
+      "view": 0,
+      "attempt": 2,
+      "request": {
+        "distance_band": "far",
+        "image_region": "center"
+      },
+      "distance_m": 2.076666355325768,
+      "reason": "projected_target_too_small"
+    }
+  ]
+}

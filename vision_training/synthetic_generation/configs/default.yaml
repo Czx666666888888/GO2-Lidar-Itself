@@ -1,9 +1,10 @@
+# Development candidates; physical sizes and D435 calibration remain unconfirmed.
 seed: 20261112
 classes: [color_block, rock_compact, rock_spiky]
 assets:
   rock_compact: 科学目标1.stl
   rock_spiky: 科学目标2.stl
-# STL has no declared unit. 1.0 deliberately retains raw coordinate magnitudes.
+# STL unit unknown; preserve original scale.
 rock_compact_scale: 1.0
 rock_spiky_scale: 1.0
 physical_scale_confirmed: false
@@ -23,13 +24,26 @@ camera:
   width: 640
   height: 480
   K: [615, 0, 320, 0, 615, 240, 0, 0, 1]
-  distance_m: [0.3, 0.8]
   depression_deg: [25, 65]
+  distance_bands:
+    near: {range_m: [0.4, 0.8], weight: 0.5}
+    medium: {range_m: [0.8, 1.5], weight: 0.3}
+    far: {range_m: [1.5, 2.5], weight: 0.2}
+  image_regions:
+    center: {weight: 0.25, u: [0.4, 0.6], v: [0.4, 0.6]}
+    left: {weight: 0.15, u: [0.15, 0.3], v: [0.25, 0.75]}
+    right: {weight: 0.15, u: [0.7, 0.85], v: [0.25, 0.75]}
+    top_edge: {weight: 0.1, u: [0.25, 0.75], v: [0.06, 0.18]}
+    bottom_edge: {weight: 0.1, u: [0.25, 0.75], v: [0.82, 0.94]}
+    near_edge_full: {weight: 0.15, gap_px: [4, 20]}
+    partial_outside: {weight: 0.1, outside_fraction: [0.1, 0.35]}
 render:
   samples: 16
   views_per_scene: 2
   min_pixels: 80
+  min_bbox_side_px: 12
   min_visible_fraction: 0.3
+  # Maximum attempts for each pinned view request; no fallback to another band.
   max_attempts_per_scene: 32
   save_depth: false
 scene:
@@ -39,3 +53,22 @@ scene:
   light_energy: [1.5, 12]
   supplement_energy: [0.05, 1.2]
   world_strength: [0.005, 0.08]
+rock_poses:
+  # Trimesh ranked resting poses under a uniform-density COM assumption.
+  # null selects all qualifying ranks up to max_poses; use [0, 1] to restrict.
+  rock_compact:
+    mode: stable_hull
+    pose_ranks: null
+    min_probability: 0.02
+    max_poses: 8
+    support_tolerance_m: 0.000001
+    support_margin_m: 0.00005
+    max_placement_attempts: 32
+  rock_spiky:
+    mode: stable_hull
+    pose_ranks: null
+    min_probability: 0.02
+    max_poses: 8
+    support_tolerance_m: 0.000001
+    support_margin_m: 0.00005
+    max_placement_attempts: 32

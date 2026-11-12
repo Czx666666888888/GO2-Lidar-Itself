@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -50,6 +51,27 @@ class DatasetTest(unittest.TestCase):
             before=(pool/'pool/manifest.json').read_bytes()
             self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0)
             self.assertEqual((pool/'pool/manifest.json').read_bytes(),before)
+
+    def test_sampling_metadata_and_config_hash_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            manifest=self.fixture(root)
+            manifest['config']['camera']=dict(distance_bands=dict(far=dict(range_m=[1.5,2.5])))
+            for row in manifest['records']:
+                row.update(sampling_request=dict(distance_band='far'),distance_m=2.0,
+                           image_placement=dict(visibility='partial',side='right',projected_bbox_unclipped=[15,2,22,6]),
+                           camera=dict(depression_deg=[25,65]),depression_deg=45)
+            manifest['run']=dict(config_sha256=hashlib.sha256(yaml.safe_dump(manifest['config'],sort_keys=True).encode()).hexdigest())
+            (root/'manifest.json').write_text(json.dumps(manifest))
+            check(root)
+            manifest['records'][0]['distance_m']=0.5
+            (root/'manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(AssertionError,'Distance outside requested band'):
+                check(root)
+            manifest['config']['camera']['distance_bands']['far']['range_m']=[0.4,2.5]
+            (root/'manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(AssertionError,'Config hash mismatch'):
+                check(root)
 
     def test_leakage_and_wrong_box_rejected(self):
         with tempfile.TemporaryDirectory() as temp:

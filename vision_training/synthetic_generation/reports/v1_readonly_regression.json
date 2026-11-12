@@ -1,0 +1,18 @@
+{
+  "manifest_sha256": "1ad62aabc3f36e33b2dda7b48fc4094fd3eacc6b75d19b426b913d8ad33c9a31",
+  "images": 600,
+  "primary_class_counts": [
+    200,
+    200,
+    200
+  ],
+  "scenes": 300,
+  "splits": {
+    "train": 480,
+    "val": 120
+  },
+  "automatic_checks": "PASS",
+  "stl_world_ground_checks": 812,
+  "visual_review": "NOT VERIFIED",
+  "validation_scope": "Read-only regression of original 600 via temporary view; original quality.json unchanged"
+}

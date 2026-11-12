@@ -1,5 +1,7 @@
 # 合成数据实测记录（2026-11-12）
 
+本文件记录0014177版本既有600张；后续采样改进不改写本次历史结果，见GENERATOR_REVIEW.md。
+
 ## 范围与起点
 
 远端分支 `feature/science-targets-perception` 最新Push经 `git ls-remote` 实查为

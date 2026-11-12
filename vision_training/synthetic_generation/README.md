@@ -60,7 +60,7 @@ env PYTHONPATH= PYTHONNOUSERSITE=0 \
 `build_block.py` 用 Blender API 创建一个共享基础几何：边长0.05 m，应用缩放后倒角0.0005 m。
 六个独立材质数据块：red、green、blue、yellow、natural_wood、color_6_pending。
 粗糙度0.65、低强度微表面木纹；颜色为开发近似值，并非实物色度测量。
-第六色只保留中性占位材质，`confirmed=false`，不渲染、不采样；确认后在 YAML 填 RGBA 即可。
+第六色只保留中性占位材质，`confirmed=false`，不渲染、不采样；实际确认后仅在 YAML 将pending键替换为实际颜色名称和RGBA。
 原木微纹理不使用夸张贴图。材质图只展示已知五色。
 
 ```bash
@@ -80,46 +80,88 @@ vision_training/synthetic_generation/.venv/bin/blenderproc run \
   --output vision_training/synthetic_generation/assets
 ```
 
-## 小批量与600张
+## 当前改进版与最小预览（本轮未执行渲染）
+
+现有600张属于 `0014177` 版本，其实际配置保存在本地数据集manifest；
+当前default.yaml是新采样候选，不代表已生成/已验收的新数据。
+本轮只做离线测试及Blender几何/失败路径检查，没有重新渲染、导入池或训练。
+审查与测试证据见 [GENERATOR_REVIEW.md](GENERATOR_REVIEW.md)。
+
+未来由操作者执行的最小预览（6张，三个类别各2张，单场景预览不可用于泛化评估）：
 
 ```bash
 vision_training/synthetic_generation/scripts/run.sh \
   --config vision_training/synthetic_generation/configs/default.yaml \
-  --output vision_training/datasets/science_targets_synthetic_preview_ground_checked \
-  --per-class 4 --allow-unverified-scale
-vision_training/synthetic_generation/.venv/bin/python \
+  --output vision_training/datasets/science_targets_synthetic_v2_preview \
+  --per-class 2 --allow-unverified-scale \
+  --distance-band near --image-region center
+env PYTHONPATH= PYTHONNOUSERSITE=0 \
+  PYTHONUSERBASE="$PWD/vision_training/synthetic_generation/runtime/blender-4.2.1-linux-x64/custom-python-packages" \
+  vision_training/synthetic_generation/runtime/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 \
   vision_training/synthetic_generation/scripts/check_dataset.py \
-  vision_training/datasets/science_targets_synthetic_preview_ground_checked \
-  --preview vision_training/synthetic_generation/previews/contact_sheet.jpg
+  vision_training/datasets/science_targets_synthetic_v2_preview \
+  --preview /tmp/science_targets_v2_preview.jpg
 ```
 
-查看 RGB 与叠框图，确认形状/俯视/颜色/落地/标签。只有实际查看通过后，才在预览目录的
-`quality.json` 中记录 `visual_review: "PASS"` 及审核说明。不得仅凭自动检查填写视觉通过。
-大批次要求预览配置完全一致、自动与视觉检查均 PASS。目标输出目录已存在则拒绝覆盖。
+输出目录存在就拒绝覆盖。CLI的距离段/区域限定会写入有效配置，不是隐藏的采样覆盖。
+这个near/center预览只检查最小链路，不能为mixed bands/regions的大批次提供验收。
+未来必须先按最终有效配置完成小批量RGB/Mask目视验收，再在对应quality.json实际记录
+visual_review=PASS；大批次仍要求预览配置、manifest哈希及所有工具代码哈希完全一致。
+**不得使用旧600张/旧预览的质量记录批准新采样配置；本轮不启动新批次。**
+
+距离段的range_m和weight、七种区域的weight均可改。weight=0关闭对应候选；
+当前权重只是候选分布，不是每类成功数量保证。视角一旦选定距离段和区域，重试不切换；
+按字面米制距离采样，不再按目标尺寸自动放大距离。若目标过小或摆放无法满足要求，
+最多重试32次后失败，写manifest/failure.json和拒绝原因，不写COMPLETE；不降门槛补数量。
+在实物尺寸未确认前，medium/far可能不可用，应依据尺寸/像素证据调整权重或范围。
+
+## 不渲染的检查
+
+复用已有独立Blender环境，本轮未安装新依赖。稳定支撑使用其已有SciPy；
+host侧requirements也声明同版SciPy，未重装现有venv。检查新姿态数据和运行完整测试时，
+可直接使用已具备依赖的Blender Python（不启动渲染器）：
 
 ```bash
-vision_training/synthetic_generation/scripts/run.sh \
-  --config vision_training/synthetic_generation/configs/default.yaml \
-  --output vision_training/datasets/science_targets_synthetic_v1 \
-  --per-class 200 --allow-unverified-scale \
-  --validated-preview vision_training/datasets/science_targets_synthetic_preview_ground_checked
-vision_training/synthetic_generation/.venv/bin/python \
-  vision_training/synthetic_generation/scripts/check_dataset.py \
-  vision_training/datasets/science_targets_synthetic_v1
+env PYTHONPATH= PYTHONNOUSERSITE=0 \
+  PYTHONUSERBASE="$PWD/vision_training/synthetic_generation/runtime/blender-4.2.1-linux-x64/custom-python-packages" \
+  vision_training/synthetic_generation/runtime/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 \
+  -m unittest discover -s vision_training/synthetic_generation/scripts -p 'test_*.py'
 ```
 
-每类200表示以该类为主目标的200张，总计600；多目标图可能同时含其他类，因此每类实例数
-会超过200。每摆放场景2视角，同场景全入同split；默认每5组1组val，其余train。
-预览每类仅2场景，其train/val不用于评估。最后test必须使用独立真实D435数据。
+以下BlenderProc命令也均不调用渲染器：
+
+```bash
+vision_training/synthetic_generation/.venv/bin/blenderproc run \
+  --custom-blender-path vision_training/synthetic_generation/runtime/blender-4.2.1-linux-x64 \
+  vision_training/synthetic_generation/scripts/check_geometry.py \
+  --config vision_training/synthetic_generation/configs/default.yaml \
+  --report /tmp/science_sampling_geometry_check.json
+vision_training/synthetic_generation/.venv/bin/blenderproc run \
+  --custom-blender-path vision_training/synthetic_generation/runtime/blender-4.2.1-linux-x64 \
+  vision_training/synthetic_generation/scripts/check_generator_guards.py \
+  --config vision_training/synthetic_generation/configs/default.yaml \
+  --report /tmp/science_sampling_guards.json
+```
 
 ## 场景、相机与标签
 
 灰地面，0–6°斜坡；程序生成变形低细分icosphere普通岩石/小障碍物，始终背景，
 不使用特殊STL充当负样本。目标底部最低网格顶点接触地面，XY保守包围圆间隔防止交叠。
-距离0.3–0.8 m、水平角全周、俯视25–65°、偏置视线、目标yaw、目标数、灰度、微表面、
+距离分near 0.4–0.8 / medium 0.8–1.5 / far 1.5–2.5 m；水平角全周，
+相机实际光轴俯视仍限制25–65°（偏置后再检查），目标yaw、目标数、灰度、微表面、
 面积光方向/能量与弱环境光随机变化；面积光形成局部阴影，避免随意改变目标形状/色调。
 未模拟运动模糊、传感器噪声、机器人机体遮挡和真实洞壁扫描；域差异需用真实数据验证。
-遮挡通过视线投影自然产生；极端遮挡和过小目标丢弃整帧，不留下部分漏标的负样本。
+图像区域：center、left、right、top_edge、bottom_edge使用归一化目标中心位置范围；
+near_edge_full按实际网格投影边缘迭代定位，距所选边4–20像素且完全在画内；
+partial_outside沿随机边将投影框跨度的10–35%放在画外，并要求单目标Mask实际触边且有可见像素。
+这里的出画比例是框跨度比例，不是物体面积比例。归一化u向右、v向下。
+投影约束不合格就重试；检测框始终仅来自画面内可见Mask，不扩展到画外。
+
+特殊岩石使用Trimesh稳定放置候选，rock_poses分别配置pose_ranks/min_probability/max_poses。
+默认采用均匀密度重心假设，不代表实物重心已测量。姿态组合为坡面旋转×面内yaw×稳定姿态；
+精确接地后检查支撑多边形、重力方向重心投影及边界余量，不接受仅单点接触的悬摆姿态。
+坡面不稳定的候选重新选姿态，预算耗尽报错；不改变STL比例、不改变几何或伪造实物姿态。
+遮挡通过视线投影自然产生；极端遮挡/过小目标丢弃整帧，不留下部分漏标的负样本。
 
 相机默认 `synthetic_camera`，640×480、临时 K；不是D435标定结果。
 可将 `camera.camera_info` 指向真实、已整流的 CameraInfo YAML（支持ROS小写k或标定文件
@@ -128,12 +170,14 @@ camera_matrix.data）。非零畸变会拒绝，不能静默丢弃畸变；来�
 
 BlenderProc实例分割生成可见像素框（半开区间xyxy）；背景类别0，内部科学类别1–3，
 输出YOLO时映射为0–2，不丢掉color_block。每个目标单独渲染作为同视角未遮挡轮廓，
-visible/full-in-frame计算可见率（不代表画面外截断比例）；默认≥80像素、可见率≥0.3。
-若任意目标不满足阈值，整帧丢弃，最多32次尝试，不足就报错保留部分输出且不写COMPLETE。
+visible/full-in-frame计算可见率（不代表画面外截断比例）；默认≥80可见像素、可见框短边≥12像素、可见率≥0.3。
+若任意目标不满足阈值，整帧丢弃，每个固定视角请求最多32次尝试，不足就报错保留部分输出且不写COMPLETE。
 
 输出包含 `images/{train,val}`、`labels/{train,val}`、`masks/{train,val}`（实例npy）、
 `metadata/{train,val}`、`manifest.json`、`data.yaml`、`COMPLETE`。
-manifest保留场景ID/类别/实例ID/模型hash/源路径/比例/位姿/相机K和位姿/光照/坡度/随机种子。
+manifest保留场景ID/类别/实例ID/模型hash/源路径/比例/位姿/相机K和位姿/光照/坡度/随机种子，
+新增距离段/区域请求、未裁剪投影框、稳定姿态rank及支撑检查、拒绝记录、有效配置SHA256、
+所有非测试Python工具代码哈希；CameraInfo导入保留原文与文件hash。
 可选depth为米制渲染深度，不是实际D435测量。
 自动检查逐图从mask重新计算BBox并核对YOLO、像素数、可见率及跨集合场景泄漏。
 另核对保守XY间隔；原STL可访问时，从原始顶点和记录的变换独立重建世界坐标，
@@ -154,4 +198,4 @@ vision_training/synthetic_generation/.venv/bin/python \
 本工具不改既有split、不自动执行review、不调用训练；未来统一划分须保留synthetic_split，
 合成数据不得进入最终test。
 
-验证结果与仍未验证项见 `REPORT.md`。
+旧600张结果见 `REPORT.md`；本轮改进的测试和未验证边界见 `GENERATOR_REVIEW.md`。
