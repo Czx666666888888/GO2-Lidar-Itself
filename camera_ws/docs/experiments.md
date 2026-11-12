@@ -1404,3 +1404,97 @@ startup未换算IMU也为0条。节点日志明确给出源时钟未校准，没
 保留samples.jsonl、metadata.json、readonly_slam.log、point_lio_internal.json、report.json/txt、trend.json。
 可审阅统计及原始数据SHA256：`camera_ws/analysis/go2_time_sync_20261112/measured_summary.json`。
 下一步需取得原生时钟基准后真正同步/验证；不能将当前阻断状态当完整解决。
+
+## 2026-11-12后续 — 纯PC DDS发现及LidarState实采（无需SSH）
+
+来源：fetch后的12d0db5、PC Domain0/enp12s0实际DDS发现、30秒真实消息、官方公开接口源码。
+本轮完全没有SSH、运动/RPC请求、雷达配置/同步操作；没有构建，没有重启已有SLAM。
+开始与结束节点列表相同，均包含已有laserMapping/transform_everything/3个static TF节点。
+用户在本轮明确确认雷达型号为L1；LidarState没有型号字段，不把版本号推断冒充自动识别。
+
+### 实际发现及读取
+
+- /utlidar/cloud：sensor_msgs/msg/PointCloud2，30秒446帧。
+- /utlidar/imu：sensor_msgs/msg/Imu，30秒7491条。
+- /utlidar/lidar_state：unitree_go/msg/LidarState，发现后订阅，30秒149条，确实可读。
+- 三个writer的participant prefix均为0110fa3127471848ca77a567，记录完整GID及实际发现列表。
+- 状态实读firmware_version=1.0.2、software_version=1.0.0.38、sdk_version=1.0.9；整段版本不变。
+  sdk_version是雷达驱动报告的SDK版本，不是声称PC安装的unitree_sdk2版本号。
+- cloud_frequency字段范围14.478–15.101Hz，imu_frequency为247.935–250.662Hz；这是状态报告值，
+  与采集样本计数分别保留。error_state全0。serial_buffer_size=0–240，serial_buffer_read=4–311。
+- 本机ROS消息字段与[官方unitree_ros2 LidarState.msg](https://github.com/unitreerobotics/unitree_ros2/blob/master/cyclonedds_ws/src/unitree/unitree_go/msg/LidarState.msg)一致。
+  [当前SDK2 LidarState_.hpp](https://github.com/unitreerobotics/unitree_sdk2/blob/main/include/unitree/idl/go2/LidarState_.hpp)
+  另含dirty_percentage；本轮未更新消息包或硬套新IDL，按实际可解码的官方ROS2版本读取共同字段。
+  官方unitree_ros2说明可直接用ROS消息与SDK2 DDS互通，本轮使用此路径，没有声称运行了新C++ SDK reader。
+- 顺带只读查看实际发现的/rtc/state，仅收到connection_state=not_connected；这不是系统时钟证据。
+  /rtc_status未收到样本，未把名字当成可用的主控校时服务。
+
+### 时间结果
+
+差值统一为“源字段减PC wall”，负值表示源时间早；PC回调wall只是比较时刻，
+**不是拿DDS接收时间估计纯时钟offset**。本机rmw报告received_timestamp=0，原值保留，不伪造接收时刻。
+samples.jsonl同时保留PC ROS、wall、monotonic、MONOTONIC_RAW以及DDS source timestamp。
+
+| 字段 | 样本 | 与PC wall差的中位数(s) |
+|---|---:|---:|
+| raw cloud header | 446 | -3390496.118454 |
+| raw cloud DDS source | 446 | -3390496.051751 |
+| raw IMU header | 7491 | -3390496.050694 |
+| raw IMU DDS source | 7491 | -3390496.050684 |
+| LidarState.stamp | 149 | -3390496.050732 |
+| LidarState DDS source | 149 | -3390496.050716 |
+| LidarState.serial_recv_stamp | 149 | -3390496.051527 |
+
+serial_recv_stamp-stamp中位-0.499ms，范围-3.386到+0.112ms；
+DDS source-serial_recv_stamp中位+0.517ms，P95约1.974ms；
+DDS source-LidarState.stamp中位+20.705微秒。
+raw cloud DDS source-header中位66.372ms，raw IMU对应中位7.846微秒。
+所有均值/P95/极值/趋势及首末值保存在report.json和可审阅摘要，不把单帧结果当整段固定关系。
+新旧时间差缓慢变化，当前raw IMU source-PC斜率约-0.309ms/s，并非回放了39天前的静态消息。
+
+按用户要求重新计算旧原始记录的DDS source-PC wall（包含启动样本，独立注明窗口）：
+23:15那轮cloud/IMU中位分别-3390496.047387/-3390496.046293s；
+23:19为-3390496.037933/-3390496.036979s；23:26为-3390495.866029/-3390495.865044s。
+因此原始DDS发送时间本身也在旧时间域，不能把问题仅归给PC转换器，更不能把这个差当网络延迟。
+
+### A/B/C根因判断及边界
+
+已确认：误差在发布端时间域就存在；同一DDS participant下的header、串口接收标记、
+LidarState stamp及DDS发送时间都同域，支持A（发布者主机/驱动所用时钟域）为主要方向。
+B（仅LiDAR内部时钟错）不能单独解释DDS发送和串口接收标记也同样错。
+C（生产者驱动显式把同一旧时间写入不同消息/DDS时间）仍不能在未获该实现或系统时间服务时完全排除。
+未直接读取该主机OS日期，不把“最符合A”写成已通过date确认A。
+[官方SDK2 DdsWriter](https://github.com/unitreerobotics/unitree_sdk2/blob/main/include/unitree/common/dds/dds_entity.hpp)
+使用不带显式source timestamp的write；这支持正常SDK路径下源时间来自发布者时钟，
+但不能证明当前封闭原生进程完全采用同一实现。
+
+### 官方同步接口核对（未执行）
+
+- [L1 unilidar_sdk头文件](https://github.com/unitreerobotics/unilidar_sdk/blob/main/unitree_lidar_sdk/include/unitree_lidar_sdk.h)：
+  getTimeDelay()返回微秒级链路延迟，TIMESYNC是runParse返回的消息类别；
+  两者不等于设置GO2主控系统UTC的DDS RPC。当前固件TIMESYNC实际收发未观测，不能由枚举存在声称支持已验证。
+  要直接使用reader需访问同一雷达串口/专用UDP连接；当前只有机器人DDS，不抢占GO2现有驱动。
+- [L2 unilidar_sdk2头文件](https://github.com/unitreerobotics/unilidar_sdk2/blob/main/unitree_lidar_sdk/include/unitree_lidar_sdk.h)：
+  有syncLidarTimeStamp()，initializeSerial/UDP可选use_system_timestamp；这是L2直连reader接口，
+  不适用于用户确认的L1，也不是通过DDS修改机器人主控时钟。本轮没有初始化L2连接或调用同步。
+- [RobotStateClient](https://github.com/unitreerobotics/unitree_sdk2/blob/main/include/unitree/robot/go2/robot_state/robot_state_client.hpp)
+  公开的是ServiceList/ServiceSwitch/SetReportFreq，未公开设置系统时间方法。
+  [ConfigClient](https://github.com/unitreerobotics/unitree_sdk2/blob/main/include/unitree/robot/go2/config/config_client.hpp)
+  是通用配置文件Set/Get/Meta接口，没有文档化主机时间键，不能猜键或用Set试探。
+  实际发现的/api/bashrunner或/utlidar/client_cmd也没有在本次所查公开接口里找到校时定义，不发送猜测请求。
+
+结论：已查公开接口中尚无当前L1/GO2 DDS连接可直接调用的主控校时方法。
+真正下一步需要宇树针对firmware1.0.2/software1.0.0.38/SDK1.0.9确认并提供
+**无需SSH的主控NTP/SNTP联网校时配置或官方维护/固件校时服务**，然后用同一命令验证。
+不再把源主机登录作为前提，也不捏造App菜单、RobotState API或改PC日期迁就旧时间。
+因此本轮完成DDS定位证据，尚未实际修复源时钟；没有将PC接收时间写回消息来冒充修复。
+
+### 交付与证据
+
+唯一入口仍是`bash camera_ws/scripts/run_go2_time_diagnostic.sh`；现为纯PC DDS订阅，
+无SSH、无重建、无SLAM启停，发现不到LidarState则报告实际缺失。
+本轮30秒原始记录为camera_ws/records/time_20261112_235022_pc_dds_lidar_state，
+保留samples.jsonl、metadata.json、report.json/txt、trend.json。
+可随Git审查的完整统计、发现列表、版本/缓冲字段和旧记录重算及原始数据SHA256：
+camera_ws/analysis/go2_time_sync_20261112/pc_dds_lidar_state_summary.json。
+仅执行目标脚本语法/lint和真实DDS订阅，无批量离线测试或全仓审查；稳定MAP分支未改。

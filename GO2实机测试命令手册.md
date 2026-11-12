@@ -3,7 +3,34 @@
 更新：2026-11-12。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
-## 当前优先入口：只读时间诊断（2026-11-12）
+## 当前优先入口：纯PC DDS + LidarState时间诊断（2026-11-12后续）
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh
+```
+
+本版不需要登录任何GO2主机：Domain 0、enp12s0，仅订阅真实DDS消息。
+先发现LidarState实际名称和类型，再连续采集30秒；没有该Topic就记录不存在，不伪造。
+不SSH、不构建、不启动/停止SLAM、不调用运动/雷达配置或同步接口。
+输出原始cloud/IMU、DDS source timestamp、LidarState全部字段和PC ROS/wall/monotonic时间，
+以及各时间差的统计/趋势。现有SLAM保持不动，末尾返回码2表示时钟域仍不一致。
+当前实测：`/utlidar/lidar_state`，`unitree_go/msg/LidarState`，149条/30秒，能够读取。
+用户已确认型号L1；实读固件1.0.2、软件1.0.0.38、SDK1.0.9。
+DDS源时间、状态stamp和serial_recv_stamp都落后PC约3390496.05秒，
+所以问题已经存在于发布端时间域；不能据此声称已直接读到主控OS日期。
+
+L1公开接口的getTimeDelay只读取链路延迟，TIMESYNC是解析到的消息类别，
+没有查到可通过当前DDS连接设置源主控系统时间的公开方法。
+L2的syncLidarTimeStamp/use_system_timestamp不可套用到这台L1。
+当前没有执行任何同步操作；需要宇树确认该固件支持的无需SSH主控校时通路
+（主控侧官方NTP/SNTP配置或官方维护/固件时间服务），不能伪造RobotStateClient时间API。
+LidarState本身是观测接口，不能把serial_recv_stamp或PC接收时间当成独立UTC校准基准。
+
+本轮数据：`camera_ws/records/time_20261112_235022_pc_dds_lidar_state/`。
+实测摘要与旧数据重算：`camera_ws/analysis/go2_time_sync_20261112/pc_dds_lidar_state_summary.json`。
+本节为当前默认入口；以下保留12d0db5及更早版本记录，不能把旧版启动节点行为当成当前行为。
+
+## 旧版时间诊断记录（12d0db5，非当前默认行为）
 
 当前原生传感器时间域与PC相差约3,390,496秒，尚无独立校准基准。
 已移除“首个完整点云接收时间减header”自动偏移；现在源时间不可信会明确阻断输出。

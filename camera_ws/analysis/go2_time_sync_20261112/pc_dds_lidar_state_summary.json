@@ -1,0 +1,1105 @@
+{
+  "base_commit": "12d0db5aff52cd35d66eaf3f9804e25cf931b963",
+  "capture_report": {
+    "metrics": {
+      "receive_delay_s": {
+        "count": 446,
+        "mean": 3390496.118879007,
+        "median": 3390496.1184327872,
+        "p95": 3390496.125559112,
+        "maximum": 3390496.130643613,
+        "minimum": 3390496.110249686,
+        "slope_per_second": 0.0003173452011318239,
+        "first": 3390496.116429733,
+        "last": 3390496.12229194
+      },
+      "imu_receive_delay_s": {
+        "count": 7491,
+        "mean": 3390496.0508258147,
+        "median": 3390496.050674017,
+        "p95": 3390496.055216252,
+        "maximum": 3390496.056459325,
+        "minimum": 3390496.046186146,
+        "slope_per_second": 0.0003089044912407708,
+        "first": 3390496.047307166,
+        "last": 3390496.055809101
+      },
+      "scan_span_s": {
+        "count": 446,
+        "mean": 0.06426162259327456,
+        "median": 0.06376007944345474,
+        "p95": 0.06937680393457413,
+        "maximum": 0.0742984190583229,
+        "minimum": 0.05499938875436783,
+        "slope_per_second": 1.4704842128632834e-05,
+        "first": 0.06470493227243423,
+        "last": 0.06378058344125748
+      },
+      "raw_cloud_dds_source_minus_header_s": {
+        "count": 446,
+        "mean": 0.0668571846973094,
+        "median": 0.066372303,
+        "p95": 0.071997172,
+        "maximum": 0.075361883,
+        "minimum": 0.057132925,
+        "slope_per_second": 1.5428574164724895e-05,
+        "first": 0.0673162,
+        "last": 0.066376812
+      },
+      "raw_imu_dds_source_minus_header_s": {
+        "count": 7491,
+        "mean": 1.1387666399679616e-05,
+        "median": 7.846e-06,
+        "p95": 1.9866999999999998e-05,
+        "maximum": 0.00143463,
+        "minimum": 2.57e-06,
+        "slope_per_second": 8.011553891285134e-09,
+        "first": 6.755e-06,
+        "last": 7.929e-06
+      },
+      "raw_cloud_header_minus_pc_wall_s": {
+        "count": 446,
+        "mean": -3390496.1188999643,
+        "median": -3390496.118453664,
+        "p95": -3390496.114010964,
+        "maximum": -3390496.110262691,
+        "minimum": -3390496.130661315,
+        "slope_per_second": -0.0003173917895297258,
+        "first": -3390496.116448382,
+        "last": -3390496.122312162
+      },
+      "raw_cloud_dds_source_minus_pc_wall_s": {
+        "count": 446,
+        "mean": -3390496.0520427804,
+        "median": -3390496.0517507913,
+        "p95": -3390496.0480393227,
+        "maximum": -3390496.046973789,
+        "minimum": -3390496.058560469,
+        "slope_per_second": -0.00030196326169307886,
+        "first": -3390496.049132182,
+        "last": -3390496.05593535
+      },
+      "raw_imu_header_minus_pc_wall_s": {
+        "count": 7491,
+        "mean": -3390496.050845339,
+        "median": -3390496.050694297,
+        "p95": -3390496.0469566993,
+        "maximum": -3390496.046196286,
+        "minimum": -3390496.056482463,
+        "slope_per_second": -0.0003089457831070293,
+        "first": -3390496.047310878,
+        "last": -3390496.055827465
+      },
+      "raw_imu_dds_source_minus_pc_wall_s": {
+        "count": 7491,
+        "mean": -3390496.0508339508,
+        "median": -3390496.050683913,
+        "p95": -3390496.046946861,
+        "maximum": -3390496.046188805,
+        "minimum": -3390496.056477435,
+        "slope_per_second": -0.0003089368965089467,
+        "first": -3390496.047304123,
+        "last": -3390496.055819536
+      },
+      "lidar_state_header_minus_pc_wall_s": {
+        "count": 149,
+        "mean": -3390496.050835398,
+        "median": -3390496.0507322,
+        "p95": -3390496.046930913,
+        "maximum": -3390496.046254006,
+        "minimum": -3390496.055761465,
+        "slope_per_second": -0.000303697282272229,
+        "first": -3390496.046304263,
+        "last": -3390496.055190127
+      },
+      "lidar_state_dds_source_minus_pc_wall_s": {
+        "count": 149,
+        "mean": -3390496.0508092884,
+        "median": -3390496.050715503,
+        "p95": -3390496.0469101677,
+        "maximum": -3390496.046236073,
+        "minimum": -3390496.055751362,
+        "slope_per_second": -0.00030390679425115036,
+        "first": -3390496.046286835,
+        "last": -3390496.055167058
+      },
+      "lidar_state_serial_recv_stamp_ns_minus_wall_ns_s": {
+        "count": 149,
+        "mean": -3390496.0515042576,
+        "median": -3390496.051526783,
+        "p95": -3390496.047183802,
+        "maximum": -3390496.046312063,
+        "minimum": -3390496.058016314,
+        "slope_per_second": -0.0003067860940548713,
+        "first": -3390496.047293959,
+        "last": -3390496.056895087
+      },
+      "lidar_state_serial_recv_stamp_ns_minus_stamp_ns_s": {
+        "count": 149,
+        "mean": -0.0006688592751677852,
+        "median": -0.000499456,
+        "p95": 3.2255999999999984e-05,
+        "maximum": 0.000111616,
+        "minimum": -0.003386368,
+        "slope_per_second": -3.0887492169314232e-06,
+        "first": -0.000989696,
+        "last": -0.00170496
+      },
+      "lidar_state_dds_source_ns_minus_serial_recv_stamp_ns_s": {
+        "count": 149,
+        "mean": 0.0006949685838926174,
+        "median": 0.000517163,
+        "p95": 0.0019735126,
+        "maximum": 0.003394619,
+        "minimum": 3.106e-06,
+        "slope_per_second": 2.8794699763904327e-06,
+        "first": 0.001007124,
+        "last": 0.001728029
+      },
+      "lidar_state_dds_source_ns_minus_stamp_ns_s": {
+        "count": 149,
+        "mean": 2.6109308724832215e-05,
+        "median": 2.0705e-05,
+        "p95": 7.355759999999979e-05,
+        "maximum": 0.000122657,
+        "minimum": 6.765e-06,
+        "slope_per_second": -2.09279240541024e-07,
+        "first": 1.7428e-05,
+        "last": 2.3069e-05
+      }
+    },
+    "analyzed_samples_start_mono_ns": 9474008242114,
+    "physical_motion_commanded": false,
+    "receive_delay_warning": "Raw stamp uses a different epoch; receive age is NOT network latency.",
+    "status": "BLOCKED_NATIVE_CLOCK: DDS publisher source time differs from PC wall",
+    "lidar_state_discovery": [
+      [
+        "/utlidar/lidar_state",
+        [
+          "unitree_go/msg/LidarState"
+        ]
+      ]
+    ],
+    "lidar_state_samples": 149,
+    "lidar_state_result": "READABLE",
+    "lidar_versions": [
+      [
+        "1.0.2",
+        "1.0.0.38",
+        "1.0.9"
+      ]
+    ],
+    "hardware_model": "L1",
+    "model_evidence": "User confirmed L1 in this session",
+    "no_hardware_writes": true,
+    "no_ssh": true,
+    "slam_processes_untouched": true,
+    "existing_node_set_preserved": true,
+    "same_dds_participant": true,
+    "root_cause_assessment": "Publisher-side time domain is also offset; A is supported, not merely PC conversion. DDS source timestamps alone cannot exclude explicit writer timestamps or prove OS date."
+  },
+  "discovery": {
+    "commit": {
+      "code": 0,
+      "stdout": "12d0db5aff52cd35d66eaf3f9804e25cf931b963\n",
+      "stderr": ""
+    },
+    "pc_time_status": {
+      "code": 0,
+      "stdout": "               Local time: Thu 2026-11-12 23:50:22 CST\n           Universal time: Thu 2026-11-12 15:50:22 UTC\n                 RTC time: Thu 2026-11-12 23:50:22\n                Time zone: Asia/Shanghai (CST, +0800)\nSystem clock synchronized: yes\n              NTP service: active\n          RTC in local TZ: yes\n\nWarning: The system is configured to read the RTC time in the local time zone.\n         This mode cannot be fully supported. It will create various problems\n         with time zone changes and daylight saving time adjustments. The RTC\n         time is never updated, it relies on external facilities to maintain it.\n         If at all possible, use RTC in UTC by calling\n         'timedatectl set-local-rtc 0'.\n",
+      "stderr": ""
+    },
+    "pc_timesync_status": {
+      "code": 0,
+      "stdout": "       Server: 185.125.190.57 (ntp.ubuntu.com)\nPoll interval: 2min 8s (min: 32s; max 34min 8s)\n         Leap: normal\n      Version: 4\n      Stratum: 2\n    Reference: 1D586304\n    Precision: 1us (-25)\nRoot distance: 4.660ms (max: 5s)\n       Offset: -9.047ms\n        Delay: 624.583ms\n       Jitter: 249.476ms\n Packet count: 138\n    Frequency: +464.656ppm\n",
+      "stderr": ""
+    },
+    "route": {
+      "code": 0,
+      "stdout": "192.168.123.161 dev enp12s0 src 192.168.123.99 uid 1000 \n    cache \n",
+      "stderr": ""
+    },
+    "interfaces": {
+      "code": 0,
+      "stdout": "enp12s0          UP             192.168.123.99/24 \n",
+      "stderr": ""
+    },
+    "domain": "0",
+    "rmw": "rmw_cyclonedds_cpp",
+    "cyclone_configuration": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+    "transport": "PC ROS2 DDS; official unitree_go ROS messages; no SSH/RPC/config writes",
+    "hardware_model": "L1",
+    "model_evidence": "User confirmed L1 in this session",
+    "existing_slam_policy": "observe only; never start/stop/rebuild SLAM",
+    "initial_nodes": [
+      "static_transform_publisher_s6ow4kw7S8UhyyHO",
+      "laserMapping",
+      "transform_everything",
+      "go2_readonly_time_diagnostic",
+      "static_transform_publisher_XJUrzp7UseJpOs4p",
+      "static_transform_publisher_YE4qO4tM1qzLUFWz"
+    ],
+    "clock_publishers": 0,
+    "discovered_topics": [
+      [
+        "/Laser_map",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/api/assistant_recorder/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/assistant_recorder/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/audiohub/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/audiohub/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/bashrunner/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/bashrunner/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/config/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/config/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/fourg_agent/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/fourg_agent/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/gas_sensor/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/gas_sensor/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/gesture/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/gpt/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/gpt/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/motion_switcher/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/motion_switcher/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/obstacles_avoid/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/obstacles_avoid/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/pet/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/pet/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/programming_actuator/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/programming_actuator/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/robot_state/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/robot_state/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/sport/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/sport/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/sport_lease/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/sport_lease/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/uwbswitch/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/uwbswitch/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/videohub/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/videohub/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/api/vui/request",
+        [
+          "unitree_api/msg/Request"
+        ]
+      ],
+      [
+        "/api/vui/response",
+        [
+          "unitree_api/msg/Response"
+        ]
+      ],
+      [
+        "/arm_Command",
+        [
+          "unitree_arm/msg/ArmString"
+        ]
+      ],
+      [
+        "/arm_Feedback",
+        [
+          "unitree_arm/msg/ArmString"
+        ]
+      ],
+      [
+        "/audiohub/player/state",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/audiosender",
+        [
+          "unitree_go/msg/AudioData"
+        ]
+      ],
+      [
+        "/cloud_effected",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/cloud_registered_body",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/config_change_status",
+        [
+          "unitree_go/msg/ConfigChangeStatus"
+        ]
+      ],
+      [
+        "/frontvideostream",
+        [
+          "unitree_go/msg/Go2FrontVideoData"
+        ]
+      ],
+      [
+        "/gas_sensor",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/gesture/result",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/gnss",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/gpt_cmd",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/gptflowfeedback",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/lf/lowstate",
+        [
+          "unitree_go/msg/LowState"
+        ]
+      ],
+      [
+        "/lf/sportmodestate",
+        [
+          "unitree_go/msg/SportModeState"
+        ]
+      ],
+      [
+        "/lio_sam_ros2/mapping/odometry",
+        [
+          "nav_msgs/msg/Odometry"
+        ]
+      ],
+      [
+        "/lowcmd",
+        [
+          "unitree_go/msg/LowCmd"
+        ]
+      ],
+      [
+        "/lowstate",
+        [
+          "unitree_go/msg/LowState"
+        ]
+      ],
+      [
+        "/multiplestate",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/parameter_events",
+        [
+          "rcl_interfaces/msg/ParameterEvent"
+        ]
+      ],
+      [
+        "/path",
+        [
+          "nav_msgs/msg/Path"
+        ]
+      ],
+      [
+        "/pctoimage_local",
+        [
+          "unitree_interfaces/msg/PcToImage"
+        ]
+      ],
+      [
+        "/pet/flowfeedback",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/planner_normal",
+        [
+          "visualization_msgs/msg/Marker"
+        ]
+      ],
+      [
+        "/programming_actuator/command",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/programming_actuator/feedback",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/public_network_status",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/qt_add_edge",
+        [
+          "unitree_interfaces/msg/QtEdge"
+        ]
+      ],
+      [
+        "/qt_add_node",
+        [
+          "unitree_interfaces/msg/QtNode"
+        ]
+      ],
+      [
+        "/qt_command",
+        [
+          "unitree_interfaces/msg/QtCommand"
+        ]
+      ],
+      [
+        "/qt_notice",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/query_result_edge",
+        [
+          "unitree_interfaces/msg/QtEdge"
+        ]
+      ],
+      [
+        "/query_result_node",
+        [
+          "unitree_interfaces/msg/QtNode"
+        ]
+      ],
+      [
+        "/registered_scan",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/rosout",
+        [
+          "rcl_interfaces/msg/Log"
+        ]
+      ],
+      [
+        "/rtc/state",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/rtc_status",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/selftest",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/servicestate",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/servicestateactivate",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/sportmodestate",
+        [
+          "unitree_go/msg/SportModeState"
+        ]
+      ],
+      [
+        "/state_estimation",
+        [
+          "nav_msgs/msg/Odometry"
+        ]
+      ],
+      [
+        "/tf",
+        [
+          "tf2_msgs/msg/TFMessage"
+        ]
+      ],
+      [
+        "/tf_static",
+        [
+          "tf2_msgs/msg/TFMessage"
+        ]
+      ],
+      [
+        "/uslam/client_command",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/uslam/cloud_map",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/uslam/frontend/cloud_world_ds",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/uslam/frontend/odom",
+        [
+          "nav_msgs/msg/Odometry"
+        ]
+      ],
+      [
+        "/uslam/localization/cloud_world",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/uslam/localization/odom",
+        [
+          "nav_msgs/msg/Odometry"
+        ]
+      ],
+      [
+        "/uslam/navigation/global_path",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/uslam/server_log",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/utlidar/client_cmd",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/utlidar/cloud",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/cloud_base",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/cloud_deskewed",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/grid_map",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/height_map",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/height_map_array",
+        [
+          "unitree_go/msg/HeightMap"
+        ]
+      ],
+      [
+        "/utlidar/imu",
+        [
+          "sensor_msgs/msg/Imu"
+        ]
+      ],
+      [
+        "/utlidar/lidar_state",
+        [
+          "unitree_go/msg/LidarState"
+        ]
+      ],
+      [
+        "/utlidar/mapping_cmd",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/utlidar/range_info",
+        [
+          "geometry_msgs/msg/PointStamped"
+        ]
+      ],
+      [
+        "/utlidar/range_map",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/robot_odom",
+        [
+          "nav_msgs/msg/Odometry"
+        ]
+      ],
+      [
+        "/utlidar/robot_pose",
+        [
+          "geometry_msgs/msg/PoseStamped"
+        ]
+      ],
+      [
+        "/utlidar/server_log",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/utlidar/switch",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/utlidar/transformed_cloud",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/transformed_imu",
+        [
+          "sensor_msgs/msg/Imu"
+        ]
+      ],
+      [
+        "/utlidar/transformed_raw_imu",
+        [
+          "sensor_msgs/msg/Imu"
+        ]
+      ],
+      [
+        "/utlidar/voxel_map",
+        [
+          "sensor_msgs/msg/PointCloud2"
+        ]
+      ],
+      [
+        "/utlidar/voxel_map_compressed",
+        [
+          "unitree_go/msg/VoxelMapCompressed"
+        ]
+      ],
+      [
+        "/uwbstate",
+        [
+          "unitree_go/msg/UwbState"
+        ]
+      ],
+      [
+        "/uwbswitch",
+        [
+          "unitree_go/msg/UwbSwitch"
+        ]
+      ],
+      [
+        "/videohub/inner",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/webrtcreq",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/webrtcres",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/wirelesscontroller",
+        [
+          "unitree_go/msg/WirelessController"
+        ]
+      ],
+      [
+        "/wirelesscontroller_unprocessed",
+        [
+          "unitree_go/msg/WirelessController"
+        ]
+      ],
+      [
+        "/xfk_webrtcreq",
+        [
+          "std_msgs/msg/String"
+        ]
+      ],
+      [
+        "/xfk_webrtcres",
+        [
+          "std_msgs/msg/String"
+        ]
+      ]
+    ],
+    "lidar_state_topics": [
+      [
+        "/utlidar/lidar_state",
+        [
+          "unitree_go/msg/LidarState"
+        ]
+      ]
+    ],
+    "lidar_state_discovery": "DISCOVERED",
+    "subscriptions": [
+      {
+        "topic": "/utlidar/cloud",
+        "type": "sensor_msgs/msg/PointCloud2",
+        "publishers": [
+          {
+            "node": "_CREATED_BY_BARE_DDS_APP_",
+            "gid": "0110fa3127471848ca77a56700001c030000000000000000",
+            "participant_prefix": "0110fa3127471848ca77a567"
+          }
+        ]
+      },
+      {
+        "topic": "/utlidar/imu",
+        "type": "sensor_msgs/msg/Imu",
+        "publishers": [
+          {
+            "node": "_CREATED_BY_BARE_DDS_APP_",
+            "gid": "0110fa3127471848ca77a567000020030000000000000000",
+            "participant_prefix": "0110fa3127471848ca77a567"
+          }
+        ]
+      },
+      {
+        "topic": "/utlidar/lidar_state",
+        "type": "unitree_go/msg/LidarState",
+        "publishers": [
+          {
+            "node": "_CREATED_BY_BARE_DDS_APP_",
+            "gid": "0110fa3127471848ca77a56700001e030000000000000000",
+            "participant_prefix": "0110fa3127471848ca77a567"
+          }
+        ]
+      }
+    ],
+    "record_start_wall_ns": 1794498627857596939,
+    "record_start_mono_ns": 9474008242114,
+    "final_nodes": [
+      "static_transform_publisher_s6ow4kw7S8UhyyHO",
+      "laserMapping",
+      "transform_everything",
+      "go2_readonly_time_diagnostic",
+      "static_transform_publisher_XJUrzp7UseJpOs4p",
+      "static_transform_publisher_YE4qO4tM1qzLUFWz"
+    ],
+    "record_end_wall_ns": 1794498657858183929
+  },
+  "historical_dds_source_minus_pc_wall_s": {
+    "time_20261112_231501_before_internal": {
+      "raw_cloud": {
+        "n": 548,
+        "mean": -3390496.0466438453,
+        "median": -3390496.0473871925,
+        "min": -3390496.072050155,
+        "max": -3390496.029427647,
+        "p95": -3390496.031572223
+      },
+      "raw_imu": {
+        "n": 9222,
+        "mean": -3390496.0456358986,
+        "median": -3390496.04629328,
+        "min": -3390496.070834738,
+        "max": -3390496.028478739,
+        "p95": -3390496.0310697695
+      }
+    },
+    "time_20261112_231926_source_guard_after": {
+      "raw_cloud": {
+        "n": 549,
+        "mean": -3390496.0501730423,
+        "median": -3390496.03793337,
+        "min": -3390496.568008116,
+        "max": -3390496.03109774,
+        "p95": -3390496.0343807307
+      },
+      "raw_imu": {
+        "n": 9252,
+        "mean": -3390496.0495599746,
+        "median": -3390496.036978512,
+        "min": -3390496.56751584,
+        "max": -3390496.030384801,
+        "p95": -3390496.0335219125
+      }
+    },
+    "time_20261112_232648_final_entry": {
+      "raw_cloud": {
+        "n": 549,
+        "mean": -3390495.866083233,
+        "median": -3390495.866028783,
+        "min": -3390495.87863613,
+        "max": -3390495.860766325,
+        "p95": -3390495.861605081
+      },
+      "raw_imu": {
+        "n": 9243,
+        "mean": -3390495.865005339,
+        "median": -3390495.865043545,
+        "min": -3390495.880313387,
+        "max": -3390495.859949457,
+        "p95": -3390495.8608089597
+      }
+    }
+  },
+  "lidar_state_field_ranges": {
+    "cloud_frequency": {
+      "min": 14.47756290435791,
+      "max": 15.100942611694336,
+      "mean": 14.844125843688145
+    },
+    "imu_frequency": {
+      "min": 247.935302734375,
+      "max": 250.66151428222656,
+      "mean": 249.6978776150902
+    },
+    "serial_buffer_size": {
+      "min": 0,
+      "max": 240,
+      "mean": 21.530201342281877
+    },
+    "serial_buffer_read": {
+      "min": 4,
+      "max": 311,
+      "mean": 60.711409395973156
+    },
+    "error_state": {
+      "min": 0,
+      "max": 0,
+      "mean": 0.0
+    }
+  },
+  "model_evidence": "User explicitly confirmed L1; LidarState has no model field",
+  "evidence": [
+    {
+      "path": "camera_ws/records/time_20261112_235022_pc_dds_lidar_state/samples.jsonl",
+      "sha256": "3dcca1544ff4d3f28cfb8b66badddfadea5b1007c9477a1ee7217af391b67392",
+      "bytes": 2574511
+    },
+    {
+      "path": "camera_ws/records/time_20261112_235022_pc_dds_lidar_state/metadata.json",
+      "sha256": "632d8484a3541d2a7f5fdfb9d69ee31e995f998765c707026fd1f28ab75ccacc",
+      "bytes": 14987
+    }
+  ]
+}

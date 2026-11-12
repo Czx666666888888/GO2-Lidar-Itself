@@ -1,5 +1,18 @@
 # Project Status
 
+## 2026-11-12后续：纯PC DDS/LidarState诊断，不以源主控SSH为前提
+
+实际fetch最新Push仍为12d0db5；本轮未更改时间转换算法/保护、稳定MAP或视觉伺服分支。
+Domain0/enp12s0发现并读取/utlidar/lidar_state（unitree_go/msg/LidarState），30秒149条；
+同时446帧raw cloud、7491条raw IMU。用户确认L1，实际版本firmware1.0.2/software1.0.0.38/SDK1.0.9。
+三条原生Topic的DDS participant prefix相同；DDS源时间、状态stamp、serial_recv_stamp均旧约3390496.05秒。
+确认偏差存在于发布端时间域，A（发布者侧时钟）最吻合，但公开状态不足以完全区分OS时钟与驱动显式改写。
+L1接口仅查到TIMESYNC类别/getTimeDelay读取，未找到当前DDS可用的公开主控设置时间API；
+RobotState公开接口没有该方法，Config通用文件接口也没有公开的校时配置键。未套用L2同步API。
+同一诊断入口现在纯PC订阅，不再SSH/构建/启停SLAM；实际采集前后现有节点名单一致。
+正式校时尚未执行、时间域问题尚未解决；需宇树确认无需SSH的固件/联网校时路径。
+实验说明及测量：experiments.md最新节、analysis/go2_time_sync_20261112/pc_dds_lidar_state_summary.json。
+
 ## 2026-11-12 实机时间链诊断与未完成的源时钟同步
 
 来源：远端a8f7c667、两轮30秒实采、Point-LIO内部只读日志及修正后阻断验证。
