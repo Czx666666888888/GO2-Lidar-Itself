@@ -1291,3 +1291,116 @@ ODOM保护边界、外部速度真值与正式外参标定均为NOT VERIFIED。
 
 三自由度横移控制已实现，但尚未实机验证。若原ODOM预算阻挡合理末段，需用上述实测证据
 单独讨论定位可信度策略，本轮没有悄悄扩大或删除该预算。
+
+## 2026-11-12 — LiDAR/IMU真实时间链诊断（不运动，源时钟仍阻塞）
+
+开发起点：实际fetch的集成分支a8f7c667874b3416bb9af5a01b2ad1d0560f6442。
+本节随本次代码提交一起保存；最新实现commit见本节所在提交的`git log -1`，
+原始metadata里的a8f7c667是采集时基线，不冒充后续实现提交。
+未更改稳定MAP或视觉伺服分支；主目录无关bridge/训练工作保留。
+
+### 实测环境和采集方式
+
+PC有线enp12s0=192.168.123.99，伴随主机.18可SSH，S1保持服务保留。
+开始检查时PC没有Point-LIO，诊断才启动仅传感器转换、Point-LIO、base_odom与必要静态TF。
+已存在SLAM时脚本只订阅并保留状态，不替换进程；不会启动相机、遥控、速度控制或姿态任务。
+结束只关闭本轮创建的只读进程。全程没有发布运动指令，未进行仿真或批量单元测试。
+
+真实读回：laserMapping use_sim_time=false；transform_everything=false；/clock发布者0；
+time_lag_imu_to_lidar=0；publish_odometry_without_downsample=false；cut_frame/con_frame=false；
+timestamp_unit=0（time为秒）。PC systemd-timesyncd报告已同步，但timesync-status同时显示
+公网NTP高延迟/抖动及-500ppm调节，不能据“synchronized=yes”假定短时不漂移。
+.18 NTP inactive，实采GO2(.18)-PC偏差中位112.236ms，变化约-0.783ms/s。
+这不是原生雷达时间校准；原生header/DDS发送时间域与PC差约3,390,496秒。
+`.161`是主控候选；用户在可见终端尝试后确认没有登录凭据，未修改该主机。
+对.161和.18的标准NTP只读请求均超时，未获得原生源时钟独立校准基准。
+不能仅由DDS时间域推断已读到源主机系统时间或确认具体源IP。
+
+脚本记录PC ROS/wall/monotonic（第二轮同时记录MONOTONIC_RAW）、原始与转换header、
+PC接收时刻、DDS source timestamp、点内time极值、state/base，以及以base源stamp查询
+map->vehicle的query_ns/tf_stamp_ns。已安装rclpy executor丢弃MessageInfo，因此诊断专用
+executor保留元信息，不修改系统ROS库。Point-LIO增加默认关闭的time_diagnostic_log，
+开启时记录实际now/beg/end/time_current/last_imu/odom；不改变内部数值、发布或滤波。
+
+### 根因证据
+
+官方L1接口把PointUnitree.time定义为相对cloud.stamp的时间：
+[官方SDK声明](https://github.com/unitreerobotics/unilidar_sdk/blob/main/unitree_lidar_sdk/include/unitree_lidar_sdk.h)。
+本机实时消息提供额外实证，而不是直接假定原生驱动等同SDK示例：原始点内time为正，
+最大相对时间中位63.761ms，原生DDS发布在header后中位66.373ms；
+`DDS source - (header+max time)`范围约0.205–5.051ms，中位2.599ms（含采集启动窗口）。
+原始IMU的DDS source与其header只差约8微秒。因此当前流的header是点内相对时间参考
+（扫描起点语义），完整点云发送在扫描末端后，与相对time语义一致。
+
+旧transform_everything在首个完整点云回调取`PC now - raw header`为永久offset；
+这个差同时包含不同epoch、完整扫描跨度、源端处理和单向传输/PC调度延迟，
+不能视为纯时钟差。第二轮转换后cloud起点约在PC当前时刻，而转换后IMU已超前约75.6ms，
+故最早引入额外未来偏差的环节是transform_everything；Point-LIO随后正常计算扫描末端。
+源码位置：transform_everything.py的cloud_callback、imu_callback。
+
+Point-LIO preprocess.cpp unilidar_handler把time秒乘1000存入curvature毫秒；
+laserMapping.cpp sync_packages仅执行`end=beg+max(curvature)/1000`一次；
+publish_odometry_without_downsample=false时发布该end，并原样用于动态TF。
+实测内部end和odom最大差仅约0.238微秒（double转换精度），未发现重复加扫描时间。
+从输入点云最大time推导的end与输出非全部精确匹配，是preprocess盲区过滤改变最大保留点；
+诊断同时保留未过滤推导值及真正内部日志，不把推导值伪装成内部实测。
+IMU_Processing.hpp未另行添加扫描周期；parameters.cpp时间lag为实测0。
+
+base_odom_node.py仅坐标偏移、header复制；正式30秒446/446个base stamp在state中精确匹配，
+446/446次按原始stamp查询TF返回相同tf_stamp。science_target_approach._fresh仍为100ms
+future_tolerance，sample_time=monotonic-age，未来age会把采样时间映到将来，超过100ms即拒绝；
+本次未改此逻辑。camera_target_to_map仍按输入PointStamped原始时间查TF，latest仅供诊断文字，
+没有替代精确时间查询。没有把时间戳问题解释成SLAM空间漂移。
+
+### 正式30秒基线统计
+
+从记录的wall/monotonic样本对应关系切出正式窗口，启动前/暖机样本单独保留。
+正值为未来；单位ms，趋势为ms/s。原始receive_delay含不同epoch，不能当网络延迟。
+
+| 项目 | 样本 | 均值 | 中位 | P95 | 最小 | 最大 | 趋势 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 转换后cloud起点-PC | 445 | -2.857 | -2.686 | 7.795 | -26.072 | 23.412 | -0.745 |
+| 转换后IMU-PC | 7481 | 75.298 | 75.580 | 86.644 | 41.678 | 89.064 | -0.752 |
+| 实际内部lidar_end-PC | 462 | 57.665 | 58.187 | 68.560 | 31.254 | 72.803 | -0.810 |
+| state-PC | 446 | 57.865 | 57.757 | 67.928 | 36.385 | 72.080 | -0.732 |
+| base-PC | 446 | 57.412 | 57.215 | 67.361 | 35.944 | 71.510 | -0.729 |
+
+raw cloud receive_delay中位3,390,496.116008s，raw IMU中位3,390,496.048432s；
+二者相差约67.58ms；完整均值/极值/P95/斜率在measured_summary.json，不省略或当作纯网络时延。
+首轮/第二轮分别观测到11/1条启动IMU未加offset，随后切换到巨大的epoch偏移，
+证实启动阶段双时基问题。后续历史100ms故障日志没有同步逐级原始采样，
+本次仅复现约50–80ms典型偏差，未宣称完整重现此前108ms峰值。
+
+### 最小代码修正与真实阻塞
+
+- 不再从首个完整点云的接收时刻估计时钟差。默认保留原生时间戳；可显式配置
+  sensor_time_offset_sec，但必须来自独立实测映射，不提供猜测值。
+- 首个cloud验证同一时基前不发IMU；cloud/IMU都应用同一明确映射。
+  使用now只作时基有效性检查，不覆盖源stamp；不删除原始timestamp或点内时间。
+- 源时基不可信时输出SOURCE_CLOCK_UNSYNCHRONIZED并阻断cloud/IMU。
+  这不是自动完成源时钟同步：当前相差约39天、无独立基准，不能继续沿用伪造offset。
+- 仅给Point-LIO增加默认关闭的只读日志和launch开关/显式offset传参；
+  未改估计算法、滤波器、运动/外参/MAP接近参数、0.10s保护。
+- 同一一键入口按源文件指纹只构建必要包，无变化不重复构建；不重启已运行SLAM。
+  完整运动入口先执行此只读诊断，返回2时在机械臂使能/行走前停止。
+
+修正后正式30秒采到445帧原始点云、7495条原始IMU；转换cloud/IMU及state/base均0条。
+startup未换算IMU也为0条。节点日志明确给出源时钟未校准，没有输出虚假的“零未来误差”。
+**源时钟实际同步尚未完成；修正后有效里程计偏差、长期漂移和定位精度均NOT VERIFIED。**
+缺少源主机权限或可信双向同步接口时无法消除单向链路延迟与时钟差的不可辨识性，
+不以minimum接收延迟等经验值冒充精确时钟标定。
+
+### 入口、验证和数据
+
+唯一实现入口：`bash camera_ws/scripts/run_go2_time_diagnostic.sh`。
+根go2_test.sh的--time-diagnostic共用该实现；--execute在S1集成分支先诊断。
+主目录入口转发独立集成目录，不切分支或覆盖已有脏改动；/tmp丢失可恢复该分支。
+已实际完成Point-LIO单包构建26.3s、必要launch安装/转换包构建，以及只读前后采集；
+后续仅语法/lint及实采统计分析，没有全仓构建、离线仿真或批量单元测试。
+
+原始数据在主仓库camera_ws/records（不随Git上传）：
+`time_20261112_230956_before`、`time_20261112_231501_before_internal`、
+`time_20261112_231926_source_guard_after`、`time_20261112_232648_final_entry`。
+保留samples.jsonl、metadata.json、readonly_slam.log、point_lio_internal.json、report.json/txt、trend.json。
+可审阅统计及原始数据SHA256：`camera_ws/analysis/go2_time_sync_20261112/measured_summary.json`。
+下一步需取得原生时钟基准后真正同步/验证；不能将当前阻断状态当完整解决。

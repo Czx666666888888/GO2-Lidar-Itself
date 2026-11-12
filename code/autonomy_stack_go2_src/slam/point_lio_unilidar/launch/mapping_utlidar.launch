@@ -2,12 +2,17 @@
 	<!-- Launch file for Unitree L1 LiDAR mounted on Go2 -->
 	<arg name="rviz" default="true" />
 	<arg name="use_sim_time" default="true" />
+	<arg name="time_diagnostic_log" default="false" />
+	<arg name="sensor_time_offset_sec" default="0.0" />
 
-	<node pkg="transform_sensors" exec="transform_everything" name="transform_everything" output="screen" />
+	<node pkg="transform_sensors" exec="transform_everything" name="transform_everything" output="screen">
+		<param name="sensor_time_offset_sec" value="$(var sensor_time_offset_sec)" />
+	</node>
 
 	<node pkg="point_lio_unilidar" exec="pointlio_mapping" name="laserMapping" output="screen">
 		<param from="$(find-pkg-share point_lio_unilidar)/config/utlidar.yaml" />
 		<param name="use_sim_time" value="$(var use_sim_time)" />
+		<param name="time_diagnostic_log" value="$(var time_diagnostic_log)" />
 		
 		<param name="use_imu_as_input" value="false"/>
 		

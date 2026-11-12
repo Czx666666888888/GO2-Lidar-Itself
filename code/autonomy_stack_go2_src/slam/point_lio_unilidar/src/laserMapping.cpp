@@ -52,6 +52,7 @@ int publish_count = 0;
 int frame_ct = 0;
 double time_update_last = 0.0;
 double time_current = 0.0;
+bool time_diagnostic_log = false;
 double time_predict_last_const = 0.0;
 double t_last = 0.0;
 
@@ -785,6 +786,16 @@ void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPt
     }
     set_posestamp(odomAftMapped.pose.pose);
 
+    // Observation only: no mutation of sensor, filter, odometry or TF times.
+    if (time_diagnostic_log)
+    {
+        RCLCPP_INFO(rclcpp::get_logger("laserMapping"),
+            "TIME_DIAGNOSTIC now=%.9f beg=%.9f end=%.9f current=%.9f imu=%.9f odom=%.9f",
+            rclcpp::Clock(RCL_SYSTEM_TIME).now().seconds(), Measures.lidar_beg_time,
+            lidar_end_time, time_current, last_timestamp_imu,
+            get_time_in_sec(odomAftMapped.header.stamp));
+    }
+
     pubOdomAftMapped->publish(odomAftMapped);
 
     // tf2::Transform transform;
@@ -832,6 +843,7 @@ int main(int argc, char **argv)
     auto node = rclcpp::Node::make_shared("laserMapping");
 
     readParameters(node);
+    time_diagnostic_log = node->declare_parameter<bool>("time_diagnostic_log", false);
     cout << "lidar_type: " << lidar_type << endl << flush;
 
     path.header.stamp = get_ros_time(lidar_end_time);
