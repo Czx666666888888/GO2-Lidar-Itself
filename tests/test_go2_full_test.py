@@ -4,6 +4,7 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,50 @@ SPEC.loader.exec_module(FLOW)
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_persistent_hold_launcher_releases_connection_descriptors(self):
+        with tempfile.TemporaryDirectory() as folder:
+            code = FLOW.detached_launcher(
+                [sys.executable, '-c', 'import time; time.sleep(60)'],
+                folder, Path(folder)/'hold.log')
+            result = subprocess.run([sys.executable, '-c', code], capture_output=True,
+                                    text=True, timeout=3, check=True)
+            pid = int(result.stdout.strip().split()[-1])
+            try:
+                os.kill(pid, 0)
+            finally:
+                os.kill(pid, signal.SIGTERM)
+
+    def test_clock_excludes_connection_startup_delay(self):
+        delayed = 'import time; time.sleep(0.3); '+FLOW.CLOCK_RESPONDER
+        with contextlib.redirect_stdout(io.StringIO()):
+            FLOW.verify_clock([sys.executable, '-u', '-c', delayed])
+
+    def test_wrong_clock_still_blocks(self):
+        wrong = FLOW.CLOCK_RESPONDER.replace('print(time.time(),', 'print(time.time()+1,')
+        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+            FLOW.verify_clock([sys.executable, '-u', '-c', wrong])
+
+    def test_generated_links_allow_restart_but_source_changes_block(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            subprocess.run(['git', 'init', '-q', str(work)], check=True)
+            (work/'camera_ws').mkdir()
+            (work/'deploy_ws').symlink_to(FLOW.ROOT/'deploy_ws', target_is_directory=True)
+            records_target = FLOW.ROOT/'camera_ws/records'
+            (work/'camera_ws/records').symlink_to(records_target, target_is_directory=True)
+            FLOW.require_clean_checkout(work)
+            (work/'user_source.py').write_text('user code\n')
+            with self.assertRaises(RuntimeError):
+                FLOW.require_clean_checkout(work)
+
+    def test_wrong_generated_link_blocks_restart(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            subprocess.run(['git', 'init', '-q', str(work)], check=True)
+            (work/'deploy_ws').symlink_to('/tmp', target_is_directory=True)
+            with self.assertRaises(RuntimeError):
+                FLOW.require_clean_checkout(work)
+
     def test_default_and_dock_plan_never_spawn_or_connect(self):
         for mode in ('full', 'dock'):
             with patch.object(sys, 'argv', ['go2_full_test.py', '--mode', mode]), \

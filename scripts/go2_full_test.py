@@ -5,6 +5,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import select
 import shlex
 import shutil
 import signal
@@ -21,6 +22,9 @@ ARM = '/home/unitree/s1-arm-control'
 ARM_PY = '/home/unitree/s1-arm-py310/bin/python'
 SSH = ['ssh', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
        '-o', 'ServerAliveInterval=3', '-o', 'ServerAliveCountMax=3']
+CLOCK_RESPONDER = (
+    "import sys,time; print('CLOCK_READY',flush=True); "
+    "exec('for line in sys.stdin:\\n print(time.time(),flush=True)')")
 
 # Camera process group belongs to this connection. EOF tears it down without
 # matching/killing another operator's processes. S1 hold deliberately persists.
@@ -59,6 +63,68 @@ def zero_hold(state):
             and state.get('navigation_allowed') is True)
 
 
+def require_clean_checkout(work):
+    """Allow only our verified workspace links; preserve all source changes."""
+    links = {'deploy_ws': ROOT/'deploy_ws', 'camera_ws/records': ROOT/'camera_ws/records'}
+    status = subprocess.check_output(
+        ['git', '-C', str(work), 'status', '--porcelain', '--untracked-files=all', '-z'],
+        text=True)
+    for entry in filter(None, status.split('\0')):
+        name = entry[3:]
+        path = work/name
+        if (entry.startswith('?? ') and name in links and path.is_symlink()
+                and path.resolve() == links[name].resolve()):
+            continue
+        raise RuntimeError('集成目录有未提交改动，保留现场并停止: '+str(work)+' '+entry)
+
+
+def verify_clock(argv):
+    """Measure live exchanges after SSH authentication, using the same connection."""
+    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               text=True, bufsize=1)
+
+    def receive():
+        if not select.select([process.stdout], [], [], 5)[0]:
+            raise RuntimeError('时钟测量响应超时')
+        line = process.stdout.readline()
+        if not line:
+            raise RuntimeError('时钟测量连接退出')
+        return line.strip()
+
+    try:
+        if receive() != 'CLOCK_READY':
+            raise RuntimeError('时钟测量握手失败')
+        for _ in range(5):
+            start = time.time()
+            process.stdin.write('ping\n')
+            process.stdin.flush()
+            stamp = float(receive())
+            end = time.time()
+            rtt, offset = end-start, stamp-(start+end)/2
+            print(f'CLOCK_CHECK rtt={rtt:.6f}s offset={offset:+.6f}s', flush=True)
+            if rtt > 0.2 or abs(offset) > 0.05:
+                raise RuntimeError('对时偏差/SSH往返过大，停止；重新检查网络和时钟')
+    finally:
+        process.stdin.close()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.terminate()
+            process.wait(timeout=5)
+        process.stdout.close()
+
+
+def detached_launcher(argv, cwd, log):
+    """Close SSH descriptors before leaving the persistent S1 hold process."""
+    return (
+        "import os,subprocess; "
+        f"log=open({str(log)!r},'x'); "
+        f"p=subprocess.Popen({argv!r}, cwd={str(cwd)!r}, "
+        "env=dict(os.environ,OPENBLAS_NUM_THREADS='1'), "
+        "stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT, "
+        "close_fds=True,start_new_session=True); print('S1_PID',p.pid)")
+
+
 def ros_probe():
     """Require multiple recent samples and an actual TF, without publishing."""
     import rclpy
@@ -70,7 +136,8 @@ def ros_probe():
     node = rclpy.create_node('go2_full_test_readiness')
     specs = [('/camera/camera/color/image_raw', Image),
              ('/camera/camera/aligned_depth_to_color/image_raw', Image),
-             ('/utlidar/cloud', PointCloud2), ('/utlidar/imu', Imu),
+             ('/utlidar/transformed_cloud', PointCloud2),
+             ('/utlidar/transformed_imu', Imu),
              ('/state_estimation', Odometry)]
     samples = {name: [] for name, _ in specs}
 
@@ -153,9 +220,7 @@ class Workflow:
         # A separate clone has its own Git metadata; never switch the user's branch.
         if not self.work.exists():
             run(['git', 'clone', '--no-hardlinks', '--branch', BRANCH, ROOT, self.work])
-        if subprocess.check_output(['git', '-C', str(self.work), 'status', '--porcelain'],
-                                   text=True).strip():
-            raise RuntimeError('集成目录有未提交改动，保留现场并停止: '+str(self.work))
+        require_clean_checkout(self.work)
         branch = subprocess.check_output(['git', '-C', str(self.work), 'branch',
                                           '--show-current'], text=True).strip()
         if branch != BRANCH:
@@ -184,11 +249,21 @@ class Workflow:
             work_dir=str(self.work), physical_result='NOT VERIFIED'), indent=2))
         self.env_prefix = '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
             Path('/opt/ros/humble/setup.bash'), ROOT/'deploy_ws/install/setup.bash'])+'; '
-        run(self.shell('cd '+shlex.quote(str(self.work))+' && '+shlex.join([
-            'colcon', '--log-base', str(self.work/'.onekey/log'), 'build',
-            '--base-paths', 'camera_ws/src', '--build-base', str(self.work/'.onekey/build'),
-            '--install-base', str(self.overlay.parent),
-            '--packages-select', 'go2_science_perception'])))
+        stamp = self.work/'.git/go2_onekey_built_commit'
+        if self.overlay.exists() and stamp.exists() and stamp.read_text().strip() == head:
+            print('复用本入口已成功构建的同commit overlay: '+head, flush=True)
+        else:
+            if stamp.exists():
+                stamp.unlink()
+            run(self.shell('cd '+shlex.quote(str(self.work))+' && '+shlex.join([
+                '/usr/bin/python3', '-X', 'faulthandler', '/usr/bin/colcon',
+                '--log-base', str(self.work/'.onekey/log'), 'build',
+                '--base-paths', 'camera_ws/src', '--build-base', str(self.work/'.onekey/build'),
+                '--install-base', str(self.overlay.parent),
+                '--packages-select', 'go2_science_perception'])))
+            if not self.overlay.exists():
+                raise RuntimeError('构建未产生overlay，停止')
+            stamp.write_text(head+'\n')
         self.env_prefix += '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
             self.overlay, self.work/'camera_ws/scripts/science_approach_pc_env.bash'])+'; '
         self.env_prefix += 'export SCIENCE_APPROACH_OVERLAY='+shlex.quote(str(self.overlay))+'; '
@@ -220,13 +295,8 @@ class Workflow:
         if existing and not zero_hold(self.status()):
             raise RuntimeError('已有S1服务未处于ZERO_HOLD，保留现场并停止')
         run(['/usr/bin/python3', self.work/'camera_ws/scripts/sync_go2_clock.py'])
-        # Bounded RTT check, no passwords in logs or command arguments.
-        for _ in range(3):
-            start = time.time()
-            stamp = float(remote('date +%s.%N', capture_output=True, text=True).stdout)
-            end = time.time()
-            if end-start > 0.2 or abs(stamp-(start+end)/2) > 0.05:
-                raise RuntimeError('对时偏差/SSH往返过大，停止；重新检查网络和时钟')
+        clock_command = ['/usr/bin/python3', '-u', '-c', CLOCK_RESPONDER]
+        verify_clock([*SSH, HOST, shlex.join(clock_command)])
         remote('mkdir -p '+REMOTE)
         run(['scp', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
              self.work/'camera_ws/scripts/launch_go2_d435_foxy.sh',
@@ -235,8 +305,11 @@ class Workflow:
              'go2_science_perception/s1_task_sequence.py',
              HOST+':'+REMOTE+'/'])
         # sudo may prompt on the terminal; never capture or save the password.
-        run(['ssh', '-t', '-i', KEY, '-o', 'ConnectTimeout=5', HOST,
-             'sudo systemctl stop go2-remote-router.service'])
+        router_state = remote('systemctl show go2-remote-router.service -p ActiveState --value',
+                              capture_output=True, text=True).stdout.strip()
+        if router_state != 'inactive':
+            run(['ssh', '-t', '-i', KEY, '-o', 'ConnectTimeout=5', HOST,
+                 'sudo systemctl stop go2-remote-router.service'])
         remote('if systemctl is-active --quiet go2-remote-router.service; then exit 1; fi')
         if not existing:
             remote('command -v fuser >/dev/null || exit 1; '
@@ -244,10 +317,10 @@ class Workflow:
             remote('cd '+ARM+' && OPENBLAS_NUM_THREADS=1 '+ARM_PY +
                    ' -B scripts/run_arm_integration.py')
             arm_log = REMOTE+'/s1_hold_'+self.folder.name+'.log'
-            remote('cd '+ARM+' && nohup env OPENBLAS_NUM_THREADS=1 '+ARM_PY +
-                   ' -uB scripts/run_arm_integration.py --dev /dev/ttyUSB0 --execute >' +
-                   shlex.quote(arm_log)+' 2>&1 < /dev/null &',
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            arm_argv = [ARM_PY, '-uB', 'scripts/run_arm_integration.py',
+                        '--dev', '/dev/ttyUSB0', '--execute']
+            launcher = detached_launcher(arm_argv, ARM, arm_log)
+            remote(shlex.join(['/usr/bin/python3', '-c', launcher]))
             print('S1保持服务日志: '+HOST+':'+arm_log, flush=True)
         deadline = time.monotonic()+45
         while True:

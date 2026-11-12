@@ -1181,3 +1181,68 @@ ZIP逐张与原图hash一致，无损坏、无自动标签。筛选不是人工�
 本机USB未枚举D435；隔离本机ROS域211两秒启动退出，0接收/0保存，不能作为真实采集
 验收。真实RGB-D与三类别识别粗定位均NOT VERIFIED。没有全仓构建、训练或GO2运动。
 完整命令与限制见`../../vision_training/reports/science_targets_v1_setup.md`。
+## 2026-11-12 — 一键 MAP + S1 流程首轮实际执行与时间戳保护
+
+来源：集成分支a8f7c667源码、PC/GO2实际命令输出、控制JSONL/run JSON、录像逐帧解码，
+以及用户现场“已经停住”反馈。本段是后续新记录，不改写早期实验的证据边界。
+
+入口为根目录 `bash go2_test.sh --execute`，S1完整模式。独立clone为
+`/tmp/go2_onekey_s1`，安装为其`.onekey/install`，实际数据通过链接保存到主仓库records。
+旧遥控服务已按用户要求停止并禁用自启；收尾读回inactive/disabled。
+
+### 启动器修正与软件验证
+
+实际启动暴露了首版离线检查没有覆盖的条件：目录忽略规则不忽略目录软链接；
+每次SSH新建连接的认证耗时被计入时钟RTT；shell后台保持进程未完全释放SSH会话；
+原始雷达epoch与PC不同，但原链使用首次点云接收偏移统一转换时间戳。
+入口分别限定放行指向预期路径的自建链接、使用单SSH连接的5次往返、用关闭继承描述符
+的Popen脱离会话，以及对实际进入SLAM的transformed_cloud/imu检查新鲜度。
+控制算法、TF、STOP_CONFIRM、future_tolerance=0.10及其它运动保护均未修改。
+
+新增成功构建commit标记（独立clone的.git下），同commit复用overlay；源码脏状态仍拒绝。
+已停用的遥控服务跳过重复sudo停止。9项离线测试、flake8、语法检查通过。
+本轮单包构建成功，并逐文件核对27份安装Python/参数与源码一致；另一次colcon退出139
+的日志在operator_20261112_2244，原因仍Unknown，未据此声称环境已修复。
+保持服务旧启动方式超时时，实际已处于ZERO_HOLD；保留服务后续复用，未重复使能。
+新的脱离会话方式通过本机子进程生命周期测试，GO2冷启动路径未在本轮再执行。
+
+### 实际结果
+
+- 最终一轮PC时钟探测：RTT约0.21–0.62ms，GO2偏差约-2.1ms；这只证明宿主时钟，
+  不能证明雷达内部时钟或Point-LIO输出时间戳。
+- 一键入口通过连续图像、转换雷达/IMU、里程计及map->vehicle预检，原协调器启动
+  控制器/安全门/录像。启动期短暂map TF未发现由原有启动期reset处理；最终故障不同。
+- SEARCH发现目标，STOP_CONFIRM一轮3.800s确认：6样本、散布24.48mm、静止确认约1s。
+  继而进入APPROACH_TO_GRASP_POSE；不是“没有检测到目标”。
+- 首次停靠FAULT在该阶段elapsed=12.500s，原因原文：
+  `localization/TF: stale/future/zero input timestamp: age=-0.108354s`。
+  状态日志最后一条elapsed=14.800s是故障后收尾，不能当作故障触发时间。
+- `_odom()`订阅/base_state_estimation，先执行`_fresh()`；本次异常明确是该消息header
+  的未来时间超限，不能仅凭前缀归因为TF查不到。future_tolerance为0.10s，超限8.354ms。
+  前一状态ODOM剩余约4.24m/20.50s，停靠无进展计时约2.40s（上限10s），均未到限。
+- 最近MAP停车位误差46.15mm、对应速度约0.122m/s，未达40mm和持续静止条件；
+  最后有效位置误差约74.06mm，不能据距离近判定停靠成功，更不是物理真值精度。
+- controller三个指令归零；安全门独立停止、连续StopMove并解除武装。
+  协调器拒绝StandDown/grasp，未启动姿态任务。用户确认实际停住。
+  本轮相机/定位已结束；S1 status=ZERO_HOLD、busy=false、navigation_allowed=true保留。
+- recorder正常closed，叠加和raw MP4均逐帧解码605/605；完整停靠/抓取/入盒仍未通过。
+
+### 时间链与尚未确认的根因
+
+实际加载的transform_sensors/base_odom经egg-link指向deploy_ws/build；其Python文件与
+仓库源码逐字节一致。transform_sensors只在首个点云计算`PC now - native stamp`固定偏移，
+随后对cloud和IMU加同一偏移。Point-LIO源码的里程计时间来自time_current或lidar_end_time；
+base_odom保留上游header。因此需要排查“原生雷达时钟→固定偏移→SLAM时间→机身里程计”。
+上述路径是源码确认；不能从它直接断言偏移漂移、首帧延迟、扫描时长或硬件时钟跳变
+中的某一个已经被证实。故障瞬间没有同时记录raw/转换流/SLAM/base的header和PC收取时间，
+暂时只能确认直接触发条件，不能重建是哪一层首先超前。
+下一步应只读同步采这几层；本轮未改时间算法或扩大100ms容差，未自动重试真机运动。
+
+### 本地原始证据（不随Git上传）
+
+- `camera_ws/records/operator_20261112_2249/console.log`
+- `camera_ws/records/full_1794494771455097289/{manifest.json,camera.log,slam.log}`
+- `camera_ws/records/run_1794494783627546512.json`及`.user_observation.json`伴随记录
+- `camera_ws/records/science_approach_1794494784397339910.jsonl`
+- `camera_ws/records/1794494783627546512_{gate,control,recorder}.log`
+- `camera_ws/records/approach_20261112_224624_465197{,_raw}.mp4`及同名JSONL
