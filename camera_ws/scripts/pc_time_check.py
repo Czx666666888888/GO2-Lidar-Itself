@@ -29,6 +29,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', help='run real motion; full also performs posture/grasp')
     parser.add_argument('--mode', choices=('dock', 'full'), default='full')
+    parser.add_argument('--clock-diagnostic', action='store_true',
+                        help='explicit full 20s online + 20s paused clock sampling')
     parser.add_argument('--work-dir', type=Path, help='forward existing integration checkout option')
     args = parser.parse_args()
     folder = ROOT/'camera_ws/records'/('pc_time_'+str(time.time_ns()))
@@ -44,8 +46,13 @@ def main():
     state['was_active'] = subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0
     state['before_status'] = (subprocess.run(['timedatectl','timesync-status'],capture_output=True,text=True).stdout
                               if state['was_active'] else 'inactive; no D-Bus query')
-    print('记录PC在线校时时钟20秒；随后临时暂停校时，不改变频率参数。', flush=True)
-    state['online'] = probe(20)
+    state['full_clock_diagnostic'] = args.clock_diagnostic or not args.execute
+    started = time.monotonic()
+    if state['full_clock_diagnostic']:
+        print('显式完整时钟诊断：在线20秒 + 暂停20秒。', flush=True)
+        state['online'] = probe(20)
+    else:
+        print('快速启动：跳过40秒完整时钟采样；保留服务监测和实时定位检查。', flush=True)
     changed = False
     try:
         if state['was_active']:
@@ -53,9 +60,10 @@ def main():
             # Mark before mutation so interruption during systemctl still restores.
             changed = True
             run(['sudo','-n','systemctl','stop','systemd-timesyncd'])
-        print('记录暂停校时后的时钟20秒，然后执行'+
-              (f'真实{args.mode}任务。' if args.execute else 'IMU映射只读定位。'), flush=True)
-        state['paused'] = probe(20)
+        if state['full_clock_diagnostic']:
+            state['paused'] = probe(20)
+        state['time_context_ready_sec'] = time.monotonic()-started
+        print('STAGE time_context %.3fs' % state['time_context_ready_sec'], flush=True)
         state['paused_service_active'] = subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0
         if changed and state['paused_service_active']:
             raise RuntimeError('PC校时服务意外重启，阻止启动任务')

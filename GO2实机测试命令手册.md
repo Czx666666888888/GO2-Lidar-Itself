@@ -3,6 +3,54 @@
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
+## 2026-11-13 快速启动与S1实测零位接口（基线f0bfd6ce152a）
+
+本轮用户确认GO2暂时没电，只完成代码；未部署/启动设备、未回零、未GO2运动。
+
+- 默认PC运动入口跳过原20s在线+20s暂停的固定采样；仍临时暂停/恢复原timesyncd、
+  检查服务意外重启并用实时IMU映射READY/时间戳验收。完整采样保留显式--clock-diagnostic。
+- 取消默认8s原生独立采集+原ros_probe+30s完整定位诊断串行组合。只读启动探针按连续
+  数据条件提前结束：原生频率/丢包/扫描跨度、共享映射READY、150ms未来/400ms新鲜度、
+  时间单调、有限位姿、无/clock、Point-LIO use_sim_time=false、精确机身/相机TF。
+  dock还要求实时CONFIRMED未访问目标与selected一致；未修改识别/MAP/停靠算法或参数。
+- 现有健康D435/Point-LIO/base/TF和新版S1 ZERO_HOLD直接复用；新建节点才归本轮退出清理。
+  健康且仍新鲜的结果不重复验雷达/TF；冷启动最终只补定位/相机链检查。
+  失效时间映射、过期定位重建已识别的原launch会话；未知外部进程所有权阻断而不猜杀进程。
+  失效相机只停止已确认serial的旧驱动后重新准备时钟；不在健康相机运行时改它的时间。
+- 构建缓存按包源码/配置内容hash，不再按整个Git commit；同一marker在启动器/诊断脚本共享，
+  原同commit缓存可迁移，文档和启动脚本修改不触发无关包重编译。此次没有修改ROS包算法，未重编译包。
+- 合并远端设备/进程检查、SSH短期连接复用；S1等待只用一个客户端通过原Unix socket本地轮询，
+  原生观察与S1准备并行。阶段耗时写full_*/startup_timing.json，输出STAGE和SLOWEST_STAGE，
+  PC时间上下文另记time_context_ready_sec。45秒是启动最大等待，READY/具体故障立即返回。
+
+原S1源码来自交付ZIP，SHA256=a7e08d875366dc777e2a41e19401f537fa929584c9c89ae6a0ceaea5aab6596e，
+与既有仓库记录一致。补丁位于camera_ws/s1_service，只更新原run_arm_integration、integration、
+stdlib客户端及状态helper。安装只在服务未运行时进行，校验原件hash、备份并拒绝覆盖未知修改。
+不创建第二个串口控制进程；D455抓取/入盒流程、SDK、原Arm.move实现、原绑定路径不改。
+
+S1状态保留原state，增加readiness_state/position_state：COMMUNICATION_ERROR（带原I/O/SDK错误）、
+NOT_AT_ZERO、AT_ZERO、ZERO_HOLD、BUSY、FAULT。使用唯一服务的get_pos/get_vel/get_temp读取六关节，
+零目标沿用ZERO_Q，零位容差沿用原max_track_err_rad并受原start_safe_windows_rad约束；
+反馈读取时间不等于独立电机包新鲜度，SDK未暴露后者，不能据此宣称线缆故障必能立即被检测。
+
+通信正常且在原安全起步窗口内的非零位：同一服务排队zero，沿用原startup_zero S曲线插值，
+返回后连续有效反馈检查并再次确认六关节零位才进入ZERO_HOLD；已有保持不再次回零。
+GRASPING/RETURNING_ZERO拒绝重复zero。超出原窗口（如历史J5=-0.126841rad）仍单独报告NOT_AT_ZERO，
+return_zero_allowed=false，不扩大范围、不猜测安装空间可用路径。真实串口错误不发送回零。
+已有旧服务若仅返回摘要、没有实测关节接口，保留服务并阻断升级；不为读取位置重新连接串口。
+下一次服务停用后的原一键入口会校验安装接口；未知远端版本需核实，不能强制覆盖。
+
+验证：10项针对性接口检查通过（不导入SDK、不打开串口、不发动作），py_compile/bash语法/diff通过。
+检查覆盖默认不调用40s采样、显式诊断保留、非零位与I/O分类、BUSY去重、ZERO_HOLD复用及
+只读启动不创建/使能设备。无全仓构建、无离线仿真/批量测试。真实串口状态、六关节值、
+回零路径实机、冷/热启动总秒数均NOT VERIFIED：GO2没电；不能把软件耗时当作实机提速结果。
+原最大固定开销由源码确认是40s采样，另有8s原生和30s诊断；故障时S1另等最多45s。
+
+唯一正常运动入口仍是：bash go2_test.sh --execute --mode dock。
+只读计时/已有服务状态选项：bash go2_test.sh --startup-check --mode dock（不回零/不启动相机或定位）。
+显式完整时钟诊断：在原运动命令后加--clock-diagnostic；已有--time-diagnostic --pc-time-check
+只读完整诊断入口也保留。本轮未执行任何--execute命令。
+
 ## 2026-11-13 取消停靠无进展退出，接入自主搜索/抓取/起立全流程
 
 ### 本次真实运动与用户反馈（修改前）

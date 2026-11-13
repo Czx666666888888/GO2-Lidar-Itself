@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """从 PC 启动现有 MAP + S1 单目标流程；默认离线计划。"""
 import argparse
+import base64
+from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
+import threading
+from go2_build_fingerprint import fingerprint
 import fcntl
 import json
 import os
@@ -21,7 +26,9 @@ REMOTE = '/home/unitree/go2_map_s1'
 ARM = '/home/unitree/s1-arm-control'
 ARM_PY = '/home/unitree/s1-arm-py310/bin/python'
 SSH = ['ssh', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
-       '-o', 'ServerAliveInterval=3', '-o', 'ServerAliveCountMax=3']
+       '-o', 'ServerAliveInterval=3', '-o', 'ServerAliveCountMax=3',
+       '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60',
+       '-o', 'ControlPath=/tmp/go2-startup-%C']
 CLOCK_RESPONDER = (
     "import sys,time; print('CLOCK_READY',flush=True); "
     "exec('for line in sys.stdin:\\n print(time.time(),flush=True)')")
@@ -55,12 +62,15 @@ def run(argv, **kwargs):
 
 
 def remote(command, **kwargs):
-    return run([*SSH, HOST, command], timeout=20, **kwargs)
+    return run([*SSH, HOST, command], timeout=kwargs.pop('timeout',20), **kwargs)
 
 
 def zero_hold(state):
     return (state.get('state') == 'ZERO_HOLD' and state.get('busy') is False
-            and state.get('navigation_allowed') is True)
+            and state.get('navigation_allowed') is True
+            and state.get('at_zero', True) is True
+            and state.get('communication_state', 'OK') == 'OK'
+            and state.get('readiness_state', 'ZERO_HOLD') == 'ZERO_HOLD')
 
 
 def require_clean_checkout(work):
@@ -179,11 +189,118 @@ class Workflow:
         self.folder = ROOT / 'camera_ws/records' / ('full_' + str(time.time_ns()))
         self.overlay = self.work / '.onekey/install/setup.bash'
         self.env_prefix = ''
+        self.stages = []
+        self.timing_lock = threading.Lock()
+
+    @contextmanager
+    def stage(self, name):
+        started = time.monotonic()
+        outcome = 'OK'
+        try:
+            yield
+        except BaseException:
+            outcome = 'FAILED'
+            raise
+        finally:
+            row = dict(stage=name, elapsed_sec=time.monotonic()-started, outcome=outcome)
+            with self.timing_lock:
+                self.stages.append(row)
+                print('STAGE '+json.dumps(row), flush=True)
+                if self.folder.exists():
+                    (self.folder/'startup_timing.json').write_text(json.dumps(self.stages, indent=2)+'\n')
+
+    def arm_command(self, command='status'):
+        result = remote(shlex.join(['/usr/bin/python3', ARM+'/scripts/arm_task_client.py',
+                                    command]), capture_output=True, text=True)
+        return json.loads(result.stdout)
 
     def status(self):
-        result = remote(shlex.join(['/usr/bin/python3', ARM+'/scripts/arm_task_client.py',
-                                    'status']), capture_output=True, text=True)
-        return json.loads(result.stdout)
+        return self.arm_command()
+
+    def probe(self, label, timeout=8, scope='all', require_target=False):
+        target = self.folder/(label+'.json')
+        command = ['/usr/bin/python3', str(self.work/'camera_ws/scripts/go2_startup_probe.py'),
+                   '--timeout', str(timeout), '--scope', scope, '--report', str(target)]
+        if require_target:
+            command.append('--require-target')
+        with self.stage('probe_'+label):
+            result = subprocess.run(self.shell(shlex.join(command)))
+        if result.returncode not in (0, 2) or not target.exists():
+            raise RuntimeError('启动只读探针未完成，查看日志: '+label)
+        report=json.loads(target.read_text())
+        if any('existing velocity controller' in error for error in report.get('errors',[])):
+            raise RuntimeError('已有其他速度发布者，保留定位并拒绝新任务')
+        return report
+
+    def deploy_s1(self):
+        # Only called while the single-owner service is absent. Never hot-patch it.
+        source = self.work/'camera_ws/s1_service'
+        manifest = json.loads((source/'source_manifest.json').read_text())
+        files = {name: dict(original=meta['original_sha256'],
+                           content=base64.b64encode((source/name).read_bytes()).decode())
+                 for name, meta in manifest['files'].items()}
+        script = r"""
+import base64, hashlib, json, pathlib, shutil, sys, subprocess
+root=pathlib.Path(sys.argv[1]); files=json.loads(sys.stdin.read())
+if subprocess.run(['pgrep','-f','[r]un_arm_integration.py'],stdout=subprocess.DEVNULL).returncode==0:
+    raise SystemExit('S1 service running: preserve it, no installation')
+for name, item in files.items():
+    p=root/name; new=base64.b64decode(item['content'])
+    if p.exists() and hashlib.sha256(p.read_bytes()).hexdigest() not in (
+            item['original'], hashlib.sha256(new).hexdigest()):
+        raise SystemExit('S1 source differs from delivery; preserve and stop: '+name)
+for name,item in files.items():
+    p=root/name; new=base64.b64decode(item['content'])
+    if p.exists() and p.read_bytes()==new: continue
+    if p.exists():
+        backup=root/'.go2-startup-original'/name
+        backup.parent.mkdir(parents=True,exist_ok=True)
+        if not backup.exists(): shutil.copy2(p,backup)
+    p.parent.mkdir(parents=True,exist_ok=True)
+    temp=p.with_suffix(p.suffix+'.startup-tmp'); temp.write_bytes(new); temp.replace(p)
+print('S1_EXTENSION_INSTALLED: original serial owner retained')
+"""
+        remote(shlex.join(['/usr/bin/python3','-c',script,ARM]),
+               input=json.dumps(files),text=True)
+
+    def ensure_s1(self, running):
+        status_file=None
+        if running:
+            state = self.status()
+            if zero_hold(state):
+                if not state.get('joint_positions_rad'):
+                    raise RuntimeError('已有旧S1服务无实测关节接口；保留服务，不重复连接串口。升级需先停止旧服务。')
+                print('REUSE S1 ZERO_HOLD: '+json.dumps(state),flush=True)
+                return
+            if state.get('busy') or state.get('state') in ('GRASPING','RETURNING_ZERO','QUEUED'):
+                raise RuntimeError('S1 BUSY，不重复回零: '+str(state))
+            if state.get('readiness_state') in ('COMMUNICATION_ERROR','FAULT'):
+                raise RuntimeError('S1 '+str(state))
+            if state.get('position_state') in ('AT_ZERO','NOT_AT_ZERO'):
+                if state.get('return_zero_allowed') is False:
+                    raise RuntimeError('S1 NOT_AT_ZERO，原回零路径未验证: '+str(state))
+                reply = self.arm_command('zero')
+                if reply.get('accepted') is not True:
+                    raise RuntimeError('S1回零被唯一服务拒绝: '+str(reply))
+            else:
+                raise RuntimeError('S1状态不可确认，保留现场: '+str(state))
+        else:
+            self.deploy_s1()
+            arm_log=REMOTE+'/s1_hold_'+self.folder.name+'.log'
+            status_file=REMOTE+'/s1_startup_'+self.folder.name+'.json'
+            argv=[ARM_PY,'-uB','scripts/run_arm_integration.py','--dev','/dev/ttyUSB0',
+                  '--status-file',status_file,'--execute']
+            remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,ARM,arm_log)]))
+            print('S1_LOG '+HOST+':'+arm_log,flush=True)
+        command=['/usr/bin/python3',ARM+'/scripts/arm_task_client.py','status',
+                 '--wait-ready','--timeout','45']
+        if status_file:
+            command += ['--status-file',status_file]
+        # One SSH client polls the existing Unix socket locally; it never opens serial.
+        result=remote(shlex.join(command),capture_output=True,text=True,timeout=50)
+        state=json.loads(result.stdout)
+        if not (zero_hold(state) and state.get('joint_positions_rad')):
+            raise RuntimeError('S1未就绪，保留具体错误: '+str(state))
 
     def spawn(self, argv, label, **kwargs):
         stream = (self.folder / (label+'.log')).open('x')
@@ -243,16 +360,25 @@ class Workflow:
                 link.symlink_to(target, target_is_directory=True)
             if link.resolve() != target.resolve():
                 raise RuntimeError('集成目录链接指向不符: '+str(link))
-        self.folder.mkdir(parents=True)
+        self.folder.mkdir(parents=True, exist_ok=True)
         (self.folder/'manifest.json').write_text(json.dumps(dict(
             commit=head, branch=BRANCH, mode=self.args.mode,
             time_mapping_mode=os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'),
             work_dir=str(self.work), physical_result='NOT VERIFIED'), indent=2))
         self.env_prefix = '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
             Path('/opt/ros/humble/setup.bash'), ROOT/'deploy_ws/install/setup.bash'])+'; '
-        stamp = self.work/'.git/go2_onekey_built_commit'
-        if self.overlay.exists() and stamp.exists() and stamp.read_text().strip() == head:
-            print('复用本入口已成功构建的同commit overlay: '+head, flush=True)
+        stamp = self.work/'.git/go2_onekey_built_inputs'
+        build_hash = fingerprint(self.work/'camera_ws/src/go2_science_perception')
+        legacy_stamp=self.work/'.git/go2_onekey_built_commit'
+        if self.overlay.exists() and not stamp.exists() and legacy_stamp.exists():
+            previous=legacy_stamp.read_text().strip()
+            unchanged=subprocess.run(['git','-C',str(self.work),'diff','--quiet',previous,'HEAD','--',
+                                      'camera_ws/src/go2_science_perception']).returncode==0
+            if unchanged:
+                stamp.write_text(build_hash+'\n')
+
+        if self.overlay.exists() and stamp.exists() and stamp.read_text().strip() == build_hash:
+            print('REUSE build inputs unchanged: '+build_hash, flush=True)
         else:
             if stamp.exists():
                 stamp.unlink()
@@ -264,108 +390,182 @@ class Workflow:
                 '--packages-select', 'go2_science_perception'])))
             if not self.overlay.exists():
                 raise RuntimeError('构建未产生overlay，停止')
-            stamp.write_text(head+'\n')
+            stamp.write_text(build_hash+'\n')
         self.env_prefix += '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
             self.overlay, self.work/'camera_ws/scripts/science_approach_pc_env.bash'])+'; '
         self.env_prefix += 'export SCIENCE_APPROACH_OVERLAY='+shlex.quote(str(self.overlay))+'; '
         self.env_prefix += 'export GO2_TIME_MAPPING_MODE='+shlex.quote(
             os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'))+'; '
 
-    def execute(self):
-        self.prepare()
-        run(['ip', '-br', 'addr', 'show', 'enp12s0'])
-        route = subprocess.check_output(['ip', 'route', 'get', '192.168.123.18'], text=True)
-        if 'dev enp12s0' not in route or 'src 192.168.123.99' not in route:
-            raise RuntimeError('有线路由/IP不符合现有DDS配置: '+route)
-        # Do not change time underneath an old camera/SLAM session.
-        remote("command -v pgrep >/dev/null || exit 1; "
-               "if pgrep -f '[r]ealsense2_camera_node|[s]1_task_host.py'; then exit 1; fi")
-        result = subprocess.run(['pgrep', '-af',
-                                 'd435_slam_target_validation.launch.py|[l]aserMapping|'
-                                 '[s]cience_target_approach|[g]o2_safety_gate'],
-                                capture_output=True, text=True)
-        if result.returncode != 1:
-            raise RuntimeError('旧定位/控制进程或进程检查失败，先按手册停止: '+result.stdout)
-        # Check the native producer before clock sync, S1 enable or localization.
-        # This check only subscribes; it never guesses a LiDAR configuration RPC.
-        run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
-             '--lidar-check', '--duration', '8', '--label', 'pre_motion_native'])
-        # Prepare the new converter before any device enable. Actual mapping and
-        # exact camera TF are diagnosed after the existing read-only chain starts.
-        run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
-             '--prepare-only'])
-        time_overlay = self.work/'.time_sync/install/setup.bash'
-        if not time_overlay.exists():
-            raise RuntimeError('缺少时间转换overlay，停止')
-        self.env_prefix += 'source '+shlex.quote(str(time_overlay))+' || exit; '
-        device_probe = (
-            "import pyrealsense2 as r; from pathlib import Path; "
-            "s={d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()}; "
-            "assert {'213622070598','231622302209'} <= s, s; "
-            "assert Path('/dev/ttyUSB0').exists(); print(s)")
-        remote(shlex.join([ARM_PY, '-c', device_probe]))
-        # If a service exists it must be idle before clock sync or adapter upload.
-        existing = remote("pgrep -f '[r]un_arm_integration.py' || true",
-                          capture_output=True, text=True).stdout.strip()
-        if existing and not zero_hold(self.status()):
-            raise RuntimeError('已有S1服务未处于ZERO_HOLD，保留现场并停止')
-        run(['/usr/bin/python3', self.work/'camera_ws/scripts/sync_go2_clock.py'])
-        clock_command = ['/usr/bin/python3', '-u', '-c', CLOCK_RESPONDER]
-        verify_clock([*SSH, HOST, shlex.join(clock_command)])
-        remote('mkdir -p '+REMOTE)
-        run(['scp', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
-             self.work/'camera_ws/scripts/launch_go2_d435_foxy.sh',
-             self.work/'camera_ws/scripts/s1_task_host.py',
-             self.work/'camera_ws/src/go2_science_perception' /
-             'go2_science_perception/s1_task_sequence.py',
-             HOST+':'+REMOTE+'/'])
-        # sudo may prompt on the terminal; never capture or save the password.
-        router_state = remote('systemctl show go2-remote-router.service -p ActiveState --value',
-                              capture_output=True, text=True).stdout.strip()
-        if router_state != 'inactive':
-            run(['ssh', '-t', '-i', KEY, '-o', 'ConnectTimeout=5', HOST,
-                 'sudo systemctl stop go2-remote-router.service'])
-        remote('if systemctl is-active --quiet go2-remote-router.service; then exit 1; fi')
-        if not existing:
-            remote('command -v fuser >/dev/null || exit 1; '
-                   'if fuser /dev/ttyUSB0; then exit 1; fi')
-            remote('cd '+ARM+' && OPENBLAS_NUM_THREADS=1 '+ARM_PY +
-                   ' -B scripts/run_arm_integration.py')
-            arm_log = REMOTE+'/s1_hold_'+self.folder.name+'.log'
-            arm_argv = [ARM_PY, '-uB', 'scripts/run_arm_integration.py',
-                        '--dev', '/dev/ttyUSB0', '--execute']
-            launcher = detached_launcher(arm_argv, ARM, arm_log)
-            remote(shlex.join(['/usr/bin/python3', '-c', launcher]))
-            print('S1保持服务日志: '+HOST+':'+arm_log, flush=True)
-        deadline = time.monotonic()+45
-        while True:
+    def stop_invalid_camera(self):
+        script = r"""
+from pathlib import Path
+import os, signal, time
+matches=[]
+for proc in Path('/proc').glob('[0-9]*'):
+    try:
+        args=(proc/'cmdline').read_bytes().split(b'\0')
+        driver=any(a==b'realsense2_camera_node' or a.endswith(b'/realsense2_camera_node') for a in args)
+        if driver:
+            if not any(b'213622070598' in a for a in args):
+                raise RuntimeError('camera ownership/serial unknown; preserve it')
+            matches.append(int(proc.name))
+    except (FileNotFoundError,PermissionError): pass
+for pid in matches:
+    try: os.kill(pid,signal.SIGINT)
+    except ProcessLookupError: pass
+deadline=time.monotonic()+10
+while matches and time.monotonic()<deadline:
+    matches=[pid for pid in matches if Path('/proc/'+str(pid)).exists()]
+    time.sleep(.1)
+if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
+"""
+        remote(shlex.join(['/usr/bin/python3','-c',script]))
+
+    def stop_invalid_localization(self):
+        matches=[]
+        for proc in Path('/proc').glob('[0-9]*'):
             try:
-                state = self.status()
-            except (subprocess.SubprocessError, ValueError):
-                state = {}
-            if zero_hold(state):
-                break
-            if state.get('state', '').startswith('FAULT') or time.monotonic() > deadline:
-                raise RuntimeError('S1未就绪，保留保持服务: '+str(state))
-            time.sleep(1)
-        self.spawn([*SSH, HOST, shlex.join(['/usr/bin/python3', '-c', CAMERA_OWNER,
-                    REMOTE+'/launch_go2_d435_foxy.sh'])], 'camera', stdin=subprocess.PIPE)
-        slam_command = ['ros2', 'launch', 'go2_science_perception',
-                        'd435_slam_target_validation.launch.py',
-                        'remote_camera:=true', 'use_rviz:=false']
-        self.spawn(self.shell(shlex.join(slam_command)), 'slam')
-        probe = subprocess.Popen(self.shell(shlex.join(['/usr/bin/python3', __file__, '--probe'])))
-        try:
-            self.wait_job(probe)
-        finally:
-            if probe.poll() is None:
-                probe.terminate()
-                probe.wait(timeout=5)
-        diagnostic = ['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
-                      '--reuse-only', '--label', 'pre_motion']
-        if self.args.mode == 'dock':
-            diagnostic.append('--require-target')
-        run(diagnostic)
+                argv=(proc/'cmdline').read_bytes().split(b'\0')
+                text=b' '.join(argv).decode(errors='replace')
+                if b'd435_slam_target_validation.launch.py' in argv:
+                    pid=int(proc.name)
+                    group=os.getpgid(pid)
+                    leader=(Path('/proc')/str(group)/'cmdline').read_bytes().decode(errors='replace')
+                    if 'd435_slam_target_validation.launch.py' not in leader or 'ros2' not in leader:
+                        raise RuntimeError('无效定位由未知外部组管理，保留现场: '+str(pid))
+                    if group not in matches:
+                        matches.append(group)
+            except (FileNotFoundError,ProcessLookupError,PermissionError):
+                continue
+        for pid in matches:
+            os.killpg(pid,signal.SIGINT)
+        deadline=time.monotonic()+10
+        while matches and time.monotonic()<deadline:
+            for child, _, label in self.children:
+                if label=='slam':
+                    child.poll()  # Reap our exited launch before checking /proc.
+            matches=[pid for pid in matches if Path('/proc/'+str(pid)).exists()]
+            time.sleep(.1)
+        if matches:
+            raise RuntimeError('旧定位未退出，不启动重复链: '+str(matches))
+        retained=[]
+        for child, stream, label in self.children:
+            if label=='slam' and child.poll() is not None:
+                stream.close()
+            else:
+                retained.append((child,stream,label))
+        self.children=retained
+        extra=subprocess.run(['pgrep','-af','[l]aserMapping|[t]ransform_everything|[b]ase_odom_node'],
+                             capture_output=True,text=True)
+        if extra.returncode!=1:
+            raise RuntimeError('仍有外部定位节点，保留现场: '+extra.stdout)
+
+    def execute(self):
+        self.folder.mkdir(parents=True, exist_ok=True)
+        with self.stage('prepare_code_and_build'):
+            self.prepare()
+            run(['bash',self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh','--prepare-only'])
+            self.env_prefix += 'source '+shlex.quote(str(self.work/'.time_sync/install/setup.bash'))+' || exit; '
+        with self.stage('connection_and_inventory'):
+            route=subprocess.check_output(['ip','route','get','192.168.123.18'],text=True)
+            if 'dev enp12s0' not in route or 'src 192.168.123.99' not in route:
+                raise RuntimeError('有线路由/IP不符: '+route)
+            active=subprocess.run(['pgrep','-af','[s]cience_target_approach|[g]o2_safety_gate|[s]1_task_host.py'],
+                                  capture_output=True,text=True)
+            if active.returncode != 1:
+                raise RuntimeError('已有控制任务，拒绝并行启动: '+active.stdout)
+            inventory_script = r"""
+import json, subprocess
+from pathlib import Path
+import pyrealsense2 as r
+def pids(pattern):
+    out=subprocess.run(['pgrep','-f',pattern],capture_output=True,text=True)
+    return [int(x) for x in out.stdout.split()]
+print(json.dumps(dict(arm=pids('[r]un_arm_integration.py'), task=pids('[s]1_task_host.py'),
+    camera=pids('[r]ealsense2_camera_node'), serial=Path('/dev/ttyUSB0').exists(),
+    cameras=[d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()],
+    router=subprocess.run(['systemctl','is-active','--quiet','go2-remote-router.service']).returncode==0)))
+"""
+            inventory=json.loads(remote(shlex.join([ARM_PY,'-c',inventory_script]),
+                                        capture_output=True,text=True).stdout)
+            if inventory['task']:
+                raise RuntimeError('远端抓取任务仍在运行')
+            if not inventory['serial']:
+                raise RuntimeError('COMMUNICATION_ERROR: /dev/ttyUSB0 missing')
+            if not {'213622070598','231622302209'} <= set(inventory['cameras']):
+                raise RuntimeError('相机设备不匹配: '+str(inventory['cameras']))
+        # --startup-check is deliberately read-only: no hold enable, zero, camera or SLAM start.
+        if self.args.startup_check:
+            with self.stage('readonly_s1_status'):
+                print('S1_STATUS '+json.dumps(self.status() if inventory['arm'] else
+                      dict(state='NOT VERIFIED',reason='service absent; serial visible; no second owner opened')),
+                      flush=True)
+            with self.stage('readonly_current_chain'):
+                result=self.probe('readonly_current',timeout=3)
+            print('READ_ONLY_CHECK '+json.dumps(result),flush=True)
+            return
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            # Native/ROS observations are independent of the existing S1 socket.
+            pending=pool.submit(self.probe,'existing',3,'all',self.args.mode=='dock')
+            with self.stage('s1_reuse_or_controlled_zero'):
+                if inventory['router']:
+                    run(['ssh','-t','-i',KEY,HOST,'sudo systemctl stop go2-remote-router.service'])
+                self.ensure_s1(bool(inventory['arm']))
+            existing=pending.result()
+        if not existing['native_ok']:
+            raise RuntimeError('原生雷达不健康，不启动定位/运动: '+str(existing))
+        with self.stage('camera_clock_and_chain'):
+            # Healthy camera and localization are reused without touching either clock.
+            if inventory['camera'] and not existing['camera_ok']:
+                self.stop_invalid_localization()
+                self.stop_invalid_camera()
+                inventory['camera']=[]
+                existing['slam_ok']=False
+            if not inventory['camera']:
+                try:
+                    verify_clock([*SSH,HOST,shlex.join(['/usr/bin/python3','-u','-c',CLOCK_RESPONDER])])
+                except RuntimeError:
+                    run(['/usr/bin/python3',self.work/'camera_ws/scripts/sync_go2_clock.py'])
+                remote('mkdir -p '+REMOTE)
+                run(['scp','-i',KEY,'-o','BatchMode=yes',
+                     self.work/'camera_ws/scripts/launch_go2_d435_foxy.sh',HOST+':'+REMOTE+'/'])
+                self.spawn([*SSH,HOST,shlex.join(['/usr/bin/python3','-c',CAMERA_OWNER,
+                           REMOTE+'/launch_go2_d435_foxy.sh'])],'camera',stdin=subprocess.PIPE)
+            if not existing['slam_ok']:
+                self.stop_invalid_localization()
+                command=['ros2','launch','go2_science_perception','d435_slam_target_validation.launch.py',
+                         'remote_camera:=true','use_rviz:=false']
+                self.spawn(self.shell(shlex.join(command)),'slam')
+            else:
+                print('REUSE Point-LIO/base/IMU mapping/TF',flush=True)
+        with self.stage('final_live_readiness'):
+            fresh_existing=(existing.get('ready') and existing.get('base_stamp_ns') and
+                existing.get('camera_stamp_ns') and
+                -.15 <= time.time()-existing['base_stamp_ns']/1e9 < .4 and
+                -.05 <= time.time()-existing['camera_stamp_ns']/1e9 < .4)
+            if fresh_existing and not self.children:
+                print('REUSE live readiness: no duplicate LiDAR/TF check',flush=True)
+                result=existing
+            else:
+                result=self.probe('pre_motion',timeout=30,scope='chain',require_target=self.args.mode=='dock')
+            if not result['ready'] and not result['slam_ok']:
+                print('INVALID_TIME_OR_LOCALIZATION: 重建本次定位会话一次，不复用offset',flush=True)
+                self.stop_invalid_localization()
+                command=['ros2','launch','go2_science_perception','d435_slam_target_validation.launch.py',
+                         'remote_camera:=true','use_rviz:=false']
+                self.spawn(self.shell(shlex.join(command)),'slam')
+                result=self.probe('pre_motion_reinitialized',timeout=30,scope='chain',require_target=self.args.mode=='dock')
+            if not result['ready']:
+                raise RuntimeError('实时定位/目标检查失败；禁止运动: '+str(result))
+        # Existing full-task adapters are uploaded only for the full mode, not dock.
+        if self.args.mode=='full':
+            with self.stage('full_task_adapters'):
+                remote('mkdir -p '+REMOTE)
+                run(['scp','-i',KEY,'-o','BatchMode=yes',
+                     self.work/'camera_ws/scripts/s1_task_host.py',
+                     self.work/'camera_ws/src/go2_science_perception/go2_science_perception/s1_task_sequence.py',
+                     HOST+':'+REMOTE+'/'])
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
@@ -406,7 +606,10 @@ class Workflow:
                         p.wait(timeout=5)
             finally:
                 stream.close()
-        print('本轮相机/定位清理结束；S1服务不会自动关闭，停机请按手册人工处理。', flush=True)
+        if self.stages:
+            slowest=max(self.stages,key=lambda row:row['elapsed_sec'])
+            print('SLOWEST_STAGE '+json.dumps(slowest),flush=True)
+        print('本轮自建相机/定位清理结束；复用会话保持运行；S1服务不会自动关闭，停机请按手册人工处理。', flush=True)
         if self.folder.exists():
             print('日志: '+str(self.folder)+'；物理停止/抓取结果需现场确认。', flush=True)
 
@@ -418,15 +621,17 @@ def main():
     parser.add_argument('--mode', choices=['full', 'dock'], default='full')
     parser.add_argument('--work-dir', type=Path, default=Path('/tmp/go2_onekey_s1'))
     parser.add_argument('--probe', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--startup-check', action='store_true',
+                        help='read-only stage timing/status; never zero/enable/move')
     args = parser.parse_args()
     if args.probe:
         ros_probe()
         return
-    if not args.execute:
+    if not args.execute and not args.startup_check:
         print('离线计划（未连接硬件、未写文件）：\n'
-              '恢复独立最新S1分支 → 单包构建 → 有线/设备/旧进程检查 → 对时 → '
-              '同步适配器 → 停旧自定义路由 → S1回零保持 → D435 → SLAM/感知/TF → '
-              '连续数据检查 → SEARCH 5m/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
+              '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
+              '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
+              'SEARCH 5m/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
               (' → 趴下 → S1抓取 → ZERO_HOLD → 起立' if args.mode == 'full' else '') +
               '\n真实执行：bash go2_test.sh --execute\n'
               '无自动避障；退出保留S1保持服务。完整流程真机验收：NOT VERIFIED。')

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Read-only legacy chain: --time-diagnostic --legacy-check. Motion: --execute.
+# Motion: --execute --mode dock. Read-only reuse/timing: --startup-check.
+# Full 40s clock sampling is explicit: append --clock-diagnostic to --execute.
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [ "$(uname -m)" = aarch64 ]; then

@@ -44,8 +44,8 @@ for go2_time_arg in "$@"; do
 done
 if [ "$go2_time_observe" = false ]; then
   go2_time_perception="$go2_time_repo/camera_ws/src/go2_science_perception"
-  go2_time_perception_hash="$(sha256sum "$go2_time_perception/config/science_target_approach.yaml" "$go2_time_perception/go2_science_perception/science_target_approach.py" | sha256sum | cut -d' ' -f1)"
-  go2_time_perception_marker="$go2_time_repo/.git/time_build_perception_config"
+  go2_time_perception_hash="$(/usr/bin/python3 "$go2_time_repo/scripts/go2_build_fingerprint.py" "$go2_time_perception")"
+  go2_time_perception_marker="$go2_time_repo/.git/go2_onekey_built_inputs"
   if [ ! -f "$go2_time_repo/.onekey/install/go2_science_perception/share/go2_science_perception/package.xml" ] || [ ! -f "$go2_time_perception_marker" ] || [ "$(cat "$go2_time_perception_marker")" != "$go2_time_perception_hash" ]; then
     (cd "$go2_time_repo" && PYTHONNOUSERSITE=1 /usr/bin/python3 /usr/bin/colcon \
       --log-base .onekey/log build --base-paths camera_ws/src \

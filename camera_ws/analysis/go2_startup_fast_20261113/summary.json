@@ -1,0 +1,26 @@
+{
+  "baseline": "f0bfd6ce152af1658d15b63b0985883af95a3407",
+  "hardware_status": "NOT VERIFIED: user confirmed GO2 powered off",
+  "hardware_actions_executed": false,
+  "remote_deployed": false,
+  "fixed_clock_sampling_removed_from_default_sec": 40,
+  "original_other_serial_diagnostic_windows_sec": [
+    8,
+    30
+  ],
+  "original_s1_startup_max_wait_sec": 45,
+  "new_real_cold_start_sec": null,
+  "new_real_reuse_start_sec": null,
+  "s1_live_communication": "Unknown / needs verification",
+  "s1_feedback_source": "original single-owner Arm.get_pos/get_vel/get_temp",
+  "zero_target": "original ZERO_Q",
+  "zero_tolerance": "original max_track_err_rad and start_safe_windows_rad",
+  "automatic_zero_scope": "only original verified startup window; outside window NOT_AT_ZERO and no auto motion",
+  "source_zip_sha256": "a7e08d875366dc777e2a41e19401f537fa929584c9c89ae6a0ceaea5aab6596e",
+  "focused_checks": {
+    "command": "/usr/bin/python3 -m pytest -q camera_ws/test/test_startup_interfaces.py",
+    "passed": 10
+  },
+  "syntax_checks": "py_compile and bash -n passed",
+  "ros_packages_built": []
+}

@@ -1,0 +1,17 @@
+{
+  "source_zip_sha256": "a7e08d875366dc777e2a41e19401f537fa929584c9c89ae6a0ceaea5aab6596e",
+  "files": {
+    "scripts/run_arm_integration.py": {
+      "original_sha256": "f428f3734300bd8a56e5cecf749697b5f6a8620d438c006a7c702e45f92522d3"
+    },
+    "scripts/arm_task_client.py": {
+      "original_sha256": "7febfb8745228fdaae6145239c7caac7d63aefd0bc67134432b0ea4ba355c12b"
+    },
+    "s1_control/integration.py": {
+      "original_sha256": "b680f28751223dbf5b0de461b9f3dab4cd9726e563e5b5529962ca9345330021"
+    },
+    "s1_control/startup_status.py": {
+      "original_sha256": null
+    }
+  }
+}

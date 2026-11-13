@@ -126,7 +126,10 @@ def main():
                                 state['velocity_xy_mps'] > 0.05 or
                                 abs(state['yaw_rate']) > 0.10):
             raise RuntimeError('GO2 down/quiet condition lost during arm task; no StandUp')
-        return client.request(command, args.socket)
+        result = client.request(command, args.socket)
+        if command == 'status' and result.get('readiness_state') in ('COMMUNICATION_ERROR','FAULT'):
+            raise RuntimeError('S1 feedback fault; no subsequent action: '+str(result))
+        return result
 
     def posture(direction):
         require_zero_hold(request('status'))
