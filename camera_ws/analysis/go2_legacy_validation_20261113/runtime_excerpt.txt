@@ -1,0 +1,21 @@
+[transform_everything-1] [WARN] [1794564798.308729497] [transform_everything]: TIME_MODE=legacy; legacy uses first-cloud receipt minus header, not precise clock synchronization; historical odometry future bias about 57 ms
+[transform_everything-1] [WARN] [1794564798.310697847] [transform_everything]: TIME_MODE=legacy first_cloud_offset_ns=3460654380674488; fixed for this run
+[coarse_target_locator-6] [WARN] [1794564798.473120313] [coarse_target_locator]: INVALID: waiting for RGB, aligned depth and CameraInfo
+[coarse_target_locator-6] [WARN] [1794564800.473214563] [coarse_target_locator]: INVALID: waiting for RGB, aligned depth and CameraInfo
+[coarse_target_locator-6] [WARN] [1794564802.473241233] [coarse_target_locator]: INVALID: waiting for RGB, aligned depth and CameraInfo
+[coarse_target_locator-6] [WARN] [1794564804.598197145] [coarse_target_locator]: INVALID: waiting for RGB, aligned depth and CameraInfo
+[science_target_manager-9] [INFO] [1794564807.167583590] [science_target_manager]: SELECTED_CHANGED None -> 1
+[coarse_target_locator-6] [WARN] [1794564839.851506948] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794564841.851732672] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[science_target_manager-9] [INFO] [1794564842.347128421] [science_target_manager]: SELECTED_CHANGED 1 -> None
+[coarse_target_locator-6] [WARN] [1794564843.974293909] [coarse_target_locator]: INVALID: no blue candidates
+[science_target_manager-9] [INFO] [1794564845.287507444] [science_target_manager]: SELECTED_CHANGED None -> 1
+[coarse_target_locator-6] [WARN] [1794564858.601664060] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794564860.724237911] [coarse_target_locator]: INVALID: no blue candidates
+[science_target_manager-9] [INFO] [1794564860.747349093] [science_target_manager]: SELECTED_CHANGED 1 -> None
+[coarse_target_locator-6] [WARN] [1794564862.724464394] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794564864.849927561] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794564866.974891535] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794564868.976503377] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794564871.100101322] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794564873.102107421] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering

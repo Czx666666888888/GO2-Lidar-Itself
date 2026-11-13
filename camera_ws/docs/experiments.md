@@ -1818,3 +1818,51 @@ Ctrl+C请求原停止/清理，物理急停仍由操作者保持可用。
 - 证据：`camera_ws/analysis/go2_legacy_restore_20261113/summary.json`和native_report.json；
   原始数据在主仓库`camera_ws/records/time_20261113_174547_legacy_native_check/`，摘要含SHA256。
   下一步先恢复原生健康，再执行上述同一只读入口；不再研究主控SSH或继续开发时间算法。
+
+## 2026-11-13 18:13 legacy一键真实验证：流连续，时间/末端目标验收失败
+
+源码基线b3b603a35e9b；执行`bash go2_test.sh --time-diagnostic --legacy-check --duration 60`。
+原生预检14.662Hz、丢包中位1.657%，通过；复用已构建包，没有重新构建。
+用户在本地终端输入sudo密码，现有脚本对时后5次伴随主机偏差-15.600～-15.542ms，原检查通过。
+日志实际显示TIME_MODE=legacy、first_cloud_offset_ns=3460654380674488；没有运动或抓取。
+
+- 60秒原生/转换点云883帧，Point-LIO/base均883条，PC原生14.712Hz；最大机身接收间隔80.838ms。
+  模式legacy、offset已初始化，两个stamp单调，位姿有限；最大相邻机身位置步长39.951mm。
+  这证明该窗口有连续定位输出，不代表绝对定位精度/无漂移已验收。
+- 机身TF883/883、相机TF887/887，均100%。目标MAP精确316/316，selected输出980条，管理曾CONFIRMED。
+  期间有目标短暂丢失与重获，最后约14秒再次无有效蓝色目标，最终无新鲜CONFIRMED/selected。
+- 机身时间实际超前中位679.590ms、P95 762.329ms、范围363.473～765.786ms，远超用户指定150ms。
+  READY不会在legacy因新版映射锁存而停止，但不能因此忽略控制器时间新鲜度要求。
+- 总结果：`NOT VERIFIED: controller_timestamp_limits, confirmed_selected_target, fresh_confirmed_target`。
+  不具备运动条件；结束后入口清理本轮相机/定位，不动已有S1保持。
+
+### 为什么本次不是历史约57ms超前
+
+固定b为3460654.380674488s；采集开始时原始IMU接收-header为3460653.615196966s，
+两者相差765.477522ms。转换后首条IMU已超前765.311ms；Point-LIO首条里程计超前765.824ms。
+因此偏差已经在转换器产生，不能归为Point-LIO又重复加了一次约64ms扫描时长。
+base883/883条完整保留state stamp，也没有重新打时间戳制造超前。
+
+同一段首尾样本的时间增量：
+
+| 时间轴 | 增量秒 |
+| --- | ---: |
+| PC ROS | 60.000075688 |
+| PC wall | 60.000069546 |
+| PC CLOCK_MONOTONIC | 60.000069599 |
+| PC CLOCK_MONOTONIC_RAW | 59.604846490 |
+| GO2 DDS source | 59.619467323 |
+
+PC ROS相对RAW多走395.229ms，GO2源相对RAW多14.621ms。源-PC相对差在本窗口改变约380.608ms，
+不能解释为一个稳定的780微秒/秒GO2漂移。固定首帧offset会保留初始化误差，也无法跟随之后的相对变化。
+采集在初始化后开始，缺少首帧同时原始采样，因此首帧额外接收延迟和启动期时差变化暂不能分离。
+
+采后只读timedatectl报告NTP offset+86.279ms、网络delay736.170ms、jitter856.961ms；
+只读adjtimex(modes=0)返回5/status8257/freq174.054ppm/tick10000us，未修改系统参数。
+这些是采后快照，支持检查PC校时/计时环境，但不能证明整个395ms变化都由NTP单独造成。
+本次没有改时间算法、再次提高容差、修改系统时间服务或重试刷通过。
+先查明并稳定计时基准，再复验legacy；当前不能启动自主停靠。
+
+证据：camera_ws/analysis/go2_legacy_validation_20261113/summary.json、report.json、runtime_excerpt.txt；
+原始camera_ws/records/time_20261113_181246_legacy_native_preflight和time_20261113_181306_legacy_localization，
+摘要含原始文件SHA256。仅真实采集和记录分析，无离线仿真/批量测试。

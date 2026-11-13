@@ -1,5 +1,14 @@
 # Project Status
 
+## 2026-11-13 18:13 legacy真实一键验证（源码b3b603a）
+
+原生健康后真正运行legacy60秒，Point-LIO/base883条且流连续；机身TF883/883、相机TF887/887。
+目标MAP316/316，管理曾CONFIRMED，但最终目标STALE；机身超前363～766ms，大于150ms。
+转换后IMU即有约765ms超前，非Point-LIO或base追加；固定首帧offset大于后续原始IMU接收差。
+采集中PC ROS增量60.000s、MONOTONIC_RAW59.605s、GO2源59.619s，PC计时相对RAW显著变化；
+采后NTP延迟736ms/抖动857ms，仅支持检查PC计时环境，尚未完全区分初始化延迟与校时变化。
+不放行运动，未改算法/容差/系统时钟服务；证据go2_legacy_validation_20261113与experiments最新节。
+
 ## 2026-11-13 恢复a8f7c667历史legacy模式（实施基线45eac367）
 
 仅恢复首帧LiDAR接收-header固定offset、LiDAR/IMU共用、点内时间不变，legacy绕过新版IMU锁存。

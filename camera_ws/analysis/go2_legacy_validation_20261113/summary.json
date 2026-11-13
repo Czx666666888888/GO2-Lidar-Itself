@@ -1,0 +1,341 @@
+{
+  "code_commit": "b3b603a35e9b2a7cd19dd196c192eace40b449ef",
+  "entry": "bash go2_test.sh --time-diagnostic --legacy-check --duration 60",
+  "physical_motion_commanded": false,
+  "status": "NOT VERIFIED: controller_timestamp_limits, confirmed_selected_target, fresh_confirmed_target",
+  "counts": {
+    "raw_imu": 14891,
+    "imu": 14890,
+    "tracks": 1203,
+    "selected": 980,
+    "raw_cloud": 883,
+    "cloud": 883,
+    "state": 883,
+    "base": 883,
+    "tf": 1770,
+    "camera": 887,
+    "lidar_state": 298,
+    "coarse": 316,
+    "map_point": 316,
+    "map_debug": 316,
+    "mapping": 60
+  },
+  "time_mode": "legacy",
+  "offset_sec": 3460654.380674488,
+  "first_observed_raw_imu_receive_minus_stamp_s": 3460653.615196966,
+  "fixed_offset_minus_first_observed_imu_age_s": 0.7654775218106806,
+  "elapsed_s": {
+    "ros_ns": 60.000075688,
+    "wall_ns": 60.000069546,
+    "mono_ns": 60.000069599,
+    "mono_raw_ns": 59.60484649,
+    "dds_source_ns": 59.619467323,
+    "stamp_ns": 59.619472027
+  },
+  "pc_ros_minus_raw_elapsed_s": 0.39522919800000267,
+  "source_minus_pc_raw_elapsed_s": 0.014620833000002165,
+  "metrics": {
+    "receive_delay_s": {
+      "count": 883,
+      "mean": 3460653.834476359,
+      "median": 3460653.757280618,
+      "p95": 3460654.0603467245,
+      "maximum": 3460654.069373668,
+      "minimum": 3460653.667387045,
+      "slope_per_second": 0.008898717072646528,
+      "first": 3460653.66781565,
+      "last": 3460654.062793185
+    },
+    "imu_receive_delay_s": {
+      "count": 14891,
+      "mean": 3460653.7661255565,
+      "median": 3460653.688272975,
+      "p95": 3460653.991947311,
+      "maximum": 3460653.997208841,
+      "minimum": 3460653.601206512,
+      "slope_per_second": 0.008901491184773751,
+      "first": 3460653.615196966,
+      "last": 3460653.995800627
+    },
+    "cloud_future_s": {
+      "count": 883,
+      "mean": 0.5385930224881087,
+      "median": 0.615781028,
+      "p95": 0.7022591611,
+      "maximum": 0.705914505,
+      "minimum": 0.303978903,
+      "slope_per_second": -0.008898735138932985,
+      "first": 0.705563261,
+      "last": 0.310957868
+    },
+    "imu_future_s": {
+      "count": 14890,
+      "mean": 0.6133969276821357,
+      "median": 0.6913845935,
+      "p95": 0.77703545915,
+      "maximum": 0.779019579,
+      "minimum": 0.371422981,
+      "slope_per_second": -0.008901301949358157,
+      "first": 0.765310898,
+      "last": 0.384563151
+    },
+    "state_future_s": {
+      "count": 883,
+      "mean": 0.599808952585504,
+      "median": 0.680333861,
+      "p95": 0.7631821333,
+      "maximum": 0.7661846,
+      "minimum": 0.36452529,
+      "slope_per_second": -0.008901923159913462,
+      "first": 0.765824426,
+      "last": 0.370709299
+    },
+    "base_future_s": {
+      "count": 883,
+      "mean": 0.5989868744428086,
+      "median": 0.679590166,
+      "p95": 0.7623289342,
+      "maximum": 0.765786361,
+      "minimum": 0.363473203,
+      "slope_per_second": -0.008902468311978499,
+      "first": 0.764786128,
+      "last": 0.368526145
+    },
+    "derived_lidar_end_future_s": {
+      "count": 883,
+      "mean": 0.6029906655035555,
+      "median": 0.6833010217493057,
+      "p95": 0.7659850108050587,
+      "maximum": 0.7688435501410866,
+      "minimum": 0.36873104215109637,
+      "slope_per_second": -0.008899581235301657,
+      "first": 0.7683939848221168,
+      "last": 0.37340187688681414
+    },
+    "scan_span_s": {
+      "count": 883,
+      "mean": 0.06443757037310475,
+      "median": 0.06376341730356216,
+      "p95": 0.06951798349618911,
+      "maximum": 0.07510962337255478,
+      "minimum": 0.05867866426706314,
+      "slope_per_second": -7.64360693171092e-07,
+      "first": 0.06283072382211685,
+      "last": 0.06244400888681412
+    },
+    "go2_minus_pc_s": {
+      "count": 0
+    },
+    "raw_cloud_dds_source_minus_header_s": {
+      "count": 883,
+      "mean": 0.06703510323103058,
+      "median": 0.066371312,
+      "p95": 0.0720703817,
+      "maximum": 0.077438447,
+      "minimum": 0.061367281,
+      "slope_per_second": -8.862908358077641e-07,
+      "first": 0.065360595,
+      "last": 0.065526018
+    },
+    "raw_imu_dds_source_minus_header_s": {
+      "count": 14891,
+      "mean": 1.120655322006581e-05,
+      "median": 8.475e-06,
+      "p95": 1.2003e-05,
+      "maximum": 0.001481445,
+      "minimum": 3.477e-06,
+      "slope_per_second": 2.1306356277078294e-08,
+      "first": 1.1781e-05,
+      "last": 7.077e-06
+    },
+    "raw_cloud_header_minus_pc_wall_s": {
+      "count": 883,
+      "mean": -3460653.8344840608,
+      "median": -3460653.757288323,
+      "p95": -3460653.671046442,
+      "maximum": -3460653.667395633,
+      "minimum": -3460654.069380771,
+      "slope_per_second": -0.008898715254867469,
+      "first": -3460653.667823467,
+      "last": -3460654.062799865
+    },
+    "raw_cloud_dds_source_minus_pc_wall_s": {
+      "count": 883,
+      "mean": -3460653.7674489575,
+      "median": -3460653.68805632,
+      "p95": -3460653.604651278,
+      "maximum": -3460653.602133901,
+      "minimum": -3460653.998543074,
+      "slope_per_second": -0.00889960121575707,
+      "first": -3460653.602462872,
+      "last": -3460653.997273847
+    },
+    "raw_imu_header_minus_pc_wall_s": {
+      "count": 14891,
+      "mean": -3460653.7661327617,
+      "median": -3460653.688280509,
+      "p95": -3460653.603049936,
+      "maximum": -3460653.601214093,
+      "minimum": -3460653.997216366,
+      "slope_per_second": -0.008901487058999258,
+      "first": -3460653.615209456,
+      "last": -3460653.995806975
+    },
+    "raw_imu_dds_source_minus_pc_wall_s": {
+      "count": 14891,
+      "mean": -3460653.7661215547,
+      "median": -3460653.688274131,
+      "p95": -3460653.6030392917,
+      "maximum": -3460653.601206144,
+      "minimum": -3460653.997208412,
+      "slope_per_second": -0.008901466274969462,
+      "first": -3460653.615197675,
+      "last": -3460653.995799898
+    },
+    "lidar_state_header_minus_pc_wall_s": {
+      "count": 298,
+      "mean": -3460653.7663009004,
+      "median": -3460653.689036469,
+      "p95": -3460653.6030252036,
+      "maximum": -3460653.60144146,
+      "minimum": -3460653.996672277,
+      "slope_per_second": -0.008897742932889032,
+      "first": -3460653.601560301,
+      "last": -3460653.99601998
+    },
+    "lidar_state_dds_source_minus_pc_wall_s": {
+      "count": 298,
+      "mean": -3460653.766265779,
+      "median": -3460653.6889745817,
+      "p95": -3460653.6030119555,
+      "maximum": -3460653.601407466,
+      "minimum": -3460653.996438776,
+      "slope_per_second": -0.00889743528278366,
+      "first": -3460653.601541082,
+      "last": -3460653.996002987
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_wall_ns_s": {
+      "count": 298,
+      "mean": -3460653.7669429397,
+      "median": -3460653.689982261,
+      "p95": -3460653.6037212415,
+      "maximum": -3460653.6014133,
+      "minimum": -3460653.997282325,
+      "slope_per_second": -0.00889860864873261,
+      "first": -3460653.603024365,
+      "last": -3460653.996404236
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_stamp_ns_s": {
+      "count": 298,
+      "mean": -0.0006420394093959731,
+      "median": -0.000494208,
+      "p95": 4.6809599999999776e-05,
+      "maximum": 0.000474624,
+      "minimum": -0.002912256,
+      "slope_per_second": -8.657024259515727e-07,
+      "first": -0.001464064,
+      "last": -0.000384256
+    },
+    "lidar_state_dds_source_ns_minus_serial_recv_stamp_ns_s": {
+      "count": 298,
+      "mean": 0.0006771612852348993,
+      "median": 0.000526139,
+      "p95": 0.00200818965,
+      "maximum": 0.00292585,
+      "minimum": 3.514e-06,
+      "slope_per_second": 1.1733811960905352e-06,
+      "first": 0.001483283,
+      "last": 0.000401249
+    },
+    "lidar_state_dds_source_ns_minus_stamp_ns_s": {
+      "count": 298,
+      "mean": 3.5121875838926176e-05,
+      "median": 2.1343000000000002e-05,
+      "p95": 0.00010051544999999999,
+      "maximum": 0.000482784,
+      "minimum": 5.665e-06,
+      "slope_per_second": 3.0767877013898974e-07,
+      "first": 1.9219e-05,
+      "last": 1.6993e-05
+    },
+    "internal_lidar_end_future_s": {
+      "count": 0
+    }
+  },
+  "exact_source_time_tf": {
+    "base": {
+      "queries": 883,
+      "exact_success": 883,
+      "success_rate": 1.0
+    },
+    "camera": {
+      "queries": 887,
+      "exact_success": 887,
+      "success_rate": 1.0
+    }
+  },
+  "target_map_samples": 316,
+  "target_map_exact_stamp_matches": 316,
+  "target_manager": {
+    "track_snapshots": 1203,
+    "confirmed_unvisited_ids": [],
+    "selected_samples": 980,
+    "coarse_samples": 316,
+    "map_point_samples": 316
+  },
+  "maximum_receive_gap_s": {
+    "cloud": 0.080585856,
+    "imu": 0.021987553,
+    "state": 0.081621494,
+    "base": 0.08083755
+  },
+  "maximum_position_step_m": {
+    "state": 0.04019374948074592,
+    "base": 0.03995137718738339
+  },
+  "acceptance_checks": {
+    "native_lidar_healthy": true,
+    "clock_publishers_absent": true,
+    "slam_uses_wall_clock": true,
+    "raw_inputs_received": true,
+    "continuous_inputs": true,
+    "stamps_increasing": true,
+    "finite_positions": true,
+    "controller_timestamp_limits": false,
+    "controller_odom_continuity": true,
+    "exact_base_tf": true,
+    "exact_camera_tf": true,
+    "capture_complete": true,
+    "setup_ok": true,
+    "legacy_offset_initialized": true,
+    "exact_target_map": true,
+    "confirmed_selected_target": false,
+    "fresh_confirmed_target": false
+  },
+  "source_file_hashes": {
+    "samples.jsonl": "da9177afc114e481f0d933c2316b5a8309d55925799ea06ec9899f7d48f18300",
+    "readonly_slam.log": "599fcb4aa40d73530747885af0c11fb65034b7824310ba0bef33f37cc15623e2",
+    "trend.json": "d34db0cd53eb943622b8ac38ac8c7c8a4ec371ba95976f7984e32e2d1ce764bc",
+    "metadata.json": "929807b893fcb0a344b9990731267dceb1b82912c139a60997381047af95dc5c",
+    "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "report.txt": "7097cf4f0a5234e8337a80661b79f8b11c9f6944577ea00cff89bb2f5d1b4afa",
+    "camera.log": "c5509936e2c6267a00adce721df85e154d5f272a6a53d0de832d8e5b85fd89c7",
+    "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "report.json": "525511d5c7b813db0bc07377aac5d65b5b9b150bca0b4b84e242481a6a931aa2"
+  },
+  "pc_post_capture_ntp": {
+    "server": "185.125.190.56",
+    "offset_ms": 86.279,
+    "delay_ms": 736.17,
+    "jitter_ms": 856.961,
+    "frequency_ppm": 174.054,
+    "kernel_read_only_adjtimex": {
+      "modes": 0,
+      "return": 5,
+      "status": 8257,
+      "tick_us": 10000,
+      "frequency_ppm": 174.05401611328125
+    }
+  },
+  "assessment": "Fixed legacy offset exceeds the first captured raw IMU receive/header difference by 765.478 ms; bias is already present in converted IMU, before Point-LIO. During capture PC ROS/monotonic advances 395.229 ms more than CLOCK_MONOTONIC_RAW; native DDS source elapsed differs from RAW by only 14.621 ms. Post-capture NTP delay/jitter is large, supporting host time correction/clock behavior as an investigation direction, not proof that NTP alone caused the whole bias. First cloud transient latency versus startup clock change cannot be separated because raw capture starts after initialization. No algorithm or system clock settings changed for diagnosis."
+}
