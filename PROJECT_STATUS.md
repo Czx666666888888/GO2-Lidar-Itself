@@ -1,5 +1,15 @@
 # Project Status
 
+## 2026-11-13：IMU辅助时间映射代码交付
+
+基于fetch确认的bac3a992feb7，实现2秒/200样本IMU窗口P5偏移，初始化后冻结b，
+cloud/IMU统一t_local=t_sensor+b；保留点内时间和0.10s保护，检查扫描结束时间。
+一键入口接入只读链、精确TF、offset残差/里程计诊断；原生观察用--observe-only。
+原始发布端时钟没有改变，未知单向延迟仍无法与真实钟差分离；这是近似映射。
+本轮按用户“先完成代码部分”仅做5项边界检查及Python/Shell/XML静态检查，未构建/部署/实机运行。
+实际offset、旧57ms超前是否消除、持续定位、D435目标MAP转换和Orin兼容均NOT VERIFIED。
+Point-LIO算法/滤波器及MAP/S1控制链未改。当前命令与下一轮验证见GO2实机测试命令手册.md最新节。
+
 ## 2026-11-12后续：纯PC DDS/LidarState诊断，不以源主控SSH为前提
 
 实际fetch最新Push仍为12d0db5；本轮未更改时间转换算法/保护、稳定MAP或视觉伺服分支。

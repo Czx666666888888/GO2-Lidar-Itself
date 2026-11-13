@@ -283,13 +283,13 @@ class Workflow:
                                 capture_output=True, text=True)
         if result.returncode != 1:
             raise RuntimeError('旧定位/控制进程或进程检查失败，先按手册停止: '+result.stdout)
-        # No arm enable or movement until the native sensor clock has a trusted
-        # mapping. The diagnostic never runs a movement controller.
+        # Prepare the new converter before any device enable. Actual mapping and
+        # exact camera TF are diagnosed after the existing read-only chain starts.
         run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
-             '--label', 'pre_motion'])
+             '--prepare-only'])
         time_overlay = self.work/'.time_sync/install/setup.bash'
         if not time_overlay.exists():
-            raise RuntimeError('缺少已诊断的时间转换overlay，停止')
+            raise RuntimeError('缺少时间转换overlay，停止')
         self.env_prefix += 'source '+shlex.quote(str(time_overlay))+' || exit; '
         device_probe = (
             "import pyrealsense2 as r; from pathlib import Path; "
@@ -354,6 +354,8 @@ class Workflow:
             if probe.poll() is None:
                 probe.terminate()
                 probe.wait(timeout=5)
+        run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
+             '--reuse-only', '--label', 'pre_motion'])
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',

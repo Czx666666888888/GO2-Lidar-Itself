@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""PC-only DDS timestamp/LidarState observation; no SSH, commands or SLAM changes."""
+"""Read-only clock mapping/localization diagnostic; never publishes motion commands."""
 import argparse
 from collections import Counter
 from datetime import datetime
 import json
+import importlib.util
 import os
 from pathlib import Path
 import re
+import shlex
+import signal
 import subprocess
 import time
 
@@ -15,6 +18,7 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor, await_or_execute
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
+from tf2_ros import Buffer, TransformListener, TransformException
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -90,7 +94,7 @@ def analyze(folder):
                            metadata.get('record_start_wall_ns', 0)), 0)
     rows = [r for r in all_rows if r['mono_ns'] >= start_mono]
     groups = {k: [r for r in rows if r['kind'] == k] for k in
-              ['raw_cloud', 'raw_imu', 'cloud', 'imu', 'state', 'base', 'tf', 'go2_clock', 'lidar_state']}
+              ['raw_cloud', 'raw_imu', 'cloud', 'imu', 'state', 'base', 'tf', 'go2_clock', 'lidar_state', 'mapping', 'map_debug', 'camera']}
     metrics = {}
     for kind, key, sign in [('raw_cloud', 'receive_delay_s', -1),
                             ('raw_imu', 'imu_receive_delay_s', -1),
@@ -166,7 +170,7 @@ def analyze(folder):
     result['startup_imu_published_without_mapping'] = sum(
         r['stamp_ns'] in all_raw_imu for r in all_rows if r['kind'] == 'imu')
     result['tf_exact_query_success'] = sum(
-        r.get('tf_stamp_ns') == r.get('query_ns') for r in groups['tf'])
+        r.get('success', True) and r.get('tf_stamp_ns') == r.get('query_ns') for r in groups['tf'])
     result['tf_queries'] = len(groups['tf'])
     result['receive_delay_warning'] = 'Raw stamp uses a different epoch; receive age is NOT network latency.'
     source_blocked = log.exists() and 'SOURCE_CLOCK_UNSYNCHRONIZED' in log.read_text()
@@ -216,6 +220,72 @@ def analyze(folder):
                     'internal_time_evidence', 'startup_imu_published_without_mapping',
                     'tf_exact_query_success', 'tf_queries'):
             result.pop(key, None)
+    if metadata.get('transport') == 'IMU mapping read-only localization':
+        statuses = [r['fields'] for r in groups['mapping']]
+        result['time_mapping'] = statuses[-1] if statuses else None
+        result['mapping_offset_stability_s'] = stats([
+            (r['mono_ns']/1e9, r['fields']['residual_offset_sec'])
+            for r in groups['mapping'] if r['fields'].get('residual_offset_sec') is not None])
+        result['stamp_nonadvancing'] = {}
+        result['maximum_receive_gap_s'] = {}
+        result['maximum_position_step_m'] = {}
+        for kind in ('cloud', 'imu', 'state', 'base'):
+            ordered = groups[kind]
+            result['stamp_nonadvancing'][kind] = sum(
+                b['stamp_ns'] <= a['stamp_ns'] for a, b in zip(ordered, ordered[1:]))
+            result['maximum_receive_gap_s'][kind] = max([
+                (b['mono_ns']-a['mono_ns'])/1e9 for a, b in zip(ordered, ordered[1:])], default=None)
+            if kind in ('state', 'base'):
+                result['maximum_position_step_m'][kind] = max([
+                    float(np.linalg.norm(np.array(b['position'])-np.array(a['position'])))
+                    for a, b in zip(ordered, ordered[1:])], default=None)
+        exact = {}
+        for stream in ('base', 'camera'):
+            queries = [x for x in groups['tf'] if x.get('stream') == stream]
+            successes = sum(x.get('success', False) and x.get('tf_stamp_ns') == x['query_ns']
+                            for x in queries)
+            exact[stream] = dict(queries=len(queries), exact_success=successes,
+                                success_rate=successes/len(queries) if queries else None)
+        result['exact_source_time_tf'] = exact
+        debug = groups['map_debug']
+        result['target_map_exact_stamp_matches'] = sum(
+            x['fields'].get('query_ns') == x['fields'].get('stamp_ns') ==
+            x['fields'].get('tf_stamp_ns') for x in debug)
+        result['target_map_samples'] = len(debug)
+        result['target_map_validation'] = ('OBSERVED exact source-time target transforms' if debug and
+            result['target_map_exact_stamp_matches'] == len(debug)
+                                         else 'NOT VERIFIED: missing or non-exact target map measurements')
+        checks = dict(
+            clock_publishers_absent=metadata.get('clock_publishers') == 0,
+            slam_uses_wall_clock=(metadata.get('laser_mapping_use_sim_time', {}).get('code') == 0
+                and 'False' in metadata['laser_mapping_use_sim_time'].get('stdout', '')),
+            raw_inputs_received=all(len(groups[k]) >= 10 for k in ('raw_cloud', 'raw_imu')),
+            mapping_ready=bool(statuses and statuses[-1].get('ready')),
+            mapping_without_fault=bool(statuses and all(not x.get('fault') for x in statuses)),
+            continuous_inputs=all(len(groups[k]) >= 10 and
+                (result['maximum_receive_gap_s'][k] or 0) <= 1 for k in ('cloud', 'imu', 'state', 'base')),
+            stamps_increasing=not any(result['stamp_nonadvancing'].values()),
+            finite_positions=all(all(np.isfinite(x) for x in row['position'])
+                for k in ('state', 'base') for row in groups[k]),
+            old_systematic_future_removed=all(
+                metrics[k].get('median', 1) <= .020 and metrics[k].get('maximum', 1) <= .10
+                and metrics[k].get('minimum', -2) >= -1
+                for k in ('state_future_s', 'base_future_s', 'derived_lidar_end_future_s')),
+            exact_base_tf=bool(exact['base']['queries'] and exact['base']['success_rate'] >= .95),
+            exact_camera_tf=bool(exact['camera']['queries'] and exact['camera']['success_rate'] >= .95),
+            capture_complete=metadata.get('record_complete', False),
+            setup_ok=not metadata.get('setup_or_capture_error'))
+        result['acceptance_checks'] = checks
+        result['status'] = ('PASS: read-only mapped localization and exact camera TF observed'
+                            if all(checks.values()) else 'NOT VERIFIED: '+', '.join(
+                                k for k, passed in checks.items() if not passed))
+        result['earliest_bias_stage'] = (
+            'IMU receipt P5 approximates native-to-local offset before shared cloud/IMU conversion; '
+            'remaining one-way network/dispatch delay is not independently identifiable')
+        result['position_jump_assessment'] = (
+            'Observed position-step statistics only; physical trajectory/reference required to judge jumps')
+        result['native_clock_repaired'] = False
+        result['setup_or_capture_error'] = metadata.get('setup_or_capture_error')
     if offset:
         delay = metrics['receive_delay_s'].get('median')
         imu_delay = metrics['imu_receive_delay_s'].get('median')
@@ -228,7 +298,7 @@ def analyze(folder):
         result['comparison'] = dict(baseline=str(baseline),
                                     before_base_future=before['metrics']['base_future_s'],
                                     after_base_future=metrics['base_future_s'],
-                                    after_verified=bool(groups['base']))
+                                    after_verified=result['status'].startswith('PASS'))
     (folder/'report.json').write_text(json.dumps(result, indent=2)+'\n')
     lines = [result['status'], result['receive_delay_warning'],
              'All metric units: seconds; slope: seconds/second.']
@@ -251,13 +321,136 @@ def analyze(folder):
     return result
 
 
+class ReadonlyChain:
+    """Own only processes started here; existing localization is reused by default."""
+    def __init__(self, node, executor, folder):
+        self.node, self.executor, self.folder = node, executor, folder
+        self.children = []
+
+    def spin_for(self, seconds):
+        end = time.monotonic()+seconds
+        while time.monotonic() < end:
+            self.executor.spin_once(timeout_sec=.05)
+
+    def spawn(self, argv, label, stdin=None):
+        stream = (self.folder/(label+'.log')).open('w')
+        try:
+            process = subprocess.Popen(argv, stdout=stream, stderr=subprocess.STDOUT,
+                                       stdin=stdin, start_new_session=True)
+        except BaseException:
+            stream.close()
+            raise
+        self.children.append((process, stream, label))
+        return process
+
+    def start(self, args):
+        names = self.node.get_node_names()
+        if not all(self.node.count_publishers(t) for t in ('/utlidar/cloud', '/utlidar/imu')):
+            raise RuntimeError('未发现原生LiDAR/IMU发布者；不启动新定位')
+        if (self.node.count_publishers('/cmd_vel_raw') or
+                any(n in names for n in ('go2_safety_gate', 'science_target_approach'))):
+            raise RuntimeError('运动控制仍在运行；只读诊断拒绝更改定位会话')
+        if args.restart_localization:
+            # Explicit opt-in: only known localization/perception processes and
+            # their launchers, never an arbitrary ROS process or camera service.
+            processes = subprocess.check_output(['ps', '-eo', 'pid=,args='], text=True)
+            selected = []
+            leaves = {'pointlio_mapping', 'transform_everything', 'base_odom_node',
+                      'coarse_target_locator', 'camera_target_to_map', 'science_target_manager'}
+            for line in processes.splitlines():
+                pid_text, argv_text = line.strip().split(None, 1)
+                argv = shlex.split(argv_text)
+                executable = Path(argv[0]).name
+                python_leaf = (len(argv) > 1 and executable.startswith('python')
+                               and Path(argv[1]).name in leaves)
+                launcher = ('launch' in argv and any(x in argv for x in
+                            ('mapping_utlidar.launch', 'd435_slam_target_validation.launch.py'))
+                            and (executable == 'ros2' or
+                                 (executable.startswith('python') and len(argv) > 1
+                                  and Path(argv[1]).name == 'ros2')))
+                static = (executable == 'static_transform_publisher' and any(
+                    '__node:='+n in argv for n in
+                    ('map_to_camera_init', 'aft_mapped_to_sensor', 'sensor_to_vehicle')))
+                if executable in leaves or python_leaf or launcher or static:
+                    selected.append(int(pid_text))
+            (self.folder/'replaced_localization_pids.json').write_text(json.dumps(selected))
+            for pid in selected:
+                try:
+                    os.kill(pid, signal.SIGINT)
+                except ProcessLookupError:
+                    pass
+            self.spin_for(5)
+            for pid in selected:
+                if Path('/proc/'+str(pid)).exists():
+                    raise RuntimeError('旧定位进程未退出，保留现场，PID='+str(pid))
+            names = self.node.get_node_names()
+        existing = any(n in names for n in ('laserMapping', 'transform_everything', 'sensor_transformer'))
+        if existing:
+            print('复用现有定位；若仍运行旧转换器，请显式使用 --restart-localization。', flush=True)
+            return
+        if args.reuse_only:
+            raise RuntimeError('--reuse-only 未发现已有定位节点')
+        if not self.node.count_publishers('/camera/color/image_raw') and args.camera_host != 'existing':
+            if args.camera_host != 'local':
+                spec = importlib.util.spec_from_file_location('go2_existing_helper', REPO/'scripts/go2_full_test.py')
+                helper = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(helper)
+                ssh = ['ssh', '-i', os.environ.get('GO2_CAMERA_SSH_KEY', helper.KEY),
+                       '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5']
+                # Read-only companion clock check; never SSH to the source main controller.
+                helper.verify_clock([*ssh, args.camera_host,
+                                     shlex.join(['/usr/bin/python3', '-u', '-c', helper.CLOCK_RESPONDER])])
+                check = command([*ssh, args.camera_host,
+                                 "pgrep -f '[r]ealsense2_camera_node'"], timeout=10)
+                if check.get('code') != 1:
+                    raise RuntimeError('远端相机已有进程或检查失败；拒绝重复打开设备: '+str(check))
+                self.spawn([*ssh, args.camera_host, shlex.join([
+                    '/usr/bin/python3', '-c', helper.CAMERA_OWNER,
+                    os.environ.get('GO2_CAMERA_LAUNCH', helper.REMOTE+'/launch_go2_d435_foxy.sh')])],
+                    'camera', stdin=subprocess.PIPE)
+        remote = 'false' if args.camera_host == 'local' else 'true'
+        self.spawn(['ros2', 'launch', 'go2_science_perception',
+                    'd435_slam_target_validation.launch.py',
+                    'remote_camera:='+remote, 'use_rviz:=false'], 'readonly_slam')
+        self.spin_for(15)  # IMU window + initial Point-LIO map; capture follows.
+
+    def close(self):
+        for process, stream, label in reversed(self.children):
+            try:
+                if process.poll() is None:
+                    if label == 'camera':
+                        process.stdin.close()
+                    else:
+                        os.killpg(process.pid, signal.SIGINT)
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(process.pid, signal.SIGTERM)
+                        process.wait(timeout=5)
+            finally:
+                stream.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--duration', type=float, default=30)
-    parser.add_argument('--label', default='pc_dds')
+    parser.add_argument('--label', default='imu_mapping')
+    parser.add_argument('--observe-only', action='store_true', help='只记录原生DDS，不构建/启动/停止节点')
+    parser.add_argument('--prepare-only', action='store_true', help='仅由shell准备overlay，不初始化ROS')
+    parser.add_argument('--restart-localization', action='store_true', help='明确结束旧只读定位并建立新地图会话')
+    parser.add_argument('--reuse-only', action='store_true', help='只检查现有定位，不启动任何设备/节点')
+    parser.add_argument('--keep-running', action='store_true', help='报告通过后保持本入口启动的只读链，Ctrl+C退出')
+    parser.add_argument('--camera-host', default=os.environ.get('GO2_CAMERA_HOST', 'unitree@192.168.123.18'),
+                        help='相机伴随主机SSH名，或local（Orin本地）、existing（仅复用）')
     args = parser.parse_args()
     if not 0 < args.duration <= 120:
         parser.error('duration must be in (0,120] seconds')
+    if args.prepare_only:
+        return
+    if args.observe_only and (args.restart_localization or args.keep_running):
+        parser.error('--observe-only cannot restart/keep localization')
+    if args.reuse_only and args.restart_localization:
+        parser.error('--reuse-only cannot restart localization')
     folder = REPO/'camera_ws/records'/('time_'+datetime.now().strftime('%Y%m%d_%H%M%S')+'_'+args.label)
     folder.mkdir(parents=True)
     metadata = dict(commit=command(['git', '-C', str(REPO), 'rev-parse', 'HEAD']),
@@ -268,21 +461,48 @@ def main():
                     domain=os.environ.get('ROS_DOMAIN_ID'),
                     rmw=os.environ.get('RMW_IMPLEMENTATION'),
                     cyclone_configuration=os.environ.get('CYCLONEDDS_URI'),
-                    transport='PC ROS2 DDS; official unitree_go ROS messages; no SSH/RPC/config writes',
+                    transport=('PC ROS2 DDS; native observation only' if args.observe_only
+                               else 'IMU mapping read-only localization'),
                     hardware_model='L1', model_evidence='User confirmed L1 in this session',
-                    existing_slam_policy='observe only; never start/stop/rebuild SLAM')
+                    existing_slam_policy=('observe only' if args.observe_only else
+                                          'reuse existing; restart only with explicit flag'),
+                    arguments=vars(args))
     rclpy.init()
     node = rclpy.create_node('go2_readonly_time_diagnostic')
     executor = TimestampExecutor()
     executor.add_node(node)
     output = (folder/'samples.jsonl').open('x', buffering=1)
+    chain = ReadonlyChain(node, executor, folder)
+    buffer = Buffer()
+    listener = TransformListener(buffer, node)
+    pending_tf = []
+    result = {'status': 'NOT VERIFIED: interrupted capture'}
+
+    def check_tf():
+        for item in list(pending_tf):
+            row, source, deadline = item
+            try:
+                transform = buffer.lookup_transform('map', source,
+                    rclpy.time.Time(nanoseconds=row['query_ns']))
+                row['success'] = True
+                row['tf_stamp_ns'] = ns(transform.header.stamp)
+            except TransformException as exc:
+                if time.monotonic() < deadline:
+                    continue
+                row['success'] = False
+                row['error'] = str(exc)
+            row['query_completed_wall_ns'] = time.time_ns()
+            output.write(json.dumps(row)+'\n')
+            pending_tf.remove(item)
 
     def receive(msg, kind, info, topic):
         row = dict(kind=kind, topic=topic, ros_ns=node.get_clock().now().nanoseconds,
                    wall_ns=time.time_ns(), mono_ns=time.monotonic_ns(),
                    mono_raw_ns=time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW),
                    dds_source_ns=info['source_timestamp'], dds_received_ns=info['received_timestamp'])
-        if kind == 'lidar_state':
+        if kind in ('mapping', 'map_debug'):
+            row['fields'] = json.loads(msg.data)
+        elif kind == 'lidar_state':
             row['stamp_ns'] = round(msg.stamp*1e9)
             row['fields'] = {name: [float(x) for x in getattr(msg, name)] if name == 'imu_rpy'
                              else getattr(msg, name) for name in msg.get_fields_and_field_types()}
@@ -292,6 +512,14 @@ def main():
             row['frame'] = msg.header.frame_id
             if isinstance(msg, PointCloud2):
                 row.update(cloud_times(msg))
+            if kind in ('state', 'base'):
+                p = msg.pose.pose.position
+                row['position'] = [p.x, p.y, p.z]
+            if kind in ('base', 'camera'):
+                pending_tf.append((dict(kind='tf', ros_ns=row['ros_ns'], wall_ns=row['wall_ns'],
+                    mono_ns=row['mono_ns'], query_ns=row['stamp_ns'],
+                    source_frame=('vehicle' if kind == 'base' else row['frame']), stream=kind),
+                    'vehicle' if kind == 'base' else row['frame'], time.monotonic()+.5))
         output.write(json.dumps(row)+'\n')
 
     def callback(kind, topic):
@@ -303,7 +531,11 @@ def main():
         while time.monotonic() < until:
             executor.spin_once(timeout_sec=.1)
         metadata['initial_nodes'] = node.get_node_names()
+        if not args.observe_only:
+            chain.start(args)
         metadata['clock_publishers'] = node.count_publishers('/clock')
+        metadata['laser_mapping_use_sim_time'] = command(
+            ['ros2', 'param', 'get', '/laserMapping', 'use_sim_time'], timeout=5)
         topics = node.get_topic_names_and_types()
         metadata['discovered_topics'] = topics
         metadata['lidar_state_topics'] = [(name, types) for name, types in topics
@@ -313,8 +545,16 @@ def main():
         metadata['subscriptions'] = []
         specs = [('raw_cloud', '/utlidar/cloud', 'sensor_msgs/msg/PointCloud2'),
                  ('raw_imu', '/utlidar/imu', 'sensor_msgs/msg/Imu')]
+        if not args.observe_only:
+            specs += [('cloud', '/utlidar/transformed_cloud', 'sensor_msgs/msg/PointCloud2'),
+                      ('imu', '/utlidar/transformed_imu', 'sensor_msgs/msg/Imu'),
+                      ('state', '/state_estimation', 'nav_msgs/msg/Odometry'),
+                      ('base', '/base_state_estimation', 'nav_msgs/msg/Odometry'),
+                      ('camera', '/camera/color/image_raw', 'sensor_msgs/msg/Image'),
+                      ('mapping', '/utlidar/time_mapping/status', 'std_msgs/msg/String'),
+                      ('map_debug', '/science/map_measurement_debug', 'std_msgs/msg/String')]
         specs += [('lidar_state', name, types[0]) for name, types in metadata['lidar_state_topics']]
-        # No publisher, client, service call, hardware configuration or process restart.
+        # These subscriptions only observe; lifecycle changes occur in ReadonlyChain.
         from rosidl_runtime_py.utilities import get_message
         for kind, topic, typename in specs:
             try:
@@ -331,20 +571,40 @@ def main():
                 metadata['subscriptions'].append(dict(topic=topic, type=typename, error=str(exc)))
         metadata['record_start_wall_ns'] = time.time_ns()
         metadata['record_start_mono_ns'] = time.monotonic_ns()
-        print('PC-only DDS采集，保持现有SLAM不动。目录:', folder, flush=True)
+        print('只读时间采集；不发布运动命令。目录:', folder, flush=True)
         print('实际LidarState发现:', metadata['lidar_state_topics'], flush=True)
         until = time.monotonic()+args.duration
         while time.monotonic() < until:
             executor.spin_once(timeout_sec=.02)
+            check_tf()
+        drain_until = time.monotonic()+.6
+        while pending_tf and time.monotonic() < drain_until:
+            executor.spin_once(timeout_sec=.02)
+            check_tf()
+        metadata['record_complete'] = True
         metadata['final_nodes'] = node.get_node_names()
+    except Exception as exc:
+        metadata['setup_or_capture_error'] = str(exc)
+        print('诊断未完成:', exc, flush=True)
     finally:
-        output.close()
+        output.flush()
         metadata['record_end_wall_ns'] = time.time_ns()
         (folder/'metadata.json').write_text(json.dumps(metadata, indent=2)+'\n')
+        try:
+            result = analyze(folder)
+            if args.keep_running and result['status'].startswith('PASS'):
+                print('报告已完成；只读定位保持运行，Ctrl+C仅停止本入口拥有的节点。', flush=True)
+                while rclpy.ok():
+                    time.sleep(.2)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            chain.close()
+        output.close()
         node.destroy_node()
-        rclpy.shutdown()
-    result = analyze(folder)
-    if result['status'].startswith(('BLOCKED', 'NOT VERIFIED')):
+        if rclpy.ok():
+            rclpy.shutdown()
+    if not result['status'].startswith(('PASS', 'OBSERVED')):
         raise SystemExit(2)
 
 

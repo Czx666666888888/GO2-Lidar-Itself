@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Single PC entry; default only prints the plan.
+# Unified entry; --time-diagnostic restores only the read-only localization chain.
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [ "${1:-}" = --time-diagnostic ]; then

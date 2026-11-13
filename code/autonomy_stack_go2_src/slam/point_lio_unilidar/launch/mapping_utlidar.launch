@@ -3,9 +3,11 @@
 	<arg name="rviz" default="true" />
 	<arg name="use_sim_time" default="true" />
 	<arg name="time_diagnostic_log" default="false" />
+	<arg name="time_mapping_mode" default="imu" />
 	<arg name="sensor_time_offset_sec" default="0.0" />
 
 	<node pkg="transform_sensors" exec="transform_everything" name="transform_everything" output="screen">
+		<param name="time_mapping_mode" value="$(var time_mapping_mode)" />
 		<param name="sensor_time_offset_sec" value="$(var sensor_time_offset_sec)" />
 	</node>
 

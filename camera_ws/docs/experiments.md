@@ -1498,3 +1498,58 @@ C（生产者驱动显式把同一旧时间写入不同消息/DDS时间）仍不
 可随Git审查的完整统计、发现列表、版本/缓冲字段和旧记录重算及原始数据SHA256：
 camera_ws/analysis/go2_time_sync_20261112/pc_dds_lidar_state_summary.json。
 仅执行目标脚本语法/lint和真实DDS订阅，无批量离线测试或全仓审查；稳定MAP分支未改。
+
+## 2026-11-13：IMU辅助统一时间映射（代码完成，实机 NOT VERIFIED）
+
+本轮基于已fetch核对的 `bac3a992feb7` 完成代码；提交号由本节所在Git提交标识，运行报告自动记录实际HEAD。
+按用户“先完成代码部分”，本轮未构建overlay、未部署、未重启现有SLAM、未运行硬件采集或运动。
+历史证据：原生DDS源时间/IMU落后PC约3390496秒；旧base_future中位57.215ms、P95 67.361ms。
+这些是上一轮记录，**本轮实际offset、修复后里程计偏差、定位恢复、D435目标MAP转换均 NOT VERIFIED**。
+
+统一入口仍为：
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh
+```
+
+运行时仅在源码摘要变化时构建 `transform_sensors`，缺少感知overlay时单包准备；
+已有定位默认复用，不自动重置地图。没有现有定位时启动原有只读SLAM/D435/TF/目标MAP链，
+初始化后采集30秒，输出原始JSONL、统计/趋势、offset残差、扫描结束时间、里程计、精确TF和前后对比。
+不会启动运动控制器或S1；发现运动控制节点/速度发布者则拒绝修改定位会话。
+默认退出只清理本入口启动的节点，原有会话保留。报告通过仅代表观测窗口指标，不代表运动/抓取通过。
+
+当前机器若仍运行旧阻断转换器，实际验证时用同一入口的显式新地图模式：
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh --restart-localization --keep-running
+```
+
+该选项会结束已识别的旧只读定位/感知进程、创建新地图；保留原日志。报告通过后保持只读链，Ctrl+C退出。
+原生DDS不干预模式改为同入口 `--observe-only`；`--reuse-only` 仅验证既有链；`--prepare-only` 只准备overlay。
+`bash go2_test.sh --time-diagnostic` 等价分发；`bash go2_test.sh --execute` 为真实运动，
+接入新overlay，并在只读链就绪后完成同一诊断，未通过不进入SEARCH/停靠/抓取；本轮没有执行。
+
+算法：`t_local=t_sensor+b`，a=1；2秒窗口至少200条原始IMU，取 `receive_ROS-header` 的P5，
+P95-P5须不超过20ms，DDS source-header用于核验IMU发布延迟（允许-1～20ms），不当成独立UTC。
+b初始化后冻结，LiDAR/IMU共用，不修改点内相对时间、不按帧用now覆盖、不减固定64ms。
+初始化前两条转换流均不发布；重复/倒退样本丢弃；明显时钟跳变、映射年龄异常或
+映射扫描结束超前100ms锁存停止输出，需新会话恢复。状态 `/utlidar/time_mapping/status` 每秒发布。
+这是包含未知单向网络/调度延迟的近似映射，**没有修好源主控系统时钟**；不自动估计时钟倍率。
+长期漂移由offset候选残差报告，是否需要a修正待真实长时数据；瞬时突变禁止在线重锁。
+
+通过条件包括连续原始/转换流与里程计、无倒退、有限位姿、use_sim_time=false、无/clock、
+扫描结束及两路里程计未来偏差中位≤20ms且最大≤100ms、按原始观测时间的机身/相机TF成功率≥95%。
+该20ms是诊断验收门限，**没有修改控制器future_tolerance=0.10s**。
+目标MAP debug另行统计；无可见目标时明确NOT VERIFIED，不把图像TF成功写成目标转换已通过。
+位姿相邻步长只记录，不凭它独自宣称无定位跳变。
+
+核心映射无PC目录/IP依赖，以运行主机ROS时间映射；部署Orin时可设置
+`GO2_TIME_UNDERLAY`、`GO2_TIME_INTERFACE`、`GO2_CAMERA_HOST=local`。
+PC默认仅复用已有相机流；若相机无发布者，使用原有 `.18` 相机伴随主机密钥和已部署相机脚本，
+先只读检查伴随主机时钟，不设置任何主机时钟。相机选项 `--camera-host existing` 可完全禁止SSH。
+`GO2_CAMERA_SSH_KEY` / `GO2_CAMERA_LAUNCH` 可覆盖原路径；不访问 `.161` 源主控SSH。
+伴随主机时差超标、相机脚本/密钥缺失会明确失败；不会借此修改雷达配置或套用L2同步API。
+
+修改范围：转换器及小型IMU映射模块、launch时间模式参数、单入口采集/生命周期、完整测试接入、文档。
+Point-LIO C++定位算法/滤波器、MAP速度/控制参数、HSV/D435识别、目标管理、机械臂动作链均未修改。
+静态验证：5项时间映射边界检查、相关Python语法、shell语法、XML解析和git diff检查；不是构建或实机证据。

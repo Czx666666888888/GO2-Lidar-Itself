@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import rclpy
+from rclpy.executors import SingleThreadedExecutor, await_or_execute
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.time import Time
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import PointCloud2, PointField
 from geometry_msgs.msg import TransformStamped, Vector3
+from std_msgs.msg import String
 import sensor_msgs_py.point_cloud2 as pc2
 import tf_transformations
 
@@ -16,6 +18,24 @@ import numpy as np
 import yaml
 
 import os
+import json
+import time
+
+from transform_sensors.imu_time_mapping import ImuTimeMapping
+
+
+class TimestampExecutor(SingleThreadedExecutor):
+    """Reuse the diagnostic's MessageInfo-preserving adapter for installed Humble."""
+    def _take_subscription(self, sub):
+        with sub.handle:
+            result = sub.handle.take_message(sub.msg_type, sub.raw)
+        if result is None:
+            return None
+        return result if getattr(sub, 'time_probe', False) else (result[0],)
+
+    async def _execute_subscription(self, sub, values):
+        if values:
+            await await_or_execute(sub.callback, *values)
 
 class Repuber(Node):
     def __init__(self):
@@ -25,6 +45,7 @@ class Repuber(Node):
         # robot's best-effort publisher and reliable rosbag playback.
         self.imu_sub = self.create_subscription(
             Imu, '/utlidar/imu', self.imu_callback, qos_profile_sensor_data)
+        self.imu_sub.time_probe = True
         self.cloud_sub = self.create_subscription(
             PointCloud2, '/utlidar/cloud', self.cloud_callback,
             qos_profile_sensor_data)
@@ -35,14 +56,23 @@ class Repuber(Node):
 
         self.imu_stationary_list = []
         
-        # Never infer clock offset from receipt of a complete scan: it includes
-        # scan duration, producer scheduling and one-way transport latency.
-        # A nonzero offset must come from an independently measured clock mapping.
+        # No complete-cloud receipt offset: the window is formed only from IMU.
+        self.declare_parameter('time_mapping_mode', 'imu')
         self.declare_parameter('sensor_time_offset_sec', 0.0)
-        self.time_stamp_offset = round(
-            self.get_parameter('sensor_time_offset_sec').value * 1e9)
-        self.time_stamp_offset_set = False
-        self.time_rejections = 0
+        self.declare_parameter('time_mapping_window_sec', 2.0)
+        self.declare_parameter('time_mapping_min_samples', 200)
+        self.declare_parameter('time_mapping_percentile', 5.0)
+        mode = self.get_parameter('time_mapping_mode').value
+        if mode not in ('imu', 'explicit'):
+            raise ValueError('time_mapping_mode must be imu or explicit')
+        self.mapping = ImuTimeMapping(
+            window_sec=self.get_parameter('time_mapping_window_sec').value,
+            min_samples=self.get_parameter('time_mapping_min_samples').value,
+            percentile=self.get_parameter('time_mapping_percentile').value,
+            explicit_offset_sec=(self.get_parameter('sensor_time_offset_sec').value
+                                 if mode == 'explicit' else None))
+        self.mapping_status_pub = self.create_publisher(String, '/utlidar/time_mapping/status', 10)
+        self.create_timer(1.0, self.publish_mapping_status)
         
         self.cam_offset = 0.046825
 
@@ -109,7 +139,10 @@ class Repuber(Node):
         self.z_filter_min = -0.6 - self.cam_offset
         self.z_filter_max = 0 - self.cam_offset
 
-        rclpy.spin(self)
+    def publish_mapping_status(self):
+        report = self.mapping.status()
+        report['ros_stamp_ns'] = self.get_clock().now().nanoseconds
+        self.mapping_status_pub.publish(String(data=json.dumps(report)))
                 
     def is_in_filter_box(self, point):
         # Check if the point is in the filter box
@@ -122,22 +155,13 @@ class Repuber(Node):
         return is_in_box
 
     def cloud_callback(self, data):
-        mapped_stamp = Time.from_msg(data.header.stamp).nanoseconds + self.time_stamp_offset
-        age = (self.get_clock().now().nanoseconds - mapped_stamp) / 1e9
-        if not -0.10 <= age <= 1.0:
-            self.time_rejections += 1
-            if self.time_rejections == 1 or self.time_rejections % 150 == 0:
-                self.get_logger().error(
-                    f'SOURCE_CLOCK_UNSYNCHRONIZED age={age:.6f}s; no cloud/IMU output. '
-                    'Synchronize the native LiDAR producer clock, or supply an '
-                    'independently measured sensor_time_offset_sec. '
-                    'Receive time is not a clock reference.')
-            self.time_stamp_offset_set = False
+        receive_ns = self.get_clock().now().nanoseconds
+        if not self.mapping.ready:
             return
-        if not self.time_stamp_offset_set:
-            self.time_stamp_offset_set = True
                 
         cloud_arr = pc2.read_points_list(data)
+        if not cloud_arr:
+            return
         points = np.array(cloud_arr)
 
         transform = self.body2cloud_trans.transform
@@ -159,9 +183,22 @@ class Repuber(Node):
 
         for id_to_remove in remove_list:
             del transformed_points[id_to_remove]
+
+        time_index = next((i for i, f in enumerate(data.fields) if f.name == 'time'), None)
+        if time_index is None or not transformed_points:
+            return
+        relative = [p[time_index] for p in transformed_points]
+        if not all(np.isfinite(v) and v >= 0 for v in relative):
+            self.mapping.fault = 'invalid L1 point relative time'
+            return
+        mapped_stamp = self.mapping.map_stamp(
+            'cloud', Time.from_msg(data.header.stamp).nanoseconds,
+            receive_ns, round(max(relative)*1e9))
+        if mapped_stamp is None:
+            return
         
         elevated_cloud = pc2.create_cloud(deepcopy(data.header), data.fields, transformed_points)
-        elevated_cloud.header.stamp = Time(nanoseconds=Time.from_msg(elevated_cloud.header.stamp).nanoseconds + self.time_stamp_offset).to_msg()
+        elevated_cloud.header.stamp = Time(nanoseconds=mapped_stamp).to_msg()
         elevated_cloud.header.frame_id = "body"
         elevated_cloud.is_dense = data.is_dense
 
@@ -182,13 +219,14 @@ class Repuber(Node):
         return ret_vec
 
 
-    def imu_callback(self, data):    
-        # Do not publish startup IMU in a different epoch from the first cloud.
-        if not self.time_stamp_offset_set:
+    def imu_callback(self, data, info):
+        receive_ns = self.get_clock().now().nanoseconds
+        stamp_ns = Time.from_msg(data.header.stamp).nanoseconds
+        if not self.mapping.observe_imu(stamp_ns, info.get('source_timestamp', 0),
+                                        receive_ns, time.monotonic_ns()):
             return
-        mapped_stamp = Time.from_msg(data.header.stamp).nanoseconds + self.time_stamp_offset
-        age = (self.get_clock().now().nanoseconds - mapped_stamp) / 1e9
-        if not -0.10 <= age <= 1.0:
+        mapped_stamp = self.mapping.map_stamp('imu', stamp_ns, receive_ns)
+        if mapped_stamp is None:
             return
         trans = np.zeros(3)
         trans[0] = self.body2imu_trans.transform.translation.x
@@ -251,7 +289,7 @@ class Repuber(Node):
         transformed_imu.angular_velocity = transformed_angular_velocity
         transformed_imu.linear_acceleration = transformed_linear_acceleration
         
-        transformed_imu.header.stamp = Time(nanoseconds=Time.from_msg(transformed_imu.header.stamp).nanoseconds + self.time_stamp_offset).to_msg()
+        transformed_imu.header.stamp = Time(nanoseconds=mapped_stamp).to_msg()
         
         self.imu_raw_pub.publish(transformed_imu)
         
@@ -271,10 +309,16 @@ def main(args=None):
 
     transform_node = Repuber()
 
-    rclpy.spin(transform_node)
-
-    Repuber.destroy_node()
-    rclpy.shutdown()
+    executor = TimestampExecutor()
+    executor.add_node(transform_node)
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        transform_node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
