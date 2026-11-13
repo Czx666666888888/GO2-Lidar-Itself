@@ -23,7 +23,7 @@ source /opt/ros/humble/setup.bash
 source "${GO2_TIME_UNDERLAY:-$go2_time_repo/deploy_ws/install/setup.bash}"
 go2_time_observe=false
 for go2_time_arg in "$@"; do
-  case "$go2_time_arg" in --observe-only|--help|-h) go2_time_observe=true ;; esac
+  case "$go2_time_arg" in --observe-only|--lidar-check|--help|-h) go2_time_observe=true ;; esac
 done
 if [ "$go2_time_observe" = false ]; then
   if [ ! -f "$go2_time_repo/.onekey/install/go2_science_perception/share/go2_science_perception/package.xml" ]; then

@@ -283,6 +283,10 @@ class Workflow:
                                 capture_output=True, text=True)
         if result.returncode != 1:
             raise RuntimeError('旧定位/控制进程或进程检查失败，先按手册停止: '+result.stdout)
+        # Check the native producer before clock sync, S1 enable or localization.
+        # This check only subscribes; it never guesses a LiDAR configuration RPC.
+        run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
+             '--lidar-check', '--duration', '8', '--label', 'pre_motion_native'])
         # Prepare the new converter before any device enable. Actual mapping and
         # exact camera TF are diagnosed after the existing read-only chain starts.
         run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',

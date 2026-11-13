@@ -1,0 +1,468 @@
+{
+  "metrics": {
+    "receive_delay_s": {
+      "count": 443,
+      "mean": 3454302.748516156,
+      "median": 3454302.747845117,
+      "p95": 3454302.757821883,
+      "maximum": 3454302.805458611,
+      "minimum": 3454302.73415039,
+      "slope_per_second": -0.0006175178195805569,
+      "first": 3454302.762182219,
+      "last": 3454302.736889797
+    },
+    "imu_receive_delay_s": {
+      "count": 7491,
+      "mean": 3454302.680120652,
+      "median": 3454302.679795156,
+      "p95": 3454302.6885226583,
+      "maximum": 3454302.697207464,
+      "minimum": 3454302.671577916,
+      "slope_per_second": -0.0005803640711408705,
+      "first": 3454302.697207464,
+      "last": 3454302.671803952
+    },
+    "cloud_future_s": {
+      "count": 443,
+      "mean": -0.04469378758239277,
+      "median": -0.043932532,
+      "p95": -0.0358485678,
+      "maximum": -0.030324651,
+      "minimum": -0.100358341,
+      "slope_per_second": 0.000622688619417251,
+      "first": -0.057565406,
+      "last": -0.032729062
+    },
+    "imu_future_s": {
+      "count": 7490,
+      "mean": 0.028441834468491318,
+      "median": 0.0287751635,
+      "p95": 0.0362892563,
+      "maximum": 0.037467607,
+      "minimum": 0.011847789,
+      "slope_per_second": 0.0005810699611188457,
+      "first": 0.011847789,
+      "last": 0.037375019
+    },
+    "state_future_s": {
+      "count": 443,
+      "mean": 0.016326583428893905,
+      "median": 0.016837087,
+      "p95": 0.025047733200000002,
+      "maximum": 0.028358474,
+      "minimum": -0.005805813,
+      "slope_per_second": 0.000585856198038705,
+      "first": 0.007942538,
+      "last": 0.028358474
+    },
+    "base_future_s": {
+      "count": 443,
+      "mean": 0.01590565827088036,
+      "median": 0.016394041,
+      "p95": 0.0246543164,
+      "maximum": 0.02783564,
+      "minimum": -0.006162056,
+      "slope_per_second": 0.0005846680083919261,
+      "first": 0.007420688,
+      "last": 0.02783564
+    },
+    "derived_lidar_end_future_s": {
+      "count": 443,
+      "mean": 0.019873693536868593,
+      "median": 0.020259855326267243,
+      "p95": 0.027760187298296355,
+      "maximum": 0.02953565611532974,
+      "minimum": 0.008143380885478974,
+      "slope_per_second": 0.00058505376539165,
+      "first": 0.011512316728252411,
+      "last": 0.02953565611532974
+    },
+    "scan_span_s": {
+      "count": 443,
+      "mean": 0.06458420271125388,
+      "median": 0.06377056986093521,
+      "p95": 0.06927534490823746,
+      "maximum": 0.11382750421762466,
+      "minimum": 0.053957499563694,
+      "slope_per_second": -3.762064249586828e-05,
+      "first": 0.0691240206360817,
+      "last": 0.06226471811532974
+    },
+    "go2_minus_pc_s": {
+      "count": 0
+    },
+    "raw_cloud_dds_source_minus_header_s": {
+      "count": 443,
+      "mean": 0.06715424103611738,
+      "median": 0.066377352,
+      "p95": 0.071877051,
+      "maximum": 0.11689148,
+      "minimum": 0.056579395,
+      "slope_per_second": -3.966045020756528e-05,
+      "first": 0.072203846,
+      "last": 0.064369172
+    },
+    "raw_imu_dds_source_minus_header_s": {
+      "count": 7491,
+      "mean": 1.005498317981578e-05,
+      "median": 7.842e-06,
+      "p95": 1.1450500000000002e-05,
+      "maximum": 0.002786115,
+      "minimum": 2.317e-06,
+      "slope_per_second": 3.9934493862676396e-08,
+      "first": 9.263e-06,
+      "last": 8.649e-06
+    },
+    "raw_cloud_header_minus_pc_wall_s": {
+      "count": 443,
+      "mean": -3454302.7485214514,
+      "median": -3454302.747850417,
+      "p95": -3454302.739977551,
+      "maximum": -3454302.73415392,
+      "minimum": -3454302.805462181,
+      "slope_per_second": 0.0006175172476136317,
+      "first": -3454302.762188706,
+      "last": -3454302.736893352
+    },
+    "raw_cloud_dds_source_minus_pc_wall_s": {
+      "count": 443,
+      "mean": -3454302.68136721,
+      "median": -3454302.680984044,
+      "p95": -3454302.6738398736,
+      "maximum": -3454302.67252418,
+      "minimum": -3454302.693223635,
+      "slope_per_second": 0.0005778568158917636,
+      "first": -3454302.68998486,
+      "last": -3454302.67252418
+    },
+    "raw_imu_header_minus_pc_wall_s": {
+      "count": 7491,
+      "mean": -3454302.680125109,
+      "median": -3454302.679798775,
+      "p95": -3454302.672623767,
+      "maximum": -3454302.671581325,
+      "minimum": -3454302.697221555,
+      "slope_per_second": 0.0005803871460150661,
+      "first": -3454302.697221555,
+      "last": -3454302.671806633
+    },
+    "raw_imu_dds_source_minus_pc_wall_s": {
+      "count": 7491,
+      "mean": -3454302.6801150544,
+      "median": -3454302.679791735,
+      "p95": -3454302.6726145353,
+      "maximum": -3454302.671573046,
+      "minimum": -3454302.697212292,
+      "slope_per_second": 0.0005804290027636068,
+      "first": -3454302.697212292,
+      "last": -3454302.671797984
+    },
+    "lidar_state_header_minus_pc_wall_s": {
+      "count": 149,
+      "mean": -3454302.680167719,
+      "median": -3454302.679932499,
+      "p95": -3454302.6727487734,
+      "maximum": -3454302.672134448,
+      "minimum": -3454302.690004781,
+      "slope_per_second": 0.0005800340008325162,
+      "first": -3454302.690004781,
+      "last": -3454302.672453644
+    },
+    "lidar_state_dds_source_minus_pc_wall_s": {
+      "count": 149,
+      "mean": -3454302.680140412,
+      "median": -3454302.679912839,
+      "p95": -3454302.672723123,
+      "maximum": -3454302.672116573,
+      "minimum": -3454302.689980113,
+      "slope_per_second": 0.0005799112425362,
+      "first": -3454302.689980113,
+      "last": -3454302.672427544
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_wall_ns_s": {
+      "count": 149,
+      "mean": -3454302.6809588983,
+      "median": -3454302.681058015,
+      "p95": -3454302.6733228215,
+      "maximum": -3454302.672121904,
+      "minimum": -3454302.690492973,
+      "slope_per_second": 0.000589212325029395,
+      "first": -3454302.690492973,
+      "last": -3454302.672957964
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_stamp_ns_s": {
+      "count": 149,
+      "mean": -0.0007911791677852349,
+      "median": -0.000787712,
+      "p95": 4.5465599999999946e-05,
+      "maximum": 0.000354816,
+      "minimum": -0.003006464,
+      "slope_per_second": 9.178389370837253e-06,
+      "first": -0.000488192,
+      "last": -0.00050432
+    },
+    "lidar_state_dds_source_ns_minus_serial_recv_stamp_ns_s": {
+      "count": 149,
+      "mean": 0.0008184859798657717,
+      "median": 0.000800846,
+      "p95": 0.0020247572,
+      "maximum": 0.003018494,
+      "minimum": 3.104e-06,
+      "slope_per_second": -9.301057001508653e-06,
+      "first": 0.00051286,
+      "last": 0.00053042
+    },
+    "lidar_state_dds_source_ns_minus_stamp_ns_s": {
+      "count": 149,
+      "mean": 2.7306812080536916e-05,
+      "median": 2.1306e-05,
+      "p95": 6.229019999999997e-05,
+      "maximum": 0.000367155,
+      "minimum": 6.751e-06,
+      "slope_per_second": -1.226676306713425e-07,
+      "first": 2.4668e-05,
+      "last": 2.61e-05
+    },
+    "internal_lidar_end_future_s": {
+      "count": 0
+    }
+  },
+  "fixed_cloud_offsets_ns": [
+    [
+      3454302709204369,
+      443
+    ],
+    [
+      3454302642203503,
+      2
+    ],
+    [
+      3454302776205235,
+      2
+    ]
+  ],
+  "analyzed_samples_start_mono_ns": 2575643085927,
+  "imu_matching_same_offset": 7490,
+  "imu_matching_zero_offset": 0,
+  "base_exact_state_stamp_matches": 443,
+  "state_matches_derived_scan_end_within_2us": 178,
+  "internal_time_evidence": "NOT VERIFIED: no internal log; derived values separate",
+  "physical_motion_commanded": false,
+  "startup_imu_published_without_mapping": 0,
+  "tf_exact_query_success": 890,
+  "tf_queries": 890,
+  "receive_delay_warning": "Raw stamp uses a different epoch; receive age is NOT network latency.",
+  "native_lidar": {
+    "pc_received_hz": 14.771460432883405,
+    "received_clouds": 443,
+    "producer_fields": {
+      "cloud_frequency": {
+        "count": 149,
+        "mean": 14.76484701937477,
+        "median": 14.83841609954834,
+        "p95": 15.00568962097168,
+        "maximum": 15.112570762634277,
+        "minimum": 13.985888481140137,
+        "slope_per_second": 0.007944412110754171,
+        "first": 14.932247161865234,
+        "last": 14.831561088562012
+      },
+      "cloud_packet_loss_rate": {
+        "count": 149,
+        "mean": 1.1383440110507428,
+        "median": 1.1049723625183105,
+        "p95": 2.7624309062957764,
+        "maximum": 2.7624309062957764,
+        "minimum": 0.0,
+        "slope_per_second": -0.008110702035581854,
+        "first": 1.1049723625183105,
+        "last": 0.5524861812591553
+      },
+      "cloud_scan_num": {
+        "count": 149,
+        "mean": 180.0,
+        "median": 180.0,
+        "p95": 180.0,
+        "maximum": 180.0,
+        "minimum": 180.0,
+        "slope_per_second": 3.260948119822094e-15,
+        "first": 180.0,
+        "last": 180.0
+      },
+      "cloud_size": {
+        "count": 149,
+        "mean": 21397.664429530203,
+        "median": 21397.0,
+        "p95": 21426.6,
+        "maximum": 21453.0,
+        "minimum": 21327.0,
+        "slope_per_second": 0.050333825732339084,
+        "first": 21405.0,
+        "last": 21398.0
+      },
+      "imu_frequency": {
+        "count": 149,
+        "mean": 249.52646345100146,
+        "median": 249.6932373046875,
+        "p95": 250.6535888671875,
+        "maximum": 251.60060119628906,
+        "minimum": 227.87425231933594,
+        "slope_per_second": 0.012762249579377428,
+        "first": 250.00201416015625,
+        "last": 249.40797424316406
+      },
+      "imu_packet_loss_rate": {
+        "count": 149,
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "maximum": 0.0,
+        "minimum": 0.0,
+        "slope_per_second": 0.0,
+        "first": 0.0,
+        "last": 0.0
+      },
+      "error_state": {
+        "count": 149,
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "maximum": 0.0,
+        "minimum": 0.0,
+        "slope_per_second": 0.0,
+        "first": 0.0,
+        "last": 0.0
+      }
+    },
+    "scan_span_s": {
+      "count": 443,
+      "mean": 0.06458420271125388,
+      "median": 0.06377056986093521,
+      "p95": 0.06927534490823746,
+      "maximum": 0.11382750421762466,
+      "minimum": 0.053957499563694,
+      "slope_per_second": -3.762064249586828e-05,
+      "first": 0.0691240206360817,
+      "last": 0.06226471811532974
+    },
+    "assessment": "OBSERVED: compare PC frequency, producer frequency and scan span together",
+    "checks": {
+      "pc_cloud_rate_at_least_10hz": true,
+      "producer_cloud_rate_at_least_10hz": true,
+      "producer_loss_at_most_10pct": true,
+      "median_scan_at_most_100ms": true
+    },
+    "passed": true,
+    "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+  },
+  "status": "NOT VERIFIED: old_systematic_future_removed",
+  "earliest_bias_stage": "IMU receipt P5 approximates native-to-local offset before shared cloud/IMU conversion; remaining one-way network/dispatch delay is not independently identifiable",
+  "time_mapping": {
+    "ready": true,
+    "fault": "",
+    "scale": 1.0,
+    "offset_ns": 3454302709204369,
+    "offset_sec": 3454302.709204369,
+    "window_samples": 500,
+    "window_sec": 2.0,
+    "percentile": 5.0,
+    "candidate_low_offset_ns": 3454302672087156,
+    "residual_offset_sec": -0.037117213,
+    "spread_sec": 0.0046596915,
+    "dds_metadata_samples": 11238,
+    "producer_delay_median_sec": 7.784e-06,
+    "mapped_cloud_end_future_sec": 0.033124811,
+    "dropped": {},
+    "absolute_clock_synchronization": false,
+    "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+    "ros_stamp_ns": 1794559904765992121
+  },
+  "mapping_offset_stability_s": {
+    "count": 30,
+    "mean": -0.029092997866666668,
+    "median": -0.029421075,
+    "p95": -0.021000207000000003,
+    "maximum": -0.019871929,
+    "minimum": -0.037117213,
+    "slope_per_second": -0.0005830140188976038,
+    "first": -0.019871929,
+    "last": -0.037117213
+  },
+  "stamp_nonadvancing": {
+    "cloud": 0,
+    "imu": 0,
+    "state": 0,
+    "base": 0
+  },
+  "maximum_receive_gap_s": {
+    "cloud": 0.118964617,
+    "imu": 0.041468397,
+    "state": 0.118831894,
+    "base": 0.118964438
+  },
+  "maximum_position_step_m": {
+    "state": 0.07010862637290555,
+    "base": 0.07580634131762586
+  },
+  "exact_source_time_tf": {
+    "base": {
+      "queries": 443,
+      "exact_success": 443,
+      "success_rate": 1.0
+    },
+    "camera": {
+      "queries": 447,
+      "exact_success": 447,
+      "success_rate": 1.0
+    }
+  },
+  "target_map_exact_stamp_matches": 0,
+  "target_map_samples": 0,
+  "target_map_validation": "NOT VERIFIED: missing or non-exact target map measurements",
+  "acceptance_checks": {
+    "native_lidar_healthy": true,
+    "clock_publishers_absent": true,
+    "slam_uses_wall_clock": true,
+    "raw_inputs_received": true,
+    "mapping_ready": true,
+    "mapping_without_fault": true,
+    "continuous_inputs": true,
+    "stamps_increasing": true,
+    "finite_positions": true,
+    "old_systematic_future_removed": false,
+    "exact_base_tf": true,
+    "exact_camera_tf": true,
+    "capture_complete": true,
+    "setup_ok": true
+  },
+  "position_jump_assessment": "Observed position-step statistics only; physical trajectory/reference required to judge jumps",
+  "native_clock_repaired": false,
+  "setup_or_capture_error": null,
+  "cloud_minus_imu_receive_age_s": 0.06804996123537421,
+  "comparison": {
+    "baseline": "/tmp/go2_live_verify/camera_ws/records/time_20261112_231501_before_internal/report.json",
+    "before_base_future": {
+      "count": 446,
+      "mean": 0.057411832896860984,
+      "median": 0.0572147305,
+      "p95": 0.06736103125000001,
+      "maximum": 0.071509918,
+      "minimum": 0.03594372,
+      "slope_per_second": -0.0007286427241507886,
+      "first": 0.069598449,
+      "last": 0.037377297
+    },
+    "after_base_future": {
+      "count": 443,
+      "mean": 0.01590565827088036,
+      "median": 0.016394041,
+      "p95": 0.0246543164,
+      "maximum": 0.02783564,
+      "minimum": -0.006162056,
+      "slope_per_second": 0.0005846680083919261,
+      "first": 0.007420688,
+      "last": 0.02783564
+    },
+    "after_verified": false
+  }
+}

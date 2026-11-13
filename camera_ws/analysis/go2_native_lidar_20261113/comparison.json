@@ -1,0 +1,1023 @@
+{
+  "baseline": "cc375e6b83f23c3f178f9bed72e3e02261885c5c",
+  "motion_commands_sent": false,
+  "lidar_configuration_writes_sent": false,
+  "user_observation": "User confirmed no reboot, cable reconnection or App/mode operation between degraded and recovered captures.",
+  "runs": [
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261112_235022_pc_dds_lidar_state",
+      "counts": {
+        "raw_cloud": 446,
+        "raw_imu": 7491,
+        "lidar_state": 149
+      },
+      "pc_cloud_hz": 14.843313195378077,
+      "scan_span_s": {
+        "min": 0.05499938875436783,
+        "median": 0.06376007944345474,
+        "p95": 0.06937680393457413,
+        "max": 0.0742984190583229
+      },
+      "received_cloud_width": {
+        "min": 1384.0,
+        "median": 1405.0,
+        "p95": 1418.0,
+        "max": 1427.0
+      },
+      "cloud_fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7
+        },
+        {
+          "name": "intensity",
+          "offset": 16,
+          "datatype": 7
+        },
+        {
+          "name": "ring",
+          "offset": 20,
+          "datatype": 4
+        },
+        {
+          "name": "time",
+          "offset": 24,
+          "datatype": 7
+        }
+      ],
+      "native_state": {
+        "cloud_scan_num": {
+          "min": 180.0,
+          "median": 180.0,
+          "p95": 180.0,
+          "max": 180.0
+        },
+        "cloud_frequency": {
+          "min": 14.47756290435791,
+          "median": 14.861737251281738,
+          "p95": 15.042070770263672,
+          "max": 15.100942611694336
+        },
+        "cloud_packet_loss_rate": {
+          "min": 0.0,
+          "median": 1.1049723625183105,
+          "p95": 2.7624309062957764,
+          "max": 3.3149170875549316
+        },
+        "cloud_size": {
+          "min": 21016.0,
+          "median": 21071.0,
+          "p95": 21096.0,
+          "max": 21125.0
+        },
+        "imu_frequency": {
+          "min": 247.935302734375,
+          "median": 249.6873779296875,
+          "p95": 250.34850158691407,
+          "max": 250.66151428222656
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "sys_rotation_speed": {
+          "min": 10645.84765625,
+          "median": 10799.1357421875,
+          "p95": 10879.419921875,
+          "max": 11051.7587890625
+        },
+        "com_rotation_speed": {
+          "min": 661.3027954101562,
+          "median": 662.939453125,
+          "p95": 664.0664672851562,
+          "max": 664.8346557617188
+        },
+        "error_state": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "versions": [
+        [
+          "1.0.2",
+          "1.0.0.38",
+          "1.0.9"
+        ]
+      ],
+      "pc_domain": "0",
+      "rmw": "rmw_cyclonedds_cpp",
+      "cyclone": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+      "publishers": [
+        {
+          "topic": "/utlidar/cloud",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": [
+            {
+              "node": "_CREATED_BY_BARE_DDS_APP_",
+              "gid": "0110fa3127471848ca77a56700001c030000000000000000",
+              "participant_prefix": "0110fa3127471848ca77a567"
+            }
+          ]
+        }
+      ],
+      "report_status": "BLOCKED_NATIVE_CLOCK: DDS publisher source time differs from PC wall",
+      "sha256": {
+        "samples.jsonl": "3dcca1544ff4d3f28cfb8b66badddfadea5b1007c9477a1ee7217af391b67392",
+        "metadata.json": "632d8484a3541d2a7f5fdfb9d69ee31e995f998765c707026fd1f28ab75ccacc",
+        "report.json": "50649a79dbb25febfa4748fb06ccb614c31ca6f696f2044e7de21044f1f1d3a5"
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_163313_payload_hardware",
+      "counts": {
+        "raw_imu": 7686,
+        "lidar_state": 154,
+        "camera": 458,
+        "raw_cloud": 38,
+        "mapping": 31,
+        "tf": 450
+      },
+      "pc_cloud_hz": 1.2247975805920606,
+      "scan_span_s": {
+        "min": 0.4577305018901825,
+        "median": 0.7174365520477295,
+        "p95": 1.1689724206924437,
+        "max": 1.3362560272216797
+      },
+      "received_cloud_width": {
+        "min": 1400.0,
+        "median": 1416.0,
+        "p95": 1428.0,
+        "max": 1430.0
+      },
+      "cloud_fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7
+        },
+        {
+          "name": "intensity",
+          "offset": 16,
+          "datatype": 7
+        },
+        {
+          "name": "ring",
+          "offset": 20,
+          "datatype": 4
+        },
+        {
+          "name": "time",
+          "offset": 24,
+          "datatype": 7
+        }
+      ],
+      "native_state": {
+        "cloud_scan_num": {
+          "min": 180.0,
+          "median": 180.0,
+          "p95": 180.0,
+          "max": 180.0
+        },
+        "cloud_frequency": {
+          "min": 1.1544010639190674,
+          "median": 1.2126442193984985,
+          "p95": 1.3538994789123535,
+          "max": 1.365715503692627
+        },
+        "cloud_packet_loss_rate": {
+          "min": 82.8729248046875,
+          "median": 86.1878433227539,
+          "p95": 86.1878433227539,
+          "max": 86.1878433227539
+        },
+        "cloud_size": {
+          "min": 21225.0,
+          "median": 21255.0,
+          "p95": 21288.0,
+          "max": 21307.0
+        },
+        "imu_frequency": {
+          "min": 248.74163818359375,
+          "median": 249.69496154785156,
+          "p95": 250.3523162841797,
+          "max": 251.1053466796875
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "sys_rotation_speed": {
+          "min": 10604.4541015625,
+          "median": 10799.1357421875,
+          "p95": 10881.695263671874,
+          "max": 10991.0244140625
+        },
+        "com_rotation_speed": {
+          "min": 659.732177734375,
+          "median": 663.1446228027344,
+          "p95": 664.5773132324218,
+          "max": 665.675537109375
+        },
+        "error_state": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "versions": [
+        [
+          "1.0.2",
+          "1.0.0.38",
+          "1.0.9"
+        ]
+      ],
+      "pc_domain": "0",
+      "rmw": "rmw_cyclonedds_cpp",
+      "cyclone": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+      "publishers": [
+        {
+          "topic": "/utlidar/cloud",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": [
+            {
+              "node": "_CREATED_BY_BARE_DDS_APP_",
+              "gid": "01106a1805e4d03b33fbab1e00001c030000000000000000",
+              "participant_prefix": "01106a1805e4d03b33fbab1e"
+            }
+          ]
+        }
+      ],
+      "report_status": "NOT VERIFIED: mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf",
+      "sha256": {
+        "samples.jsonl": "0bfd6cc478a69bb9c67398451f54fc09e025dbcad3de228816aae83b819406e7",
+        "metadata.json": "c4cf27dafe827777521c4916355677f82e66ef175228c7481a9b9acbc8b19f98",
+        "report.json": "167905f3f6c2b739978c42b3a3f8b9329614c226d250bf1c68a3ae78769f2016"
+      },
+      "time_mapping": {
+        "ready": false,
+        "fault": "cloud mapped time invalid (including scan end); restart localization",
+        "scale": 1.0,
+        "offset_ns": 3454302679386230,
+        "offset_sec": 3454302.67938623,
+        "window_samples": 490,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3454302704272694,
+        "residual_offset_sec": 0.024886464,
+        "spread_sec": 0.03392569,
+        "dds_metadata_samples": 1810,
+        "producer_delay_median_sec": 7.3355e-06,
+        "mapped_cloud_end_future_sec": -0.063784982,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794558850442803586
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 450,
+          "exact_success": 0,
+          "success_rate": 0.0
+        }
+      },
+      "target_map_validation": "NOT VERIFIED: missing or non-exact target map measurements",
+      "acceptance_checks": {
+        "clock_publishers_absent": true,
+        "slam_uses_wall_clock": true,
+        "raw_inputs_received": true,
+        "mapping_ready": false,
+        "mapping_without_fault": false,
+        "continuous_inputs": false,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "old_systematic_future_removed": false,
+        "exact_base_tf": false,
+        "exact_camera_tf": false,
+        "capture_complete": true,
+        "setup_ok": true
+      },
+      "base_future_s": {
+        "count": 0
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_164438_upstream_current",
+      "counts": {
+        "raw_imu": 3689,
+        "lidar_state": 75,
+        "raw_cloud": 215
+      },
+      "pc_cloud_hz": 14.309541661396649,
+      "scan_span_s": {
+        "min": 0.05610048770904541,
+        "median": 0.06383279711008072,
+        "p95": 0.07039162069559096,
+        "max": 0.18127475678920746
+      },
+      "received_cloud_width": {
+        "min": 1414.0,
+        "median": 1428.0,
+        "p95": 1435.0,
+        "max": 1437.0
+      },
+      "cloud_fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7
+        },
+        {
+          "name": "intensity",
+          "offset": 16,
+          "datatype": 7
+        },
+        {
+          "name": "ring",
+          "offset": 20,
+          "datatype": 4
+        },
+        {
+          "name": "time",
+          "offset": 24,
+          "datatype": 7
+        }
+      ],
+      "native_state": {
+        "cloud_scan_num": {
+          "min": 180.0,
+          "median": 180.0,
+          "p95": 180.0,
+          "max": 180.0
+        },
+        "cloud_frequency": {
+          "min": 11.129592895507812,
+          "median": 14.82936954498291,
+          "p95": 15.043927097320557,
+          "max": 15.122806549072266
+        },
+        "cloud_packet_loss_rate": {
+          "min": 0.0,
+          "median": 1.1049723625183105,
+          "p95": 8.28729248046875,
+          "max": 8.28729248046875
+        },
+        "cloud_size": {
+          "min": 21376.0,
+          "median": 21413.0,
+          "p95": 21435.2,
+          "max": 21447.0
+        },
+        "imu_frequency": {
+          "min": 227.0623016357422,
+          "median": 249.6921844482422,
+          "p95": 250.62791442871094,
+          "max": 250.94464111328125
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "sys_rotation_speed": {
+          "min": 10659.0869140625,
+          "median": 10797.1923828125,
+          "p95": 10916.83291015625,
+          "max": 11029.412109375
+        },
+        "com_rotation_speed": {
+          "min": 607.2935791015625,
+          "median": 660.6038208007812,
+          "p95": 698.6386596679687,
+          "max": 3190.810546875
+        },
+        "error_state": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "versions": [
+        [
+          "1.0.2",
+          "1.0.0.38",
+          "1.0.9"
+        ]
+      ],
+      "pc_domain": "0",
+      "rmw": "rmw_cyclonedds_cpp",
+      "cyclone": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+      "publishers": [
+        {
+          "topic": "/utlidar/cloud",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": [
+            {
+              "node": "_CREATED_BY_BARE_DDS_APP_",
+              "gid": "01106a1805e4d03b33fbab1e00001c030000000000000000",
+              "participant_prefix": "01106a1805e4d03b33fbab1e"
+            }
+          ]
+        }
+      ],
+      "report_status": "BLOCKED_NATIVE_CLOCK: DDS publisher source time differs from PC wall",
+      "sha256": {
+        "samples.jsonl": "e0dc44bd9c5ea5878e445261fefbcb1fb4505b98016405dcdc1bd97593dd2701",
+        "metadata.json": "92bd880be48b37b14818e6dac66fd721593211ba845fd02cca82e61930791190",
+        "report.json": "a04359668403b12b27bf3516b319ec507b28b5b14aed391502e299fc1f051f23"
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_164555_restored_lidar_mapping",
+      "counts": {
+        "raw_imu": 7538,
+        "imu": 2921,
+        "raw_cloud": 372,
+        "cloud": 98,
+        "state": 98,
+        "base": 98,
+        "tf": 98,
+        "lidar_state": 151,
+        "mapping": 30
+      },
+      "pc_cloud_hz": 12.374987860954125,
+      "scan_span_s": {
+        "min": 0.054158248007297516,
+        "median": 0.06423918157815933,
+        "p95": 0.14146122634410857,
+        "max": 0.18574129045009613
+      },
+      "received_cloud_width": {
+        "min": 1411.0,
+        "median": 1427.0,
+        "p95": 1435.0,
+        "max": 1438.0
+      },
+      "cloud_fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7
+        },
+        {
+          "name": "intensity",
+          "offset": 16,
+          "datatype": 7
+        },
+        {
+          "name": "ring",
+          "offset": 20,
+          "datatype": 4
+        },
+        {
+          "name": "time",
+          "offset": 24,
+          "datatype": 7
+        }
+      ],
+      "native_state": {
+        "cloud_scan_num": {
+          "min": 180.0,
+          "median": 180.0,
+          "p95": 180.0,
+          "max": 180.0
+        },
+        "cloud_frequency": {
+          "min": 7.30492639541626,
+          "median": 14.709328651428223,
+          "p95": 15.021633625030518,
+          "max": 15.102534294128418
+        },
+        "cloud_packet_loss_rate": {
+          "min": 0.0,
+          "median": 2.209944725036621,
+          "p95": 36.464088439941406,
+          "max": 36.464088439941406
+        },
+        "cloud_size": {
+          "min": 21358.0,
+          "median": 21406.0,
+          "p95": 21428.5,
+          "max": 21445.0
+        },
+        "imu_frequency": {
+          "min": 227.0771942138672,
+          "median": 249.69879150390625,
+          "p95": 250.6338348388672,
+          "max": 251.47824096679688
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "sys_rotation_speed": {
+          "min": 10647.7373046875,
+          "median": 10797.1923828125,
+          "p95": 10866.65185546875,
+          "max": 11031.439453125
+        },
+        "com_rotation_speed": {
+          "min": 611.6332397460938,
+          "median": 662.998046875,
+          "p95": 668.7248840332031,
+          "max": 687.6160278320312
+        },
+        "error_state": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "versions": [
+        [
+          "1.0.2",
+          "1.0.0.38",
+          "1.0.9"
+        ]
+      ],
+      "pc_domain": "0",
+      "rmw": "rmw_cyclonedds_cpp",
+      "cyclone": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+      "publishers": [
+        {
+          "topic": "/utlidar/cloud",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": [
+            {
+              "node": "_CREATED_BY_BARE_DDS_APP_",
+              "gid": "01106a1805e4d03b33fbab1e00001c030000000000000000",
+              "participant_prefix": "01106a1805e4d03b33fbab1e"
+            }
+          ]
+        }
+      ],
+      "report_status": "NOT VERIFIED: mapping_ready, mapping_without_fault, exact_camera_tf",
+      "sha256": {
+        "samples.jsonl": "ae810d3141308e4bad2f9e962e0c5d4f0d58a8543efb0a7d8519fb698f726986",
+        "metadata.json": "e7825160715558015ac8917d8c31e2e8b40974c61eb61cc6784eba65ff5de0c7",
+        "report.json": "0de96cd5cfdb4711b63852a9567ae350b6cf512cc8159baed59cb91e0390d7af"
+      },
+      "time_mapping": {
+        "ready": false,
+        "fault": "imu mapped time invalid (including scan end); restart localization",
+        "scale": 1.0,
+        "offset_ns": 3454302724585235,
+        "offset_sec": 3454302.724585235,
+        "window_samples": 492,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3454302626591033,
+        "residual_offset_sec": -0.097994202,
+        "spread_sec": 0.0416483525,
+        "dds_metadata_samples": 6798,
+        "producer_delay_median_sec": 7.5795e-06,
+        "mapped_cloud_end_future_sec": 0.095337032,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794559610947034519
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 98,
+          "exact_success": 98,
+          "success_rate": 1.0
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "target_map_validation": "NOT VERIFIED: missing or non-exact target map measurements",
+      "acceptance_checks": {
+        "clock_publishers_absent": true,
+        "slam_uses_wall_clock": true,
+        "raw_inputs_received": true,
+        "mapping_ready": false,
+        "mapping_without_fault": false,
+        "continuous_inputs": true,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "old_systematic_future_removed": true,
+        "exact_base_tf": true,
+        "exact_camera_tf": false,
+        "capture_complete": true,
+        "setup_ok": true
+      },
+      "base_future_s": {
+        "count": 98,
+        "mean": 0.004513533336734692,
+        "median": -0.020718036500000002,
+        "p95": 0.0788290415,
+        "maximum": 0.088394802,
+        "minimum": -0.062110068,
+        "slope_per_second": 0.009315795883314932,
+        "first": -0.020266142,
+        "last": 0.086699153
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_164936_native_entry_verified",
+      "counts": {
+        "raw_imu": 2478,
+        "raw_cloud": 146,
+        "lidar_state": 50
+      },
+      "pc_cloud_hz": 14.589411453193005,
+      "scan_span_s": {
+        "min": 0.059043921530246735,
+        "median": 0.06378237158060074,
+        "p95": 0.06976542621850967,
+        "max": 0.1202264204621315
+      },
+      "received_cloud_width": {
+        "min": 1414.0,
+        "median": 1427.0,
+        "p95": 1434.0,
+        "max": 1436.0
+      },
+      "cloud_fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7
+        },
+        {
+          "name": "intensity",
+          "offset": 16,
+          "datatype": 7
+        },
+        {
+          "name": "ring",
+          "offset": 20,
+          "datatype": 4
+        },
+        {
+          "name": "time",
+          "offset": 24,
+          "datatype": 7
+        }
+      ],
+      "native_state": {
+        "cloud_scan_num": {
+          "min": 180.0,
+          "median": 180.0,
+          "p95": 180.0,
+          "max": 180.0
+        },
+        "cloud_frequency": {
+          "min": 13.475332260131836,
+          "median": 14.775261402130127,
+          "p95": 15.01802225112915,
+          "max": 15.05339527130127
+        },
+        "cloud_packet_loss_rate": {
+          "min": 0.0,
+          "median": 1.1049723625183105,
+          "p95": 2.7624309062957764,
+          "max": 2.7624309062957764
+        },
+        "cloud_size": {
+          "min": 21378.0,
+          "median": 21397.0,
+          "p95": 21419.0,
+          "max": 21425.0
+        },
+        "imu_frequency": {
+          "min": 226.43687438964844,
+          "median": 249.6873016357422,
+          "p95": 250.3433410644531,
+          "max": 250.62127685546875
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "sys_rotation_speed": {
+          "min": 10721.9443359375,
+          "median": 10803.99755859375,
+          "p95": 10873.54013671875,
+          "max": 11033.4677734375
+        },
+        "com_rotation_speed": {
+          "min": 658.8411254882812,
+          "median": 662.869873046875,
+          "p95": 666.0133056640625,
+          "max": 778.3716430664062
+        },
+        "error_state": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "versions": [
+        [
+          "1.0.2",
+          "1.0.0.38",
+          "1.0.9"
+        ]
+      ],
+      "pc_domain": "0",
+      "rmw": "rmw_cyclonedds_cpp",
+      "cyclone": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+      "publishers": [
+        {
+          "topic": "/utlidar/cloud",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": [
+            {
+              "node": "_CREATED_BY_BARE_DDS_APP_",
+              "gid": "01106a1805e4d03b33fbab1e00001c030000000000000000",
+              "participant_prefix": "01106a1805e4d03b33fbab1e"
+            }
+          ]
+        }
+      ],
+      "report_status": "PASS: native LiDAR feed only; localization/time mapping NOT VERIFIED",
+      "sha256": {
+        "samples.jsonl": "fb67cc19e989c68dcdae2de2fa7052961ad887e2648638ac0b962a4040c7d748",
+        "metadata.json": "a0a65715fad3ec241eb383810ed0992af58b9c861214103977541fb9cffa4121",
+        "report.json": "3bd027a3097bf2b9a2493cd487a1c899aecd08bbd565d88bebb4c03f0606661b"
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_165049_upstream_full_recheck",
+      "counts": {
+        "raw_imu": 7491,
+        "imu": 7490,
+        "camera": 447,
+        "tf": 890,
+        "raw_cloud": 443,
+        "cloud": 443,
+        "state": 443,
+        "base": 443,
+        "lidar_state": 149,
+        "mapping": 30
+      },
+      "pc_cloud_hz": 14.771460432883405,
+      "scan_span_s": {
+        "min": 0.053957499563694,
+        "median": 0.06377056986093521,
+        "p95": 0.06927534490823746,
+        "max": 0.11382750421762466
+      },
+      "received_cloud_width": {
+        "min": 1405.0,
+        "median": 1427.0,
+        "p95": 1434.0,
+        "max": 1438.0
+      },
+      "cloud_fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7
+        },
+        {
+          "name": "intensity",
+          "offset": 16,
+          "datatype": 7
+        },
+        {
+          "name": "ring",
+          "offset": 20,
+          "datatype": 4
+        },
+        {
+          "name": "time",
+          "offset": 24,
+          "datatype": 7
+        }
+      ],
+      "native_state": {
+        "cloud_scan_num": {
+          "min": 180.0,
+          "median": 180.0,
+          "p95": 180.0,
+          "max": 180.0
+        },
+        "cloud_frequency": {
+          "min": 13.985888481140137,
+          "median": 14.83841609954834,
+          "p95": 15.00568962097168,
+          "max": 15.112570762634277
+        },
+        "cloud_packet_loss_rate": {
+          "min": 0.0,
+          "median": 1.1049723625183105,
+          "p95": 2.7624309062957764,
+          "max": 2.7624309062957764
+        },
+        "cloud_size": {
+          "min": 21327.0,
+          "median": 21397.0,
+          "p95": 21426.6,
+          "max": 21453.0
+        },
+        "imu_frequency": {
+          "min": 227.87425231933594,
+          "median": 249.6932373046875,
+          "p95": 250.6535888671875,
+          "max": 251.60060119628906
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "sys_rotation_speed": {
+          "min": 10630.7587890625,
+          "median": 10804.970703125,
+          "p95": 10866.0224609375,
+          "max": 11051.7587890625
+        },
+        "com_rotation_speed": {
+          "min": 637.6737670898438,
+          "median": 663.0347290039062,
+          "p95": 666.3943359375,
+          "max": 4164.35302734375
+        },
+        "error_state": {
+          "min": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "versions": [
+        [
+          "1.0.2",
+          "1.0.0.38",
+          "1.0.9"
+        ]
+      ],
+      "pc_domain": "0",
+      "rmw": "rmw_cyclonedds_cpp",
+      "cyclone": "<CycloneDDS><Domain><General><NetworkInterfaceAddress>enp12s0</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>",
+      "publishers": [
+        {
+          "topic": "/utlidar/cloud",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": [
+            {
+              "node": "_CREATED_BY_BARE_DDS_APP_",
+              "gid": "01106a1805e4d03b33fbab1e00001c030000000000000000",
+              "participant_prefix": "01106a1805e4d03b33fbab1e"
+            }
+          ]
+        }
+      ],
+      "report_status": "NOT VERIFIED: old_systematic_future_removed",
+      "sha256": {
+        "samples.jsonl": "7c521bc72830dc86fac0da1d0d6c84f3f0ce0d428f55c90a3463e19448f97d1a",
+        "metadata.json": "350c5de1f27cb342961f2e3af357311c59169624291b626faa53740e70d3b95e",
+        "report.json": "1482a0210ca470db8a959a68f04c84495ca112c0938945fa5ebab697bd6ff16f"
+      },
+      "time_mapping": {
+        "ready": true,
+        "fault": "",
+        "scale": 1.0,
+        "offset_ns": 3454302709204369,
+        "offset_sec": 3454302.709204369,
+        "window_samples": 500,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3454302672087156,
+        "residual_offset_sec": -0.037117213,
+        "spread_sec": 0.0046596915,
+        "dds_metadata_samples": 11238,
+        "producer_delay_median_sec": 7.784e-06,
+        "mapped_cloud_end_future_sec": 0.033124811,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794559904765992121
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 443,
+          "exact_success": 443,
+          "success_rate": 1.0
+        },
+        "camera": {
+          "queries": 447,
+          "exact_success": 447,
+          "success_rate": 1.0
+        }
+      },
+      "target_map_validation": "NOT VERIFIED: missing or non-exact target map measurements",
+      "acceptance_checks": {
+        "native_lidar_healthy": true,
+        "clock_publishers_absent": true,
+        "slam_uses_wall_clock": true,
+        "raw_inputs_received": true,
+        "mapping_ready": true,
+        "mapping_without_fault": true,
+        "continuous_inputs": true,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "old_systematic_future_removed": false,
+        "exact_base_tf": true,
+        "exact_camera_tf": true,
+        "capture_complete": true,
+        "setup_ok": true
+      },
+      "base_future_s": {
+        "count": 443,
+        "mean": 0.01590565827088036,
+        "median": 0.016394041,
+        "p95": 0.0246543164,
+        "maximum": 0.02783564,
+        "minimum": -0.006162056,
+        "slope_per_second": 0.0005846680083919261,
+        "first": 0.007420688,
+        "last": 0.02783564
+      }
+    }
+  ],
+  "conclusion": "Native producer degradation observed (reported low rate/high loss, long per-message scan time); cloud_scan_num=180 in normal/degraded/recovered runs. Recovery observed without configuration write or user operation; exact trigger unknown. Final 30 s has 443 state/base messages and 100% base/camera TF, but original 20 ms scan-end median acceptance remains failed (20.259855 ms) and no target MAP sample."
+}

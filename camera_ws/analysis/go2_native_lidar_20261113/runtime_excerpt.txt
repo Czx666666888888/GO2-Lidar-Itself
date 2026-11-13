@@ -1,0 +1,30 @@
+[INFO] [pointlio_mapping-2]: process started with pid [11509]
+[INFO] [static_transform_publisher-3]: process started with pid [11511]
+[INFO] [static_transform_publisher-4]: process started with pid [11513]
+[INFO] [static_transform_publisher-5]: process started with pid [11515]
+[INFO] [coarse_target_locator-6]: process started with pid [11517]
+[INFO] [camera_target_to_map-7]: process started with pid [11519]
+[INFO] [base_odom_node-8]: process started with pid [11521]
+[INFO] [science_target_manager-9]: process started with pid [11523]
+[coarse_target_locator-6] [WARN] [1794559859.991629724] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559862.117910705] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794559864.367955087] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794559866.492896471] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794559868.616411772] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559870.617864584] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794559872.992818520] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering
+[coarse_target_locator-6] [WARN] [1794559875.116593248] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559877.116685084] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559879.241487571] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559881.241667455] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559883.366548571] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559885.491541583] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559887.491565525] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559889.616519498] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559891.616693216] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559893.617124664] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559895.741583374] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559897.741567222] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559899.741687969] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559901.866586085] [coarse_target_locator]: INVALID: no blue candidates
+[coarse_target_locator-6] [WARN] [1794559903.993449658] [coarse_target_locator]: INVALID: no valid targets after wall rejection and clustering

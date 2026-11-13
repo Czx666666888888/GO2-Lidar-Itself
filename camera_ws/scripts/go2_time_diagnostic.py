@@ -83,6 +83,41 @@ def stats(values):
                 first=float(a[0]), last=float(a[-1]))
 
 
+def native_lidar_summary(groups):
+    """Compare actual PC reception with producer-reported health; never configure it."""
+    clouds = groups['raw_cloud']
+    elapsed = ((clouds[-1]['mono_ns']-clouds[0]['mono_ns'])/1e9
+               if len(clouds) > 1 else 0)
+    received_hz = (len(clouds)-1)/elapsed if elapsed > 0 else None
+    fields = {}
+    for name in ('cloud_frequency', 'cloud_packet_loss_rate', 'cloud_scan_num',
+                 'cloud_size', 'imu_frequency', 'imu_packet_loss_rate', 'error_state'):
+        fields[name] = stats([(r['mono_ns']/1e9, r['fields'][name])
+                              for r in groups['lidar_state'] if name in r['fields']])
+    span = stats([(r['mono_ns']/1e9, r['point_time_max_s'])
+                  for r in clouds if 'point_time_max_s' in r])
+    reported_hz = fields['cloud_frequency'].get('median')
+    if received_hz is None or reported_hz is None:
+        assessment = 'NOT VERIFIED: missing cloud or LidarState samples'
+    elif received_hz < 5 and reported_hz < 5:
+        assessment = 'LOW_AT_PRODUCER: producer and PC both observe low frequency'
+    elif received_hz < 5 and reported_hz >= 10:
+        assessment = 'PC_PATH_SUSPECT: producer reports normal frequency; inspect DDS reception'
+    else:
+        assessment = 'OBSERVED: compare PC frequency, producer frequency and scan span together'
+    # Native-feed checks use the measured ~15 Hz / ~64 ms reference. These
+    # checks do not alter the converter or any controller timestamp tolerance.
+    checks = dict(pc_cloud_rate_at_least_10hz=received_hz is not None and received_hz >= 10,
+                  producer_cloud_rate_at_least_10hz=reported_hz is not None and reported_hz >= 10,
+                  producer_loss_at_most_10pct=fields['cloud_packet_loss_rate'].get('median', 101) <= 10,
+                  median_scan_at_most_100ms=span.get('median', 1) <= .1)
+    return dict(pc_received_hz=received_hz, received_clouds=len(clouds),
+                producer_fields=fields, scan_span_s=span, assessment=assessment,
+                checks=checks, passed=all(checks.values()),
+                limitation='LidarState reports producer health; exact pre-DDS loss mechanism is unknown. '
+                           'cloud_scan_num has no proven equality to the standalone SDK initialization argument.')
+
+
 def analyze(folder):
     all_rows = [json.loads(x) for x in (folder/'samples.jsonl').read_text().splitlines()]
     metadata = json.loads((folder/'metadata.json').read_text())
@@ -95,6 +130,7 @@ def analyze(folder):
     rows = [r for r in all_rows if r['mono_ns'] >= start_mono]
     groups = {k: [r for r in rows if r['kind'] == k] for k in
               ['raw_cloud', 'raw_imu', 'cloud', 'imu', 'state', 'base', 'tf', 'go2_clock', 'lidar_state', 'mapping', 'map_debug', 'camera']}
+    native = native_lidar_summary(groups)
     metrics = {}
     for kind, key, sign in [('raw_cloud', 'receive_delay_s', -1),
                             ('raw_imu', 'imu_receive_delay_s', -1),
@@ -173,6 +209,7 @@ def analyze(folder):
         r.get('success', True) and r.get('tf_stamp_ns') == r.get('query_ns') for r in groups['tf'])
     result['tf_queries'] = len(groups['tf'])
     result['receive_delay_warning'] = 'Raw stamp uses a different epoch; receive age is NOT network latency.'
+    result['native_lidar'] = native
     source_blocked = log.exists() and 'SOURCE_CLOCK_UNSYNCHRONIZED' in log.read_text()
     if source_blocked:
         result['status'] = 'BLOCKED_NATIVE_CLOCK: corrected converter refuses uncalibrated source epoch'
@@ -256,6 +293,7 @@ def analyze(folder):
             result['target_map_exact_stamp_matches'] == len(debug)
                                          else 'NOT VERIFIED: missing or non-exact target map measurements')
         checks = dict(
+            native_lidar_healthy=native['passed'],
             clock_publishers_absent=metadata.get('clock_publishers') == 0,
             slam_uses_wall_clock=(metadata.get('laser_mapping_use_sim_time', {}).get('code') == 0
                 and 'False' in metadata['laser_mapping_use_sim_time'].get('stdout', '')),
@@ -286,6 +324,11 @@ def analyze(folder):
             'Observed position-step statistics only; physical trajectory/reference required to judge jumps')
         result['native_clock_repaired'] = False
         result['setup_or_capture_error'] = metadata.get('setup_or_capture_error')
+    if metadata.get('arguments', {}).get('lidar_check'):
+        result['status'] = ('PASS: native LiDAR feed only; localization/time mapping NOT VERIFIED'
+                            if native['passed'] and metadata.get('record_complete')
+                            and not metadata.get('setup_or_capture_error')
+                            else 'NOT VERIFIED: native LiDAR feed; inspect native_lidar checks')
     if offset:
         delay = metrics['receive_delay_s'].get('median')
         imu_delay = metrics['imu_receive_delay_s'].get('median')
@@ -301,7 +344,8 @@ def analyze(folder):
                                     after_verified=result['status'].startswith('PASS'))
     (folder/'report.json').write_text(json.dumps(result, indent=2)+'\n')
     lines = [result['status'], result['receive_delay_warning'],
-             'All metric units: seconds; slope: seconds/second.']
+             'All metric units: seconds; slope: seconds/second.',
+             'Native LiDAR (frequencies Hz, loss percent): '+json.dumps(native)]
     for name, value in metrics.items():
         lines.append(name+': '+json.dumps(value))
     if result.get('comparison'):
@@ -436,6 +480,7 @@ def main():
     parser.add_argument('--duration', type=float, default=30)
     parser.add_argument('--label', default='imu_mapping')
     parser.add_argument('--observe-only', action='store_true', help='只记录原生DDS，不构建/启动/停止节点')
+    parser.add_argument('--lidar-check', action='store_true', help='仅验原生点云/LidarState健康，不以原生epoch作UTC验收')
     parser.add_argument('--prepare-only', action='store_true', help='仅由shell准备overlay，不初始化ROS')
     parser.add_argument('--restart-localization', action='store_true', help='明确结束旧只读定位并建立新地图会话')
     parser.add_argument('--reuse-only', action='store_true', help='只检查现有定位，不启动任何设备/节点')
@@ -443,6 +488,8 @@ def main():
     parser.add_argument('--camera-host', default=os.environ.get('GO2_CAMERA_HOST', 'unitree@192.168.123.18'),
                         help='相机伴随主机SSH名，或local（Orin本地）、existing（仅复用）')
     args = parser.parse_args()
+    if args.lidar_check:
+        args.observe_only = True
     if not 0 < args.duration <= 120:
         parser.error('duration must be in (0,120] seconds')
     if args.prepare_only:

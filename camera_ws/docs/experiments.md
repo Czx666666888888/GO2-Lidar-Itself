@@ -1608,3 +1608,79 @@ bash go2_test.sh --execute --mode dock
 运行同一时间验收，再进入SEARCH→STOP_CONFIRM→三自由度单目标停靠→STOP，不进入趴下/抓取。
 运动前仍须通过原0.10s future保护、0.4s odom freshness等；没有自动避障。
 Ctrl+C请求原停止/清理，物理遥控急停需由操作者保持可用。本轮未验证物理停靠结果。
+
+## 2026-11-13 上游雷达复查：已回到约15Hz，未改原生配置
+
+来源：基线`cc375e6b83f2`、两天原始JSONL/LidarState/元数据、当前真实复测。
+本轮不修改时间映射、Point-LIO、MAP接近、三自由度停靠或S1程序，不运动/抓取。
+
+| 真实窗口 | PC接收Hz | 源端自报Hz中位 | 源端丢包%中位 | 扫描跨度ms中位 | cloud_scan_num |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 11-12 23:50 正常 | 14.843 | 14.862 | 1.105 | 63.760 | 180 |
+| 11-13 16:33 异常 | 1.225 | 1.213 | 86.188 | 717.437 | 180 |
+| 11-13 16:50 最终复测 | 14.771 | 14.838 | 1.105 | 63.771 | 180 |
+
+**180没有发生变化，也没有证据表明它在这台GO2上异常，不能照搬独立SDK默认18覆盖。**
+三种状态的消息布局相同，实际单帧点数中位1405/1416/约1427，非点数增加十倍；
+固件1.0.2、软件1.0.0.38、SDK1.0.9相同，PC均为Domain0/CycloneDDS/enp12s0。
+源端原生发布配置文件未能读取；不能把这些状态字段对照称为完整配置diff。
+11-12与11-13的生产者GID不同，但11-13异常与当前恢复的GID相同。
+用户确认异常采集后未重启、未插接、未切App模式；本轮没有发送配置/重启命令。
+当前只能记录**无已知操作下自行恢复**，具体触发原因Unknown，不能宣称修复了某个配置。
+
+故障定位：异常时源端LidarState与PC接收频率都约1.2Hz，并且源端已编码进单条点云的
+点内时间跨度变大。仅PC丢掉整帧不会改变幸存消息内部扫描跨度，所以故障至少在原生
+点云组装/生产阶段可见。源端高丢包与收集相近点数需更长时间相符；究竟是串口链路、
+解析/调度或其他生产者问题，缺少源端日志不能进一步归因。PC额外丢帧不能被完全排除。
+
+### 官方接口核对（只读查阅，未执行写入）
+
+- [L1 SDK正式头文件](https://github.com/unitreerobotics/unilidar_sdk/blob/main/unitree_lidar_sdk/include/unitree_lidar_sdk.h)：
+  `initialize(cloud_scan_num=18, port, ...)`和`initializeUDP(...)`将同名参数传给直连reader；
+  `printConfig()`可打印该reader配置，`reset()`、`setLidarWorkingMode(NORMAL/STANDBY)`是直连接口。
+  这些不是GO2原生DDS的组帧恢复RPC。未取得原生生产者设备/配置访问，不新建reader抢占雷达。
+- [L1 ROS2 wrapper](https://github.com/unitreerobotics/unilidar_sdk/blob/main/unitree_lidar_ros2/src/unitree_lidar_ros2/include/unitree_lidar_ros2.h)：
+  读取cloud_scan_num ROS参数后在初始化时传入SDK，runParse返回POINTCLOUD才发布。
+  这能确认独立驱动的配置入口；其与GO2裸DDS生产者不是同一已验证实现。
+- [官方GO2 LidarState消息](https://github.com/unitreerobotics/unitree_ros2/blob/master/cyclonedds_ws/src/unitree/unitree_go/msg/LidarState.msg)
+  只声明cloud_scan_num字段，没有定义它与独立SDK组帧参数的对应关系。
+  因此GO2的180是否严格表示每条DDS点云组帧数量 **Unknown / needs verification**，不按字段同名推定。
+- [RobotStateClient](https://github.com/unitreerobotics/unitree_sdk2/blob/main/include/unitree/robot/go2/robot_state/robot_state_client.hpp)
+  只公开服务列表/切换/状态上报频率，不提供已文档化的原生点云组帧参数设置。
+  本次已查官方SDK未找到`/utlidar/client_cmd`可核验的配置恢复payload；不向其猜测发命令。
+- 官方文档中心L1/GO2 LiDAR页面正文不可读取（直读遭EdgeOne拦截），未把搜索摘要或第三方
+  用户转述当成已核验的GO2命令。独立SDK方法和GO2内部驱动恢复方法必须分开。
+
+### 一键入口与实机结果
+
+原生检查已加入现有入口，独立调用如下（只订阅，无SSH/构建/启停/配置写入）：
+
+```bash
+bash go2_test.sh --time-diagnostic --lidar-check --duration 10
+```
+
+输出PC接收频率、源端频率/丢包/scan_num、扫描跨度及上游/PC路径判断。
+粗健康线为PC及源端中位频率≥10Hz、源端中位丢包≤10%、扫描中位≤100ms，
+来自约15Hz/64ms正常参考，仅用作原生输入检查，不是修改转换器/控制器保护。
+缺LidarState或流则明确失败。`PASS: native LiDAR feed only`只代表原生输入，不代表时间或运动通过。
+完整`--execute`在对时、S1使能和定位前自动跑8秒同一检查；定位后的完整时间/TF检查继续保留。
+纯`--observe-only`仍保留原生时钟域报告，不用源端旧epoch否定点云频率恢复。
+
+最终30秒：443帧原生点云、7491条原生IMU、443条Point-LIO及443条base里程计；
+原生丢包最大2.762%、扫描跨度P95 69.275ms、最大113.828ms。映射ready且无fault，
+offset为+3454302.709204369s；base时间超前中位16.394ms、P95 24.654ms、最大27.836ms。
+机身精确源时间MAP TF **443/443**，相机 **447/447**，均100%。
+因此**最终观测窗口连续里程计已恢复**，不是对长期稳定性或定位精度的验收。
+
+完整报告仍为`NOT VERIFIED: old_systematic_future_removed`：扫描结束时间中位
+**20.259855ms**，略大于原20ms诊断线。未修改该门限，也未修改100ms控制器future保护。
+此前本轮第一次只读复测仅98条里程计后触发IMU时间保护，失败证据一并保留，不用最后窗口抹除。
+D435确有图像，但无有效蓝色目标，target_map_debug=0，实际目标MAP转换仍NOT VERIFIED。
+所以**本轮不放行自主停靠**；先按原诊断通过并看到有效目标MAP后，才由操作者执行原dock入口。
+不为跨过门槛继续优化时间算法或重复刷通过。
+
+证据：`camera_ws/analysis/go2_native_lidar_20261113/comparison.json`、两次定位report及运行摘录；
+原始数据在主仓库`camera_ws/records/time_20261113_164438_upstream_current/`、
+`time_20261113_164555_restored_lidar_mapping/`、`time_20261113_164936_native_entry_verified/`、
+`time_20261113_165049_upstream_full_recheck/`，摘要含SHA256与真实生产者GID。
+仅做相关脚本语法检查和真实运行采集，无离线测试、无全仓构建。本轮失败后清理拥有的只读链。
