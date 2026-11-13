@@ -24,7 +24,7 @@ class DockSettings:
     position_tolerance: float = 0.04
     yaw_tolerance: float = math.radians(10)
     settled_sec: float = 0.5
-    progress_timeout: float = 10.0
+    progress_timeout: float = 10.0  # Accepted for old configs; no longer stops docking.
     region_x_min: float = -0.05
     region_x_max: float = 0.05
     region_y_min: float = 0.29

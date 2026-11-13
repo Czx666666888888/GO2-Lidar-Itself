@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Controlled read-only hardware run; temporarily pause and restore PC time service."""
+"""PC timing context: read-only check or explicitly requested dock/full motion."""
 import json
 import argparse
 import os
@@ -27,8 +27,9 @@ def probe(seconds):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--execute', action='store_true')
-    parser.add_argument('--mode', choices=('dock',), default='dock')
+    parser.add_argument('--execute', action='store_true', help='run real motion; full also performs posture/grasp')
+    parser.add_argument('--mode', choices=('dock', 'full'), default='full')
+    parser.add_argument('--work-dir', type=Path, help='forward existing integration checkout option')
     args = parser.parse_args()
     folder = ROOT/'camera_ws/records'/('pc_time_'+str(time.time_ns()))
     folder.mkdir(parents=True)
@@ -52,14 +53,17 @@ def main():
             # Mark before mutation so interruption during systemctl still restores.
             changed = True
             run(['sudo','-n','systemctl','stop','systemd-timesyncd'])
-        print('记录暂停校时后的时钟20秒，然后启动IMU映射只读定位。', flush=True)
+        print('记录暂停校时后的时钟20秒，然后执行'+
+              (f'真实{args.mode}任务。' if args.execute else 'IMU映射只读定位。'), flush=True)
         state['paused'] = probe(20)
         state['paused_service_active'] = subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0
         if changed and state['paused_service_active']:
             raise RuntimeError('PC校时服务意外重启，阻止启动任务')
         env = dict(os.environ, GO2_TIME_MAPPING_MODE='imu', GO2_PC_TIME_HELD='1')
         if args.execute:
-            command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode','dock']
+            command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode',args.mode]
+            if args.work_dir is not None:
+                command += ['--work-dir',str(args.work_dir)]
         else:
             run(['/usr/bin/python3', ROOT/'camera_ws/scripts/sync_go2_clock.py'])
             command = ['bash',str(ENTRY),'--time-mode','imu','--restart-localization',

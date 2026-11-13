@@ -3,6 +3,60 @@
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
+## 2026-11-13 取消停靠无进展退出，接入自主搜索/抓取/起立全流程
+
+### 本次真实运动与用户反馈（修改前）
+
+本轮仅发生一次真实运动。第一次准备因末端无新鲜CONFIRMED目标而退出，没有运动；
+同时诊断timesync-status查询可能经D-Bus激活timesyncd。a3de41b已跳过受控期间该查询，
+并增加服务意外重启时请求原任务停止的监测，恢复原active状态后不再继续。
+更正：早先“受控暂停”记录仅证明任务前停用/结束恢复，未监测全程，不能据此证明全程暂停或NTP因果。
+数据采集通过的事实仍保留；实际服务重启记录使此前全程暂停的表述需要降级。
+
+用户重新放置目标并确认继续后，full_1794568140327183944/pre_motion通过，进入一次dock运动：
+SEARCH→STOP_CONFIRM（约3秒确认，6个样本）→APPROACH_TO_GRASP_POSE→FAULT。
+故障为grasp docking stalled: no meaningful pose/stop progress，elapsed19.600s。
+最终位置误差129.272mm、航向误差约7.54°，末端命令vx/vy/wz均0，反馈速度约0.00354m/s。
+位置误差曾短暂到35.360mm，但未满足全部停稳完成条件，不能算停靠成功。
+用户最终现场反馈：“停稳定了但是位置有所偏差”，以此作为物理结果，不将先前“基本正确”写成精度验收。
+没有趴下、抓取或起立，任务未自动重试。运动/定位进程已退出，PC校时恢复active，S1 ZERO_HOLD空闲。
+双录像按writer记录各376帧并closed，保留本地；未在本轮逐帧复核视频。
+证据：camera_ws/records/run_1794568209143452018.json及science_approach_1794568210039015787.jsonl；
+摘要camera_ws/analysis/go2_dock_stall_20261113/summary.json。
+
+### 按最新要求的最小静态修改
+
+1. 只移除GraspDocking中“超过progress_timeout即FAULT”的分支。
+   累计进展与误差继续记录用于诊断，不参与停止决定，状态带docking_progress_timeout_enabled=false。
+   旧dock_progress_timeout配置仍接受以保持兼容，但不再用于退出。
+   原指标只看超出位姿容差部分，曾进入容差后best_error可为0，无法再改善0.25；
+   不能把这种“没有刷新历史最佳值”等同于控制器应停止修正。
+2. 三自由度闭环、4cm/10°/0.5秒停稳完成条件、速度/加减速与唯一运动出口均不改。
+   定位/TF/反馈新鲜度、定位异常、人工急停、S1保持心跳与安全门继续有效。
+   **视觉丢失后的原25秒/5米ODOM预算仍会停止**；“继续修正”不表示忽略传感器失效或无限盲走。
+3. PC时间上下文支持dock/full，go2_test.sh所有PC --execute均先进入暂停/恢复上下文；
+   full传递给原go2_full_test/run_map_s1_task协调器，保持原姿态配置和S1动作链。
+   不改S1抓取算法；停靠未完成时禁止StandDown/抓取，抓取失败不自动StandUp。
+
+### 唯一全流程命令（真实运动、趴下、抓取、起立）
+
+```bash
+bash go2_test.sh --execute --mode full
+```
+
+该命令会进行环境/硬件/时间/定位检查、S1 ZERO_HOLD、D435/TF准备，随后自主SEARCH（原5米/60秒）
+→STOP_CONFIRM→MAP三自由度抓取停靠→达到4cm/10°且停稳0.5秒→STOP并退出原控制器/安全门
+→StandDown反馈确认→S1原完整抓取→确认新的成功结果并回ZERO_HOLD→StandUp反馈确认。
+full运动前不要求物块已经在视野内，因此允许从无目标视野自主搜索；未找到目标仍按原SEARCH边界停止。
+`--execute`不写mode时默认full；`--mode dock`仍只停靠且保留启动时目标MAP验收，不趴下抓取。
+无--execute只打印计划，不启动硬件。Ctrl+C请求原停止；现场仍需急停可用和空旷路线。
+
+修改后验证：30项停靠/接口检查、6项S1协调检查通过；包含无进展及0.1mm级输入修正超过30秒
+仍继续控制，以及原ODOM预算、定位超时、人工STOP/FAULT置零、完成停稳条件的现有检查。
+首次接口检查因未source ROS缺builtin_interfaces而未收集；source现有Humble底包后同范围30项通过。
+单独go2_science_perception构建成功；脚本语法/计划打印通过，没有全仓构建或新运动。
+**修改后的持续修正与full完整动作实机NOT VERIFIED**。本轮只做静态修改，不沿用前次运动授权。
+
 ## 2026-11-13 PC受控IMU定位通过，NX部署暂停（基线28ffcbf）
 
 用户本轮改变优先级：只恢复PC运动条件，不推进NX容器/ROS迁移或完整S1抓取。

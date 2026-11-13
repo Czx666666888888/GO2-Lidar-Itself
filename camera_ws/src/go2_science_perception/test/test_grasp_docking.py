@@ -144,17 +144,19 @@ def test_progressing_docking_can_exceed_fixed_25_seconds():
     assert out['elapsed'] > 25 and out['state'] == 'APPROACH_TO_GRASP_POSE'
 
 
-def test_stall_stops_even_with_fresh_localization_and_vision():
+@pytest.mark.parametrize('step_m', [0., .0001])
+def test_no_progress_or_small_corrections_keep_docking_with_fresh_inputs(step_m):
     c = dock_core()
-    for i in range(110):
+    x, y = c.robot[:2]
+    for i in range(310):
         t = 10.5+i*.1
         c.visual_time = t
-        tick(c, t+.001, c.robot[:2])
+        tick(c, t+.001, (x+i*step_m, y))
         out = c.step(t+.001)
-        if out['state'] == 'FAULT':
-            break
-    assert out['reason'].startswith('grasp docking stalled')
-    assert out['vx'] == out['vy'] == out['wz'] == 0
+        assert out['state'] == 'APPROACH_TO_GRASP_POSE'
+    assert out['elapsed'] > 25
+    assert out['docking_progress_timeout_enabled'] is False
+    assert math.hypot(out['vx'], out['vy']) > 0
 
 
 @pytest.mark.parametrize('budget', ['time', 'distance'])

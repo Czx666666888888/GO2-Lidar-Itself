@@ -63,15 +63,14 @@ class GraspDocking:
         if core.lost_at is not None and lower_bound > out['odom_remaining_time_s']:
             core.fault('minimum docking time exceeds odometry budget')
 
-        # Require cumulative meaningful progress; tiny oscillations do not renew
-        # the watchdog. Scale by existing pose tolerances rather than more gains.
+        # Progress is telemetry only. Keep correcting even if the pose stalls;
+        # freshness, localization faults, odometry budgets and manual stop remain.
         error = math.hypot(max(0.0, distance-self.p.position_tolerance)/self.p.position_tolerance,
                            max(0.0, abs(yaw_error)-self.p.yaw_tolerance)/self.p.yaw_tolerance)
         if self.progress_at is None or error <= self.best_error-0.25:
             self.progress_at, self.best_error = now, error
         out.update(docking_error_metric=error, docking_last_progress_age_s=now-self.progress_at)
-        if now-self.progress_at >= self.p.progress_timeout:
-            core.fault('grasp docking stalled: no meaningful pose/stop progress')
+        out['docking_progress_timeout_enabled'] = False
         if core.state == 'FAULT':
             self.velocity_map = (0.0, 0.0)
             core.vx = core.vy = 0.0
