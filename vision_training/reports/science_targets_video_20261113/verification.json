@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "images": 1043,
+  "source_frame_content_checks": 1043,
+  "original_decoded_frames": 8696,
+  "timeline_contiguous": true,
+  "original_resolution_preserved": true,
+  "images_readable": true,
+  "stable_unique_names": true,
+  "cross_zip_duplicates": 0,
+  "zip_images_match_manifest": true,
+  "labels_created": 0,
+  "reviewed_images": 0,
+  "split_created": false
+}

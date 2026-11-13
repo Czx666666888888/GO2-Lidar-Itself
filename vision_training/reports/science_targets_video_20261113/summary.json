@@ -1,0 +1,131 @@
+{
+  "mode": "coverage",
+  "source_type": "phone_real",
+  "source_confirmation": "用户于2026-11-13确认：真实手机相机，不同场景。",
+  "videos": [
+    {
+      "video_id": "video_A",
+      "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+      "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_20261113/8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+      "source_video_sha256": "cf769cfdfea268bf5133b3b06842a5b03c2955cf209076a7a59c1aa97c63cf5f",
+      "source_type": "phone_real",
+      "capture_group": "phone_scene_A_20261113",
+      "fps": 29.983978638184247,
+      "resolution": [
+        960,
+        544
+      ],
+      "declared_frames": 3743,
+      "decoded_frames": 3743,
+      "duration_nominal_sec": 124.83333333333333,
+      "counts": {
+        "candidates": 444,
+        "kept": 444,
+        "interval_not_due": 3299
+      },
+      "complete_decode": true,
+      "timeline": "manifests/video_A_timeline.jsonl"
+    },
+    {
+      "video_id": "video_B",
+      "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+      "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_20261113/dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+      "source_video_sha256": "38c338dbc52f8e410bdcb5561e5403bef2afb4bbd97162a6428bb1f380739432",
+      "source_type": "phone_real",
+      "capture_group": "phone_scene_B_20261113",
+      "fps": 29.97864768683274,
+      "resolution": [
+        960,
+        544
+      ],
+      "declared_frames": 2808,
+      "decoded_frames": 2808,
+      "duration_nominal_sec": 93.66666666666667,
+      "counts": {
+        "candidates": 339,
+        "kept": 339,
+        "interval_not_due": 2469
+      },
+      "complete_decode": true,
+      "timeline": "manifests/video_B_timeline.jsonl"
+    },
+    {
+      "video_id": "video_C",
+      "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+      "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_20261113/57a69b15bd9774176c1bed4d15c602ea.mp4",
+      "source_video_sha256": "a57bacd835c1b262cc91fa1e8b7c95f8df9c3a33a18f4ab4ec631a4f1c0c3cae",
+      "source_type": "phone_real",
+      "capture_group": "phone_scene_C_20261113",
+      "fps": 29.95810055865922,
+      "resolution": [
+        1280,
+        720
+      ],
+      "declared_frames": 2145,
+      "decoded_frames": 2145,
+      "duration_nominal_sec": 71.6,
+      "counts": {
+        "candidates": 260,
+        "kept": 260,
+        "interval_not_due": 1885
+      },
+      "complete_decode": true,
+      "timeline": "manifests/video_C_timeline.jsonl"
+    }
+  ],
+  "images": 1043,
+  "zip_count": 6,
+  "batch_counts": [
+    174,
+    174,
+    174,
+    174,
+    174,
+    173
+  ],
+  "labels_created": 0,
+  "reviewed_images": 0,
+  "split_created": false,
+  "config": {
+    "input_dir": "vision_training/video_sources/science_targets_20261113",
+    "source_type": "phone_real",
+    "source_confirmation": "用户于2026-11-13确认：真实手机相机，不同场景。",
+    "videos": [
+      {
+        "id": "video_A",
+        "filename": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+        "capture_group": "phone_scene_A_20261113"
+      },
+      {
+        "id": "video_B",
+        "filename": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+        "capture_group": "phone_scene_B_20261113"
+      },
+      {
+        "id": "video_C",
+        "filename": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+        "capture_group": "phone_scene_C_20261113"
+      }
+    ],
+    "sampling": {
+      "min_interval_sec": 0.25,
+      "base_interval_sec": 0.3,
+      "max_interval_sec": 0.4,
+      "fast_motion_mae": 3.0,
+      "slow_motion_mae": 0.4,
+      "max_near_duplicate_gap_sec": 1.2,
+      "long_duplicate_min_gap_sec": 3.0,
+      "duplicate_thumbnail_mae": 0.6,
+      "duplicate_local_tile_mae": 1.0,
+      "duplicate_local_changed_fraction": 0.005,
+      "duplicate_pixel_delta": 4,
+      "phash_hamming": 2,
+      "jpeg_quality": 97
+    },
+    "batch_size": 200
+  },
+  "config_sha256": "6484f4a602e0d0cdd65bd671bbbd39d2d69833d39183b341504cb645cbd64f67",
+  "script_sha256": "ae62e63c39cdddc95767538af3b8b85a171885725e8231927f7894aa7db5970f",
+  "opencv": "4.10.0",
+  "numpy": "1.26.4"
+}

@@ -1,0 +1,23 @@
+input_dir: vision_training/video_sources/science_targets_20261113
+source_type: phone_real
+source_confirmation: '用户于2026-11-13确认：真实手机相机，不同场景。'
+videos:
+  - {id: video_A, filename: 8f2e99f3a500d624abdbbeb69df46bf4.mp4, capture_group: phone_scene_A_20261113}
+  - {id: video_B, filename: dd8dafc5a77083eef395edd8e8dd34e1.mp4, capture_group: phone_scene_B_20261113}
+  - {id: video_C, filename: 57a69b15bd9774176c1bed4d15c602ea.mp4, capture_group: phone_scene_C_20261113}
+sampling:
+  min_interval_sec: 0.25
+  base_interval_sec: 0.30
+  max_interval_sec: 0.40
+  fast_motion_mae: 3.0
+  slow_motion_mae: 0.4
+  max_near_duplicate_gap_sec: 1.2
+  long_duplicate_min_gap_sec: 3.0
+  duplicate_thumbnail_mae: 0.6
+  duplicate_local_tile_mae: 1.0
+  duplicate_local_changed_fraction: 0.005
+  duplicate_pixel_delta: 4
+  phash_hamming: 2
+  jpeg_quality: 97
+# Packaging preference, NOT an assertion about the user's CVAT account limits.
+batch_size: 200

@@ -1,0 +1,6 @@
+{
+  "manifest_sha256": "1ad62aabc3f36e33b2dda7b48fc4094fd3eacc6b75d19b426b913d8ad33c9a31",
+  "matches_tracked_batch600_quality": true,
+  "records": 600,
+  "note": "Read-only audit; no synthetic regeneration performed"
+}

@@ -481,3 +481,12 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 之后恢复有限。不能声称全程数值稳定，异常唯一原因未证实；本轮没有追加训练/搜索。
 236个V1/数据保护文件及库trainer源码hash未变。30项针对性检查通过；未全仓build或启GO2。
 详见vision_training/reports/blue_cube_pilot_v2.md；权重/全量预测本机runs/blue_cube_pilot_v2。
+
+## 科学目标手机视频送标（2026-11-13）
+
+- 用户再次确认手机实拍、三个不同场景，来源phone_real；不冒充D435。
+- 三视频完整解码8696帧，A/B/C保留444/339/260张，共1043张；6包174×5+173。
+- 源帧逐图内容匹配、尺寸、ZIP完整性/唯一性检查通过，6项针对性离线测试通过。
+- 无自动标签、审核或split；先人工标第一批。原600张合成数据只读保留，manifest匹配历史hash。
+- 交付与导回：vision_training/reports/science_targets_video_20261113/REPORT.md。
+- 未训练/启动机器人；正式三类效果和D435泛化NOT VERIFIED。

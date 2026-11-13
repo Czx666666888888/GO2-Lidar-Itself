@@ -24,3 +24,7 @@ datasets/*/label_review.jpg
 
 # Synthetic datasets: keep render output, sidecars and masks local.
 datasets/science_targets_synthetic*/
+
+# Original video links and annotation media stay local.
+video_sources/
+datasets/science_targets_video_v1/
