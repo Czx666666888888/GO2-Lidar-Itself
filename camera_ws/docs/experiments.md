@@ -2046,3 +2046,5 @@ full运动前不要求物块已经在视野内，因此允许从无目标视野�
 命令：bash go2_test.sh --execute --mode dock（真实运动，本轮未执行）。
 
 验证：26项停靠定向检查通过，go2_science_perception单包构建通过，py_compile/diff检查通过；无实机运动。
+
+2026-11-13 最新用户修正：横向额外净距改为10cm，替代前述27.5cm；S1右侧停车目标0.41m（原0.31m+0.10m）。前后位置/容差/速度不变；仍先dock实测，抓取可达性NOT VERIFIED，本轮未运动。

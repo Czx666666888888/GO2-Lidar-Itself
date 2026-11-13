@@ -1172,3 +1172,5 @@ LD_LIBRARY_PATH=/home/unitree/cyclonedds_ws/install/cyclonedds/lib
 默认DockSettings历史值保留，真实入口通过science_grasp_docking.yaml覆盖；计划输出同步。
 新版仅定向软件检查，真实净距/机械臂可达性NOT VERIFIED；下一轮先用dock，不直接full。
 命令：bash go2_test.sh --execute --mode dock（真实运动，本轮未执行）。
+
+2026-11-13 最新用户修正：横向额外净距改为10cm，替代前述27.5cm；S1右侧停车目标0.41m（原0.31m+0.10m）。前后位置/容差/速度不变；仍先dock实测，抓取可达性NOT VERIFIED，本轮未运动。
