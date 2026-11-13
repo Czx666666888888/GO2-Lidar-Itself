@@ -40,8 +40,9 @@ def main():
     if not args.execute:
         run(['bash', ENTRY, '--lidar-check', '--duration', '10', '--label', 'pc_controlled_native'])
         run(['bash', ENTRY, '--prepare-only'])
-    state['before_status'] = subprocess.run(['timedatectl','timesync-status'],capture_output=True,text=True).stdout
     state['was_active'] = subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0
+    state['before_status'] = (subprocess.run(['timedatectl','timesync-status'],capture_output=True,text=True).stdout
+                              if state['was_active'] else 'inactive; no D-Bus query')
     print('记录PC在线校时时钟20秒；随后临时暂停校时，不改变频率参数。', flush=True)
     state['online'] = probe(20)
     changed = False
@@ -54,6 +55,8 @@ def main():
         print('记录暂停校时后的时钟20秒，然后启动IMU映射只读定位。', flush=True)
         state['paused'] = probe(20)
         state['paused_service_active'] = subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0
+        if changed and state['paused_service_active']:
+            raise RuntimeError('PC校时服务意外重启，阻止启动任务')
         env = dict(os.environ, GO2_TIME_MAPPING_MODE='imu', GO2_PC_TIME_HELD='1')
         if args.execute:
             command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode','dock']
@@ -63,6 +66,13 @@ def main():
                        '--require-target','--duration','60','--label','pc_paused_imu']
         job = subprocess.Popen(command,env=env)
         try:
+            while job.poll() is None:
+                if changed and subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0:
+                    state['unexpected_time_service_restart'] = True
+                    print('PC校时服务意外重启，请求原任务停止。',flush=True)
+                    job.send_signal(signal.SIGINT)
+                    break
+                time.sleep(.5)
             state['localization_exit'] = job.wait()
         except BaseException:
             job.send_signal(signal.SIGINT)
@@ -77,7 +87,8 @@ def main():
             restoration = subprocess.run(['sudo','-n','systemctl','start','systemd-timesyncd'])
             state['restore_exit'] = restoration.returncode
         state['service_active_after'] = subprocess.run(['systemctl','is-active','--quiet','systemd-timesyncd']).returncode == 0
-        state['after_status'] = subprocess.run(['timedatectl','timesync-status'],capture_output=True,text=True).stdout
+        state['after_status'] = (subprocess.run(['timedatectl','timesync-status'],capture_output=True,text=True).stdout
+                                 if state['service_active_after'] else 'inactive; no D-Bus query')
         (folder/'report.json').write_text(json.dumps(state,indent=2)+'\n')
         print('PC校时恢复核对:', state['service_active_after'], '记录:',folder,flush=True)
         if changed and state.get('restore_exit') != 0:

@@ -546,7 +546,9 @@ def main():
     folder.mkdir(parents=True)
     metadata = dict(commit=command(['git', '-C', str(REPO), 'rev-parse', 'HEAD']),
                     pc_time_status=command(['timedatectl', 'status']),
-                    pc_timesync_status=command(['timedatectl', 'timesync-status']),
+                    pc_timesync_status=(dict(skipped='controlled PC time context: avoid D-Bus activation')
+                        if os.environ.get('GO2_PC_TIME_HELD') == '1'
+                        else command(['timedatectl', 'timesync-status'])),
                     route=command(['ip', 'route']),
                     interfaces=command(['ip', '-br', 'addr']),
                     domain=os.environ.get('ROS_DOMAIN_ID'),
