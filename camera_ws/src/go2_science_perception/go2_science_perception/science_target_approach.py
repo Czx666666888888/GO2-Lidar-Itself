@@ -118,9 +118,11 @@ class ScienceTargetApproach(Node):
             dry, floor, speed, yaw, accel, timeout, lease = [
                 parameter_value_to_python(v) for v in future.result().values]
             values = (floor, speed, yaw, accel, timeout)
+            speed_cap = max(self.core.p.max_linear_speed,
+                            self.core.p.search_speed if self.core.p.search_enabled else 0.0)
             valid = (all(isinstance(v, (int, float)) and math.isfinite(v) for v in values)
                      and dry is False and lease is True and floor == 0.0
-                     and 0 < speed <= self.core.p.max_linear_speed
+                     and 0 < speed <= speed_cap
                      and 0 < yaw <= self.core.p.max_angular_speed
                      and accel >= self.core.p.max_deceleration
                      and 0 < timeout <= self.core.p.braking_latency)
