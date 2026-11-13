@@ -12,8 +12,10 @@ import shlex
 import signal
 import subprocess
 import time
+import traceback
 
 import numpy as np
+import yaml
 import rclpy
 from rclpy.executors import SingleThreadedExecutor, await_or_execute
 from rclpy.qos import qos_profile_sensor_data
@@ -129,7 +131,7 @@ def analyze(folder):
                            metadata.get('record_start_wall_ns', 0)), 0)
     rows = [r for r in all_rows if r['mono_ns'] >= start_mono]
     groups = {k: [r for r in rows if r['kind'] == k] for k in
-              ['raw_cloud', 'raw_imu', 'cloud', 'imu', 'state', 'base', 'tf', 'go2_clock', 'lidar_state', 'mapping', 'map_debug', 'camera']}
+              ['raw_cloud', 'raw_imu', 'cloud', 'imu', 'state', 'base', 'tf', 'go2_clock', 'lidar_state', 'mapping', 'map_debug', 'camera', 'tracks', 'coarse', 'map_point', 'selected']}
     native = native_lidar_summary(groups)
     metrics = {}
     for kind, key, sign in [('raw_cloud', 'receive_delay_s', -1),
@@ -292,6 +294,20 @@ def analyze(folder):
         result['target_map_validation'] = ('OBSERVED exact source-time target transforms' if debug and
             result['target_map_exact_stamp_matches'] == len(debug)
                                          else 'NOT VERIFIED: missing or non-exact target map measurements')
+        confirmed = [t for r in groups['tracks'][-1:] for t in r['fields'].get('tracks', [])
+                     if t.get('state') == 'CONFIRMED' and not t.get('visited')]
+        result['target_manager'] = dict(track_snapshots=len(groups['tracks']),
+            confirmed_unvisited_ids=sorted({t['id'] for t in confirmed}),
+            selected_samples=len(groups['selected']), coarse_samples=len(groups['coarse']),
+            map_point_samples=len(groups['map_point']))
+        params = yaml.safe_load((REPO/'camera_ws/src/go2_science_perception/config/'
+                                 'science_target_approach.yaml').read_text())['science_target_approach']['ros__parameters']
+        future_limit, odom_age_limit = params['future_tolerance'], params['odom_timeout']
+        time_keys = ('state_future_s', 'base_future_s', 'derived_lidar_end_future_s')
+        result['diagnostic_goals'] = dict(median_future_at_most_20ms=all(
+            metrics[k].get('median', 1) <= .020 for k in time_keys))
+        result['controller_timestamp_limits_s'] = dict(future_tolerance=future_limit,
+                                                       odom_timeout=odom_age_limit)
         checks = dict(
             native_lidar_healthy=native['passed'],
             clock_publishers_absent=metadata.get('clock_publishers') == 0,
@@ -305,14 +321,23 @@ def analyze(folder):
             stamps_increasing=not any(result['stamp_nonadvancing'].values()),
             finite_positions=all(all(np.isfinite(x) for x in row['position'])
                 for k in ('state', 'base') for row in groups[k]),
-            old_systematic_future_removed=all(
-                metrics[k].get('median', 1) <= .020 and metrics[k].get('maximum', 1) <= .10
-                and metrics[k].get('minimum', -2) >= -1
-                for k in ('state_future_s', 'base_future_s', 'derived_lidar_end_future_s')),
+            controller_timestamp_limits=all(
+                metrics[k].get('maximum', 1) <= future_limit
+                and metrics[k].get('minimum', -2) >= -odom_age_limit for k in time_keys),
+            controller_odom_continuity=all(
+                result['maximum_receive_gap_s'][k] is not None and
+                result['maximum_receive_gap_s'][k] <= odom_age_limit for k in ('state', 'base')),
             exact_base_tf=bool(exact['base']['queries'] and exact['base']['success_rate'] >= .95),
             exact_camera_tf=bool(exact['camera']['queries'] and exact['camera']['success_rate'] >= .95),
             capture_complete=metadata.get('record_complete', False),
             setup_ok=not metadata.get('setup_or_capture_error'))
+        if metadata.get('arguments', {}).get('require_target'):
+            checks['exact_target_map'] = bool(len(debug) >= 5 and
+                result['target_map_exact_stamp_matches'] == len(debug))
+            checks['confirmed_selected_target'] = bool(confirmed and len(groups['selected']) >= 5)
+            checks['fresh_confirmed_target'] = bool(confirmed and any(
+                -future_limit <= (groups['tracks'][-1]['ros_ns']-t['observed_ns'])/1e9
+                <= params['visual_timeout'] for t in confirmed))
         result['acceptance_checks'] = checks
         result['status'] = ('PASS: read-only mapped localization and exact camera TF observed'
                             if all(checks.values()) else 'NOT VERIFIED: '+', '.join(
@@ -402,8 +427,14 @@ class ReadonlyChain:
             leaves = {'pointlio_mapping', 'transform_everything', 'base_odom_node',
                       'coarse_target_locator', 'camera_target_to_map', 'science_target_manager'}
             for line in processes.splitlines():
-                pid_text, argv_text = line.strip().split(None, 1)
-                argv = shlex.split(argv_text)
+                pid_text = line.strip().split(None, 1)[0]
+                try:
+                    argv = Path('/proc', pid_text, 'cmdline').read_bytes().decode(
+                        errors='replace').rstrip('\0').split('\0')
+                except (FileNotFoundError, ProcessLookupError, PermissionError):
+                    continue
+                if not argv[0]:
+                    continue
                 executable = Path(argv[0]).name
                 python_leaf = (len(argv) > 1 and executable.startswith('python')
                                and Path(argv[1]).name in leaves)
@@ -481,6 +512,7 @@ def main():
     parser.add_argument('--label', default='imu_mapping')
     parser.add_argument('--observe-only', action='store_true', help='只记录原生DDS，不构建/启动/停止节点')
     parser.add_argument('--lidar-check', action='store_true', help='仅验原生点云/LidarState健康，不以原生epoch作UTC验收')
+    parser.add_argument('--require-target', action='store_true', help='同时要求真实目标精确MAP转换与CONFIRMED/selected输出')
     parser.add_argument('--prepare-only', action='store_true', help='仅由shell准备overlay，不初始化ROS')
     parser.add_argument('--restart-localization', action='store_true', help='明确结束旧只读定位并建立新地图会话')
     parser.add_argument('--reuse-only', action='store_true', help='只检查现有定位，不启动任何设备/节点')
@@ -496,6 +528,8 @@ def main():
         return
     if args.observe_only and (args.restart_localization or args.keep_running):
         parser.error('--observe-only cannot restart/keep localization')
+    if args.observe_only and args.require_target:
+        parser.error('--require-target requires localization')
     if args.reuse_only and args.restart_localization:
         parser.error('--reuse-only cannot restart localization')
     folder = REPO/'camera_ws/records'/('time_'+datetime.now().strftime('%Y%m%d_%H%M%S')+'_'+args.label)
@@ -547,7 +581,7 @@ def main():
                    wall_ns=time.time_ns(), mono_ns=time.monotonic_ns(),
                    mono_raw_ns=time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW),
                    dds_source_ns=info['source_timestamp'], dds_received_ns=info['received_timestamp'])
-        if kind in ('mapping', 'map_debug'):
+        if kind in ('mapping', 'map_debug', 'tracks'):
             row['fields'] = json.loads(msg.data)
         elif kind == 'lidar_state':
             row['stamp_ns'] = round(msg.stamp*1e9)
@@ -557,6 +591,8 @@ def main():
         else:
             row['stamp_ns'] = ns(msg.header.stamp)
             row['frame'] = msg.header.frame_id
+            if kind in ('coarse', 'map_point', 'selected'):
+                row['position'] = [msg.point.x, msg.point.y, msg.point.z]
             if isinstance(msg, PointCloud2):
                 row.update(cloud_times(msg))
             if kind in ('state', 'base'):
@@ -599,7 +635,11 @@ def main():
                       ('base', '/base_state_estimation', 'nav_msgs/msg/Odometry'),
                       ('camera', '/camera/camera/color/image_raw', 'sensor_msgs/msg/Image'),
                       ('mapping', '/utlidar/time_mapping/status', 'std_msgs/msg/String'),
-                      ('map_debug', '/science/map_measurement_debug', 'std_msgs/msg/String')]
+                      ('map_debug', '/science/map_measurement_debug', 'std_msgs/msg/String'),
+                      ('tracks', '/science/target_tracks', 'std_msgs/msg/String'),
+                      ('coarse', '/science/target_coarse_point', 'geometry_msgs/msg/PointStamped'),
+                      ('map_point', '/science/target_coarse_point_map', 'geometry_msgs/msg/PointStamped'),
+                      ('selected', '/science/selected_target', 'geometry_msgs/msg/PointStamped')]
         specs += [('lidar_state', name, types[0]) for name, types in metadata['lidar_state_topics']]
         # These subscriptions only observe; lifecycle changes occur in ReadonlyChain.
         from rosidl_runtime_py.utilities import get_message
@@ -632,7 +672,9 @@ def main():
         metadata['final_nodes'] = node.get_node_names()
     except Exception as exc:
         metadata['setup_or_capture_error'] = str(exc)
+        metadata['setup_or_capture_traceback'] = traceback.format_exc()
         print('诊断未完成:', exc, flush=True)
+        traceback.print_exc()
     finally:
         output.flush()
         metadata['record_end_wall_ns'] = time.time_ns()

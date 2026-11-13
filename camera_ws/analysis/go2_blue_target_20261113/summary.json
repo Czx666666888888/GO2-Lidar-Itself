@@ -1,0 +1,666 @@
+{
+  "baseline": "cbf71ebe7e4abf73b8279542a853f8801c682afa",
+  "physical_motion_commanded": false,
+  "arm_commands_sent": false,
+  "user_observation": "User placed the blue target before capture.",
+  "clock_observation": "Companion date returned to 2022-09-08; uptime about 8 min. Existing interactive script used with user password in local terminal. Final immediate check offset +3.836 to +3.908 ms.",
+  "timestamp_policy": {
+    "diagnostic_goal_s": 0.02,
+    "unchanged_controller_future_tolerance_s": 0.1,
+    "unchanged_controller_odom_timeout_s": 0.4,
+    "reference": "science_target_approach.yaml and science_target_approach.py:_fresh; mapping guard unchanged"
+  },
+  "runs": [
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_170440_blue_target_readiness",
+      "counts": {
+        "raw_imu": 15137,
+        "imu": 15136,
+        "camera": 902,
+        "coarse": 485,
+        "lidar_state": 302,
+        "raw_cloud": 120,
+        "cloud": 120,
+        "state": 120,
+        "base": 120,
+        "tf": 1014,
+        "tracks": 120,
+        "mapping": 61
+      },
+      "status": "NOT VERIFIED: native_lidar_healthy, exact_camera_tf, exact_target_map, confirmed_selected_target",
+      "setup_error": null,
+      "hashes": {
+        "samples.jsonl": "c1c3101634043e6050b359db5a23a2ba8affd8e82fc0502338764f0c91933362",
+        "readonly_slam.log": "1df98f0459c38f21ae7da2014eacab57d4798e840bb821c94b87483560bbd32e",
+        "trend.json": "2cbc4ff66cf41368004c596995c18ea6d8540d3c4836fca8b4978e09a2d98bce",
+        "metadata.json": "a2a5dc618c3978f4ddcada7798118f573daba3bf87c29caaa25aee47f5e206f3",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "20e9e051ba02b9ba88c64a341c77f21a8da3129361c7f8e8801771ee6082a8e5",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "00d5cec68685519898f3b6a5509fbfb9928b982c3e17e21d54ceb86e5ee5bffb"
+      },
+      "time_mapping": {
+        "ready": true,
+        "fault": "",
+        "scale": 1.0,
+        "offset_ns": 3456945060958686,
+        "offset_sec": 3456945.060958686,
+        "window_samples": 500,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3456945099168240,
+        "residual_offset_sec": 0.038209554,
+        "spread_sec": 0.0009732475,
+        "dds_metadata_samples": 18958,
+        "producer_delay_median_sec": 8.251e-06,
+        "mapped_cloud_end_future_sec": -0.041891318,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794560767341318688
+      },
+      "native_lidar": {
+        "pc_received_hz": 1.9778103038613775,
+        "received_clouds": 120,
+        "producer_fields": {
+          "cloud_frequency": {
+            "count": 302,
+            "mean": 1.9998818541204693,
+            "median": 1.9778263568878174,
+            "p95": 2.1949232578277584,
+            "maximum": 2.2537243366241455,
+            "minimum": 1.81770920753479,
+            "slope_per_second": -0.001663940922482081,
+            "first": 2.1173510551452637,
+            "last": 1.8303048610687256
+          },
+          "cloud_packet_loss_rate": {
+            "count": 302,
+            "mean": 82.33324765843271,
+            "median": 82.32044219970703,
+            "p95": 85.08287048339844,
+            "maximum": 85.08287048339844,
+            "minimum": 79.55801391601562,
+            "slope_per_second": 0.016711345280722382,
+            "first": 82.32044219970703,
+            "last": 83.4254150390625
+          },
+          "cloud_scan_num": {
+            "count": 302,
+            "mean": 180.0,
+            "median": 180.0,
+            "p95": 180.0,
+            "maximum": 180.0,
+            "minimum": 180.0,
+            "slope_per_second": 1.1266687777728692e-15,
+            "first": 180.0,
+            "last": 180.0
+          },
+          "cloud_size": {
+            "count": 302,
+            "mean": 21143.73178807947,
+            "median": 21146.0,
+            "p95": 21174.0,
+            "maximum": 21191.0,
+            "minimum": 21090.0,
+            "slope_per_second": -0.4217906142435373,
+            "first": 21179.0,
+            "last": 21090.0
+          },
+          "imu_frequency": {
+            "count": 302,
+            "mean": 249.7526890331546,
+            "median": 249.69217681884766,
+            "p95": 250.49162063598632,
+            "maximum": 250.961181640625,
+            "minimum": 248.72047424316406,
+            "slope_per_second": 0.00023964446055142283,
+            "first": 249.67686462402344,
+            "last": 249.9898223876953
+          },
+          "imu_packet_loss_rate": {
+            "count": 302,
+            "mean": 0.0,
+            "median": 0.0,
+            "p95": 0.0,
+            "maximum": 0.0,
+            "minimum": 0.0,
+            "slope_per_second": 0.0,
+            "first": 0.0,
+            "last": 0.0
+          },
+          "error_state": {
+            "count": 302,
+            "mean": 0.0,
+            "median": 0.0,
+            "p95": 0.0,
+            "maximum": 0.0,
+            "minimum": 0.0,
+            "slope_per_second": 0.0,
+            "first": 0.0,
+            "last": 0.0
+          }
+        },
+        "scan_span_s": {
+          "count": 120,
+          "mean": 0.4687497177471717,
+          "median": 0.46449002623558044,
+          "p95": 0.6312687635421753,
+          "maximum": 0.6577551364898682,
+          "minimum": 0.2297569364309311,
+          "slope_per_second": 0.0004492862757431347,
+          "first": 0.4672379195690155,
+          "last": 0.35183045268058777
+        },
+        "assessment": "LOW_AT_PRODUCER: producer and PC both observe low frequency",
+        "checks": {
+          "pc_cloud_rate_at_least_10hz": false,
+          "producer_cloud_rate_at_least_10hz": false,
+          "producer_loss_at_most_10pct": false,
+          "median_scan_at_most_100ms": false
+        },
+        "passed": false,
+        "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+      },
+      "target_map_samples": 0,
+      "target_map_exact_stamp_matches": 0,
+      "target_manager": {
+        "track_snapshots": 120,
+        "confirmed_unvisited_ids": [],
+        "selected_samples": 0,
+        "coarse_samples": 485,
+        "map_point_samples": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 120,
+          "exact_success": 120,
+          "success_rate": 1.0
+        },
+        "camera": {
+          "queries": 894,
+          "exact_success": 0,
+          "success_rate": 0.0
+        }
+      },
+      "diagnostic_goals": {
+        "median_future_at_most_20ms": true
+      },
+      "acceptance_checks": {
+        "native_lidar_healthy": false,
+        "clock_publishers_absent": true,
+        "slam_uses_wall_clock": true,
+        "raw_inputs_received": true,
+        "mapping_ready": true,
+        "mapping_without_fault": true,
+        "continuous_inputs": true,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "controller_timestamp_limits": true,
+        "exact_base_tf": true,
+        "exact_camera_tf": false,
+        "capture_complete": true,
+        "setup_ok": true,
+        "exact_target_map": false,
+        "confirmed_selected_target": false
+      },
+      "maximum_receive_gap_s": {
+        "cloud": 0.723805854,
+        "imu": 0.015944989,
+        "state": 0.724245948,
+        "base": 0.724660122
+      },
+      "base_future_s": {
+        "count": 120,
+        "mean": -0.04451153325833334,
+        "median": -0.0442981635,
+        "p95": -0.039235112600000004,
+        "maximum": -0.038115231,
+        "minimum": -0.055543989,
+        "slope_per_second": -0.00019459569179868975,
+        "first": -0.041303985,
+        "last": -0.050159443
+      },
+      "confirmed_ids_observed": []
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_170831_blue_target_synced",
+      "counts": {},
+      "status": "NOT VERIFIED: native_lidar_healthy, clock_publishers_absent, slam_uses_wall_clock, raw_inputs_received, mapping_ready, mapping_without_fault, continuous_inputs, controller_timestamp_limits, exact_base_tf, exact_camera_tf, capture_complete, setup_ok, exact_target_map, confirmed_selected_target",
+      "setup_error": "'in <string>' requires string as left operand, not shlex",
+      "hashes": {
+        "samples.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trend.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "metadata.json": "0bddd4553bdf457474c9c6a614d64c292a084aff77c19eb9ca68011c28fd76a9",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "f88b2fdaf9754c868b2a4ac973d16c429f7e26284bcca3f0a98d78a7c0f00ad6",
+        "report.json": "bcdfaa9e2399a941efd0b0413113b765484630e85d9206a6f8fbd2437bda7ac1"
+      },
+      "time_mapping": null,
+      "native_lidar": {
+        "pc_received_hz": null,
+        "received_clouds": 0,
+        "producer_fields": {
+          "cloud_frequency": {
+            "count": 0
+          },
+          "cloud_packet_loss_rate": {
+            "count": 0
+          },
+          "cloud_scan_num": {
+            "count": 0
+          },
+          "cloud_size": {
+            "count": 0
+          },
+          "imu_frequency": {
+            "count": 0
+          },
+          "imu_packet_loss_rate": {
+            "count": 0
+          },
+          "error_state": {
+            "count": 0
+          }
+        },
+        "scan_span_s": {
+          "count": 0
+        },
+        "assessment": "NOT VERIFIED: missing cloud or LidarState samples",
+        "checks": {
+          "pc_cloud_rate_at_least_10hz": false,
+          "producer_cloud_rate_at_least_10hz": false,
+          "producer_loss_at_most_10pct": false,
+          "median_scan_at_most_100ms": false
+        },
+        "passed": false,
+        "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+      },
+      "target_map_samples": 0,
+      "target_map_exact_stamp_matches": 0,
+      "target_manager": {
+        "track_snapshots": 0,
+        "confirmed_unvisited_ids": [],
+        "selected_samples": 0,
+        "coarse_samples": 0,
+        "map_point_samples": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "diagnostic_goals": {
+        "median_future_at_most_20ms": false
+      },
+      "acceptance_checks": {
+        "native_lidar_healthy": false,
+        "clock_publishers_absent": false,
+        "slam_uses_wall_clock": false,
+        "raw_inputs_received": false,
+        "mapping_ready": false,
+        "mapping_without_fault": false,
+        "continuous_inputs": false,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "controller_timestamp_limits": false,
+        "exact_base_tf": false,
+        "exact_camera_tf": false,
+        "capture_complete": false,
+        "setup_ok": false,
+        "exact_target_map": false,
+        "confirmed_selected_target": false
+      },
+      "maximum_receive_gap_s": {
+        "cloud": null,
+        "imu": null,
+        "state": null,
+        "base": null
+      },
+      "base_future_s": {
+        "count": 0
+      },
+      "confirmed_ids_observed": []
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_171042_target_after_clock",
+      "counts": {},
+      "status": "NOT VERIFIED: native_lidar_healthy, clock_publishers_absent, slam_uses_wall_clock, raw_inputs_received, mapping_ready, mapping_without_fault, continuous_inputs, controller_timestamp_limits, controller_odom_continuity, exact_base_tf, exact_camera_tf, capture_complete, setup_ok, exact_target_map, confirmed_selected_target, fresh_confirmed_target",
+      "setup_error": "对时偏差/SSH往返过大，停止；重新检查网络和时钟",
+      "hashes": {
+        "samples.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trend.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "metadata.json": "4a2cd82e7601272db4587a8f29cea14d6483464fd28bedfd6b8c4853f290cab1",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "48cea0f18748a26975784bc19ff0260562ccc26b00b23731d47745c272c7b9e2",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "c9bab4504143a42f6e3583cf8de4f542c259aa840de88d1789bfa0103110c356"
+      },
+      "time_mapping": null,
+      "native_lidar": {
+        "pc_received_hz": null,
+        "received_clouds": 0,
+        "producer_fields": {
+          "cloud_frequency": {
+            "count": 0
+          },
+          "cloud_packet_loss_rate": {
+            "count": 0
+          },
+          "cloud_scan_num": {
+            "count": 0
+          },
+          "cloud_size": {
+            "count": 0
+          },
+          "imu_frequency": {
+            "count": 0
+          },
+          "imu_packet_loss_rate": {
+            "count": 0
+          },
+          "error_state": {
+            "count": 0
+          }
+        },
+        "scan_span_s": {
+          "count": 0
+        },
+        "assessment": "NOT VERIFIED: missing cloud or LidarState samples",
+        "checks": {
+          "pc_cloud_rate_at_least_10hz": false,
+          "producer_cloud_rate_at_least_10hz": false,
+          "producer_loss_at_most_10pct": false,
+          "median_scan_at_most_100ms": false
+        },
+        "passed": false,
+        "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+      },
+      "target_map_samples": 0,
+      "target_map_exact_stamp_matches": 0,
+      "target_manager": {
+        "track_snapshots": 0,
+        "confirmed_unvisited_ids": [],
+        "selected_samples": 0,
+        "coarse_samples": 0,
+        "map_point_samples": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "diagnostic_goals": {
+        "median_future_at_most_20ms": false
+      },
+      "acceptance_checks": {
+        "native_lidar_healthy": false,
+        "clock_publishers_absent": false,
+        "slam_uses_wall_clock": false,
+        "raw_inputs_received": false,
+        "mapping_ready": false,
+        "mapping_without_fault": false,
+        "continuous_inputs": false,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "controller_timestamp_limits": false,
+        "controller_odom_continuity": false,
+        "exact_base_tf": false,
+        "exact_camera_tf": false,
+        "capture_complete": false,
+        "setup_ok": false,
+        "exact_target_map": false,
+        "confirmed_selected_target": false,
+        "fresh_confirmed_target": false
+      },
+      "maximum_receive_gap_s": {
+        "cloud": null,
+        "imu": null,
+        "state": null,
+        "base": null
+      },
+      "base_future_s": {
+        "count": 0
+      },
+      "confirmed_ids_observed": []
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_171122_blue_target_final",
+      "counts": {
+        "raw_imu": 15190,
+        "imu": 8466,
+        "coarse": 816,
+        "camera": 906,
+        "lidar_state": 303,
+        "raw_cloud": 125,
+        "cloud": 70,
+        "tf": 968,
+        "state": 70,
+        "base": 70,
+        "tracks": 342,
+        "selected": 339,
+        "map_debug": 440,
+        "map_point": 440,
+        "mapping": 61
+      },
+      "status": "NOT VERIFIED: native_lidar_healthy, mapping_ready, mapping_without_fault, controller_odom_continuity, exact_camera_tf, confirmed_selected_target, fresh_confirmed_target",
+      "setup_error": null,
+      "hashes": {
+        "samples.jsonl": "ea36a8393116d72a41e696956014cf48f72ae1dce04de1162bab81b655921c67",
+        "readonly_slam.log": "39d53be4fdda653d90726d2f3f21505c46d1e00e447ec5031fefc554c2b6c488",
+        "trend.json": "d03c19af54a9c5d2f8d0aa6fd703a690c5a142dbdcd1697d80c72ec1d9faeefe",
+        "metadata.json": "8191b7e3729bf65bff40071262c96dc11fe62e90671c37a9a95ee31bfc648017",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "c40a95521f185d67b3a8fbd867d98453a154c88f5452e27f382f88dddb5078d3",
+        "camera.log": "37deeadb560a5345ba7209deb833277ca0f9be431a1ccbe4aaddcff6f1d9504f",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "5e155e14e70ec71e4b883a906e5403bf38c866e5c7098a997491998a1297851e"
+      },
+      "time_mapping": {
+        "ready": false,
+        "fault": "imu mapped time invalid (including scan end); restart localization",
+        "scale": 1.0,
+        "offset_ns": 3456944951774926,
+        "offset_sec": 3456944.951774926,
+        "window_samples": 508,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3456944852942788,
+        "residual_offset_sec": -0.098832138,
+        "spread_sec": 0.027846332,
+        "dds_metadata_samples": 12352,
+        "producer_delay_median_sec": 8.145e-06,
+        "mapped_cloud_end_future_sec": 0.089289514,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794561169958641589
+      },
+      "native_lidar": {
+        "pc_received_hz": 2.0656265625498764,
+        "received_clouds": 125,
+        "producer_fields": {
+          "cloud_frequency": {
+            "count": 303,
+            "mean": 2.0830807650443353,
+            "median": 2.062767267227173,
+            "p95": 2.3094663619995117,
+            "maximum": 2.4853527545928955,
+            "minimum": 1.8585999011993408,
+            "slope_per_second": -0.003860940464919958,
+            "first": 2.3030261993408203,
+            "last": 2.0636754035949707
+          },
+          "cloud_packet_loss_rate": {
+            "count": 303,
+            "mean": 82.9841547547394,
+            "median": 83.4254150390625,
+            "p95": 85.08287048339844,
+            "maximum": 85.08287048339844,
+            "minimum": 79.55801391601562,
+            "slope_per_second": 0.07935650394388713,
+            "first": 83.4254150390625,
+            "last": 85.08287048339844
+          },
+          "cloud_scan_num": {
+            "count": 303,
+            "mean": 180.0,
+            "median": 180.0,
+            "p95": 180.0,
+            "maximum": 180.0,
+            "minimum": 180.0,
+            "slope_per_second": 7.874070264198276e-15,
+            "first": 180.0,
+            "last": 180.0
+          },
+          "cloud_size": {
+            "count": 303,
+            "mean": 21124.607260726072,
+            "median": 21120.0,
+            "p95": 21186.5,
+            "maximum": 21217.0,
+            "minimum": 21066.0,
+            "slope_per_second": -0.1638321521618193,
+            "first": 21137.0,
+            "last": 21142.0
+          },
+          "imu_frequency": {
+            "count": 303,
+            "mean": 249.7943392209094,
+            "median": 249.68948364257812,
+            "p95": 250.3663818359375,
+            "maximum": 252.53030395507812,
+            "minimum": 248.739990234375,
+            "slope_per_second": 0.001925356924504481,
+            "first": 249.68197631835938,
+            "last": 250.31790161132812
+          },
+          "imu_packet_loss_rate": {
+            "count": 303,
+            "mean": 0.0,
+            "median": 0.0,
+            "p95": 0.0,
+            "maximum": 0.0,
+            "minimum": 0.0,
+            "slope_per_second": 0.0,
+            "first": 0.0,
+            "last": 0.0
+          },
+          "error_state": {
+            "count": 303,
+            "mean": 0.0,
+            "median": 0.0,
+            "p95": 0.0,
+            "maximum": 0.0,
+            "minimum": 0.0,
+            "slope_per_second": 0.0,
+            "first": 0.0,
+            "last": 0.0
+          }
+        },
+        "scan_span_s": {
+          "count": 125,
+          "mean": 0.4508777599334717,
+          "median": 0.44176504015922546,
+          "p95": 0.6344301700592041,
+          "maximum": 0.7008106708526611,
+          "minimum": 0.19324670732021332,
+          "slope_per_second": 0.0005731014496743939,
+          "first": 0.442259281873703,
+          "last": 0.31398412585258484
+        },
+        "assessment": "LOW_AT_PRODUCER: producer and PC both observe low frequency",
+        "checks": {
+          "pc_cloud_rate_at_least_10hz": false,
+          "producer_cloud_rate_at_least_10hz": false,
+          "producer_loss_at_most_10pct": false,
+          "median_scan_at_most_100ms": false
+        },
+        "passed": false,
+        "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+      },
+      "target_map_samples": 440,
+      "target_map_exact_stamp_matches": 440,
+      "target_manager": {
+        "track_snapshots": 342,
+        "confirmed_unvisited_ids": [],
+        "selected_samples": 339,
+        "coarse_samples": 816,
+        "map_point_samples": 440
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 70,
+          "exact_success": 70,
+          "success_rate": 1.0
+        },
+        "camera": {
+          "queries": 898,
+          "exact_success": 489,
+          "success_rate": 0.544543429844098
+        }
+      },
+      "diagnostic_goals": {
+        "median_future_at_most_20ms": true
+      },
+      "acceptance_checks": {
+        "native_lidar_healthy": false,
+        "clock_publishers_absent": true,
+        "slam_uses_wall_clock": true,
+        "raw_inputs_received": true,
+        "mapping_ready": false,
+        "mapping_without_fault": false,
+        "continuous_inputs": true,
+        "stamps_increasing": true,
+        "finite_positions": true,
+        "controller_timestamp_limits": true,
+        "controller_odom_continuity": false,
+        "exact_base_tf": true,
+        "exact_camera_tf": false,
+        "capture_complete": true,
+        "setup_ok": true,
+        "exact_target_map": true,
+        "confirmed_selected_target": false,
+        "fresh_confirmed_target": false
+      },
+      "maximum_receive_gap_s": {
+        "cloud": 0.735987179,
+        "imu": 0.019342108,
+        "state": 0.737373535,
+        "base": 0.737447549
+      },
+      "base_future_s": {
+        "count": 70,
+        "mean": 0.0068916882857142855,
+        "median": 0.0021292374999999997,
+        "p95": 0.053844819449999984,
+        "maximum": 0.080684755,
+        "minimum": -0.014379528,
+        "slope_per_second": 0.0013022113218988576,
+        "first": -0.014379528,
+        "last": 0.080684755
+      },
+      "confirmed_ids_observed": [
+        1,
+        3,
+        8,
+        10
+      ]
+    }
+  ],
+  "conclusion": "NOT READY for motion. Blue target recognition and 440 exact MAP transformations plus 339 selected outputs observed after clock alignment, but native feed regressed to 2.066 Hz/83.425% loss; max base receive gap 737.448 ms; mapping latched IMU future-time fault and ended not ready. Final target tracks stale. No algorithm/threshold changes."
+}

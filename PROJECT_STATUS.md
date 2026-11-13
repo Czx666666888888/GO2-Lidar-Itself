@@ -1,5 +1,14 @@
 # Project Status
 
+## 2026-11-13 蓝色目标运动前验收（cbf71eb基线）
+
+20ms调整为诊断报告目标，硬检查对齐现有100ms future/400ms odom freshness，未改任何算法/阈值。
+用户实际放置蓝色目标；伴随主机时钟重置到2022，现有脚本用户输入密码后立即对时通过。
+目标MAP精确440/440、selected339条，管理曾CONFIRMED；但原生源再次2.066Hz/83.425%丢包，
+Point-LIO/base仅70条、最大间隔737ms，映射最终IMU时间保护锁存、READY=false，目标STALE。
+定位与目标链不持续，不能恢复运动；没有启动运动/抓取。--mode dock运动前增加真实目标验收。
+源码/实测/失败边界见camera_ws/analysis/go2_blue_target_20261113与experiments最新节。
+
 ## 2026-11-13 上游雷达复查（cc375e6基线）
 
 cloud_scan_num正常/异常/恢复全为180；没有依据改成18。异常源端自报1.213Hz/86.188%丢包，

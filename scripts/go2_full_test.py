@@ -358,8 +358,11 @@ class Workflow:
             if probe.poll() is None:
                 probe.terminate()
                 probe.wait(timeout=5)
-        run(['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
-             '--reuse-only', '--label', 'pre_motion'])
+        diagnostic = ['bash', self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh',
+                      '--reuse-only', '--label', 'pre_motion']
+        if self.args.mode == 'dock':
+            diagnostic.append('--require-target')
+        run(diagnostic)
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',

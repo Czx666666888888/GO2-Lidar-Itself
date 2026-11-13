@@ -1684,3 +1684,70 @@ D435确有图像，但无有效蓝色目标，target_map_debug=0，实际目标M
 `time_20261113_164555_restored_lidar_mapping/`、`time_20261113_164936_native_entry_verified/`、
 `time_20261113_165049_upstream_full_recheck/`，摘要含SHA256与真实生产者GID。
 仅做相关脚本语法检查和真实运行采集，无离线测试、无全仓构建。本轮失败后清理拥有的只读链。
+
+## 2026-11-13 蓝色目标与运动前验收（cbf71eb基线，未放行）
+
+本轮真实放置目标（用户回复“完成”），启动D435/Point-LIO/base/目标MAP和目标管理，
+没有启动运动控制器、安全门使能或机械臂命令；没有改IMU映射、Point-LIO或MAP/S1控制算法。
+
+### 20ms诊断目标与实际保护
+
+源码：`science_target_approach.py::_fresh`、`science_target_approach.yaml`、`imu_time_mapping.py::map_stamp`。
+控制器future_tolerance=0.10s，odom_timeout=0.4s；转换器也保留100ms未来时间保护。
+20ms原本是时间诊断期望值，旧入口误将其与硬保护合并为一个阻断检查。
+上一轮扫描结束中位20.259855ms，仅比诊断目标大0.259855ms；最大29.536ms仍小于100ms，
+不能将其写成控制器100ms保护触发，也不需要改映射算法去跨过0.26ms差异。
+
+本轮只调整验收分类：20ms仍在`diagnostic_goals`报告；硬检查读取现有控制配置的100ms/
+400ms，并检查实际里程计相邻接收间隔≤400ms。未放宽转换器或控制器阈值。
+因此中位略高于20ms不再独自阻断，但真实丢流、READY失败、TF或目标失败仍阻断。
+
+### 蓝色目标与真实运行结果
+
+- 现场初始伴随主机date又为2022-09-08、uptime约8分钟；不沿用上一轮已对时结论。
+  首轮485条相机系目标点、0条MAP点，相机TF 0/894，实测旧时间域解释了转换失败。
+- 由用户在本地终端输入密码执行现有sync_go2_clock.py，未把密码写入聊天/文件。
+  中间restart入口发生TypeError；改为读取/proc/PID/cmdline的真实参数、记录异常traceback，
+  避免把ps渲染文本当作shell参数重新解析。随后启动正确到达时钟检查，测得+172.733ms而阻断。
+  再次立即对时后，5次检查+3.836～+3.908ms，通过原50ms检查；没有改对时算法。
+- 最终60秒收到816条相机目标点、**440条MAP点/精确转换440/440**、339条selected输出。
+  目标管理观察到CONFIRMED未访问目标，实际识别/转换/管理路径已运行成功。
+  这只证明当前配置下的转换链，不证明外参标定或目标物理坐标准确度。
+- 但是原生点云再次退化：PC **2.065627Hz**、源端中位2.062767Hz、源端中位丢包83.425415%，
+  cloud_scan_num仍180、IMU约250Hz；不是靠20ms检查分类能恢复的问题。
+- Point-LIO/base只各70条；base超前中位2.129ms、最大80.685ms，机身TF70/70。
+  **机身里程计最大间隔737.448ms > 原控制器400ms新鲜度限制**。
+- 映射最终锁存`imu mapped time invalid (including scan end); restart localization`，READY=false，
+  相机精确TF489/898=54.45%；定位停止后目标转STALE，最终无新鲜CONFIRMED目标。
+  MAP转换曾成功440次，但不能把它写成整段持续正常或当前具备运动条件。
+
+**本轮结论：定位不持续，目标链曾跑通但随定位中断失效，不能恢复自主运动。**
+不重试运动、不因前半段成功忽略后半段故障，不修改时间映射或放宽任何保护。
+先恢复连续原生点云和READY，再用同一入口复验；物理雷达退化触发原因仍未确认。
+
+### 统一入口
+
+放好蓝色目标，PC执行只读验收（不会启动运动）：
+
+```bash
+bash go2_test.sh --time-diagnostic --restart-localization --require-target --duration 60
+```
+
+脚本记录相机系/MAP点、target_tracks和selected；`--require-target`要求至少5条精确MAP转换、
+当前CONFIRMED未访问目标、selected输出及符合原visual_timeout=0.5s/future=0.1s的观测时间。
+不使用历史选中过目标替代当前新鲜目标。`--mode dock`在真正运动前自动执行同样的目标验收，
+保持原生雷达检查、现有时钟检查、S1 ZERO_HOLD和全部运动保护。
+
+**以下为验收通过后的唯一单目标三自由度停靠命令；当前禁止执行：**
+
+```bash
+bash go2_test.sh --execute --mode dock
+```
+
+该入口会准备S1保持并重新验收；只有通过后才进入SEARCH/STOP_CONFIRM/三自由度停靠/STOP，
+不进入趴下或抓取。现场急停与空旷路线仍需操作者确认；Ctrl+C请求原停止，物理急停保持可用。
+本轮只做相关Python语法检查和真实运行，没有离线批量测试/全仓构建或重复构建。
+原始记录：主仓库camera_ws/records/time_20261113_170440_blue_target_readiness、
+170831_blue_target_synced、171042_target_after_clock、171122_blue_target_final（后三者同time_20261113_前缀）。
+摘要/完整报告/运行摘录/SHA256：`camera_ws/analysis/go2_blue_target_20261113/`。
+汇总时又遇本机Python异常TypeError，沿既有CPU亲和16-19条件重跑汇总成功；该异常唯一根因未确认。
