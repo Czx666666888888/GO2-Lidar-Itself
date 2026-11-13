@@ -1,0 +1,445 @@
+{
+  "baseline": "b5ca59876d99425b1ab88b4972639fe33b8d563f",
+  "physical_motion_commanded": false,
+  "runs": [
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_162349_hardware_b5ca598",
+      "status": "NOT VERIFIED: clock_publishers_absent, slam_uses_wall_clock, raw_inputs_received, mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf, capture_complete, setup_ok",
+      "counts": {},
+      "time_mapping": null,
+      "base_future_s": {
+        "count": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "setup_error": "对时偏差/SSH往返过大，停止；重新检查网络和时钟",
+      "scan_span_s": {
+        "count": 0
+      },
+      "evidence_sha256": {
+        "samples.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trend.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "metadata.json": "3b51df9e49f820504431008c42de51ec0bf5adda7d19324032da0c52b6b80504",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "7bfe6fdb9f996194615f56284185610de1a72d0c540c908d9aac987b6efa2e02",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "0fa9d0b5afa93a9e6e8075b9eb47873262c583e7f2b1325604671447c6eb1559"
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_162514_lidar_only_b5ca598",
+      "status": "NOT VERIFIED: mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf",
+      "counts": {
+        "raw_imu": 7496,
+        "lidar_state": 150,
+        "raw_cloud": 30,
+        "mapping": 30
+      },
+      "time_mapping": {
+        "ready": false,
+        "fault": "cloud mapped time invalid (including scan end); restart localization",
+        "scale": 1.0,
+        "offset_ns": 3454302634609028,
+        "offset_sec": 3454302.634609028,
+        "window_samples": 500,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3454302634581615,
+        "residual_offset_sec": -2.7413e-05,
+        "spread_sec": 0.0002911015,
+        "dds_metadata_samples": 804,
+        "producer_delay_median_sec": 7.276e-06,
+        "mapped_cloud_end_future_sec": -0.003626838,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794558370973478065
+      },
+      "base_future_s": {
+        "count": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "setup_error": null,
+      "scan_span_s": {
+        "count": 30,
+        "mean": 0.9347301880518596,
+        "median": 0.9579941034317017,
+        "p95": 1.2917139172554015,
+        "maximum": 1.424243688583374,
+        "minimum": 0.5202405452728271,
+        "slope_per_second": -0.004146185418634233,
+        "first": 0.9307198524475098,
+        "last": 0.7417824268341064
+      },
+      "evidence_sha256": {
+        "samples.jsonl": "e0844e21dd625c3cdf32f50371fe188def18cf1578dadc41627be9d4605dbf62",
+        "readonly_slam.log": "709aef903b44e548c9c56151a2ae1833d478679bb95f951ce7f90a91a0b7e7a4",
+        "trend.json": "eb5935ed572f9b04d5920ee932171c9dc72bc0f012fff810b1d394dee2031478",
+        "metadata.json": "805d8375baa7c1f38919a2bb610043a4714726b87748739fa40278f09caaab09",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "93cc26273954b923522d7dba4b881dbcdd5c16422f102ec79cb344168b3e232a",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "13d6218adb0e48b73ab7bf00021295a3d805f3a1114ac038f79156a2708823b2"
+      },
+      "native_lidar_state": {
+        "cloud_frequency": {
+          "min": 0.9315327405929565,
+          "median": 0.9881106615066528,
+          "max": 1.0330554246902466
+        },
+        "cloud_packet_loss_rate": {
+          "min": 87.29281616210938,
+          "median": 87.29281616210938,
+          "max": 89.50276184082031
+        },
+        "imu_frequency": {
+          "min": 248.71897888183594,
+          "median": 249.69488525390625,
+          "max": 250.6397247314453
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "error_state": {
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "cloud_scan_num": {
+          "min": 180,
+          "median": 180.0,
+          "max": 180
+        }
+      },
+      "native_imu_receive_age_s": {
+        "count": 7496,
+        "mean": 3454302.635305694,
+        "median": 3454302.6352765583,
+        "p95": 3454302.635768808,
+        "maximum": 3454302.646398532,
+        "minimum": 3454302.634520621,
+        "slope_per_second": 2.781666453589943e-05,
+        "first": 3454302.646398532,
+        "last": 3454302.635698216
+      },
+      "capture_elapsed_ros_sec": 30.000091806
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_162705_full_hardware_b5ca598",
+      "status": "NOT VERIFIED: clock_publishers_absent, slam_uses_wall_clock, raw_inputs_received, mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf, capture_complete, setup_ok",
+      "counts": {},
+      "time_mapping": null,
+      "base_future_s": {
+        "count": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "setup_error": "对时偏差/SSH往返过大，停止；重新检查网络和时钟",
+      "scan_span_s": {
+        "count": 0
+      },
+      "evidence_sha256": {
+        "samples.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trend.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "metadata.json": "80566fb7858bba6afe0d14d4bb20560351d223965be322c757590bb49b7a47f2",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "7bfe6fdb9f996194615f56284185610de1a72d0c540c908d9aac987b6efa2e02",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "0fa9d0b5afa93a9e6e8075b9eb47873262c583e7f2b1325604671447c6eb1559"
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_162834_immediate_full_b5ca598",
+      "status": "NOT VERIFIED: mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf",
+      "counts": {
+        "raw_imu": 7498,
+        "lidar_state": 150,
+        "raw_cloud": 35,
+        "mapping": 30
+      },
+      "time_mapping": {
+        "ready": false,
+        "fault": "cloud mapped time invalid (including scan end); restart localization",
+        "scale": 1.0,
+        "offset_ns": 3454302418675925,
+        "offset_sec": 3454302.418675925,
+        "window_samples": 501,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3454302418280991,
+        "residual_offset_sec": -0.000394934,
+        "spread_sec": 0.001034855,
+        "dds_metadata_samples": 750,
+        "producer_delay_median_sec": 7.327e-06,
+        "mapped_cloud_end_future_sec": -0.001850811,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794558571810193429
+      },
+      "base_future_s": {
+        "count": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "setup_error": null,
+      "scan_span_s": {
+        "count": 35,
+        "mean": 0.8126915778432574,
+        "median": 0.7937417030334473,
+        "p95": 1.1582557678222651,
+        "maximum": 1.44026517868042,
+        "minimum": 0.40276333689689636,
+        "slope_per_second": 0.0054870026711485295,
+        "first": 0.9880874156951904,
+        "last": 0.8703687191009521
+      },
+      "evidence_sha256": {
+        "samples.jsonl": "391b8f677cc5962d36506e776d27f49b0fb08eb6c31b7c9ddd0905101b11cd1a",
+        "readonly_slam.log": "7a4b07fd2eea4c88d802bad76ef9f0a0ac7e23145d61946778cbb16bd8cecdc3",
+        "trend.json": "d5eaf43b1a99934fff349977b52f7660fa7bc7ef81978af1b18fd37728b5d59e",
+        "metadata.json": "63628c05a11e36b17bdee5019709e29f4cddc4068f853e39ee3b06c69efc6e50",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "a995532705d7830e1c99f714767187e465b38049e8d8d32a54e31aeb5a4eb858",
+        "camera.log": "b6d2796ad2e1b7f815996475dc1e69006a0af51ea280742b4774ceda477880c0",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "9cef5aa077767882852ddf687427a01d90411f7b14d941765fae9f91681f4e6d"
+      },
+      "native_lidar_state": {
+        "cloud_frequency": {
+          "min": 1.047749638557434,
+          "median": 1.1743054389953613,
+          "max": 1.299485683441162
+        },
+        "cloud_packet_loss_rate": {
+          "min": 82.8729248046875,
+          "median": 85.08287048339844,
+          "max": 92.26519012451172
+        },
+        "imu_frequency": {
+          "min": 247.6073760986328,
+          "median": 249.68722534179688,
+          "max": 251.3535614013672
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "error_state": {
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "cloud_scan_num": {
+          "min": 180,
+          "median": 180.0,
+          "max": 180
+        }
+      },
+      "native_imu_receive_age_s": {
+        "count": 7498,
+        "mean": 3454302.404038342,
+        "median": 3454302.4040633217,
+        "p95": 3454302.4109097254,
+        "maximum": 3454302.412002979,
+        "minimum": 3454302.396244163,
+        "slope_per_second": -0.00050561220545046,
+        "first": 3454302.412002979,
+        "last": 3454302.396650641
+      },
+      "capture_elapsed_ros_sec": 30.001544196
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_163115_peer_camera_fix",
+      "status": "NOT VERIFIED: clock_publishers_absent, slam_uses_wall_clock, raw_inputs_received, mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf, capture_complete, setup_ok",
+      "counts": {},
+      "time_mapping": null,
+      "base_future_s": {
+        "count": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        }
+      },
+      "setup_error": "对时偏差/SSH往返过大，停止；重新检查网络和时钟",
+      "scan_span_s": {
+        "count": 0
+      },
+      "evidence_sha256": {
+        "samples.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "trend.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "metadata.json": "dd27bb9884c0a69560a69810b8f5a0ea96a7751c37923213c7ed795b52cf52b7",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "7bfe6fdb9f996194615f56284185610de1a72d0c540c908d9aac987b6efa2e02",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "0fa9d0b5afa93a9e6e8075b9eb47873262c583e7f2b1325604671447c6eb1559"
+      }
+    },
+    {
+      "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_163313_payload_hardware",
+      "status": "NOT VERIFIED: mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf",
+      "counts": {
+        "raw_imu": 7686,
+        "lidar_state": 154,
+        "camera": 458,
+        "raw_cloud": 38,
+        "mapping": 31,
+        "tf": 450
+      },
+      "time_mapping": {
+        "ready": false,
+        "fault": "cloud mapped time invalid (including scan end); restart localization",
+        "scale": 1.0,
+        "offset_ns": 3454302679386230,
+        "offset_sec": 3454302.67938623,
+        "window_samples": 490,
+        "window_sec": 2.0,
+        "percentile": 5.0,
+        "candidate_low_offset_ns": 3454302704272694,
+        "residual_offset_sec": 0.024886464,
+        "spread_sec": 0.03392569,
+        "dds_metadata_samples": 1810,
+        "producer_delay_median_sec": 7.3355e-06,
+        "mapped_cloud_end_future_sec": -0.063784982,
+        "dropped": {},
+        "absolute_clock_synchronization": false,
+        "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+        "ros_stamp_ns": 1794558850442803586
+      },
+      "base_future_s": {
+        "count": 0
+      },
+      "exact_source_time_tf": {
+        "base": {
+          "queries": 0,
+          "exact_success": 0,
+          "success_rate": null
+        },
+        "camera": {
+          "queries": 450,
+          "exact_success": 0,
+          "success_rate": 0.0
+        }
+      },
+      "setup_error": null,
+      "scan_span_s": {
+        "count": 38,
+        "mean": 0.7592045115797144,
+        "median": 0.7174365520477295,
+        "p95": 1.1689724206924437,
+        "maximum": 1.3362560272216797,
+        "minimum": 0.4577305018901825,
+        "slope_per_second": 0.0027579302410549317,
+        "first": 0.5697422027587891,
+        "last": 0.5358250141143799
+      },
+      "evidence_sha256": {
+        "samples.jsonl": "0bfd6cc478a69bb9c67398451f54fc09e025dbcad3de228816aae83b819406e7",
+        "readonly_slam.log": "5db8c22466c21b5e292a03f248a1e4957362a8c6e881d7ebe84d325b3a6b8854",
+        "trend.json": "8b058c3a6456ec20ff7fbbaa5bbf9abb7d1388ce1b21017a474d458365bdec4c",
+        "metadata.json": "c4cf27dafe827777521c4916355677f82e66ef175228c7481a9b9acbc8b19f98",
+        "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "report.txt": "d597d5caa7e0e632086693da4137b19f9b67224519cfaefdc4e0a06daca03c48",
+        "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "report.json": "167905f3f6c2b739978c42b3a3f8b9329614c226d250bf1c68a3ae78769f2016"
+      },
+      "native_lidar_state": {
+        "cloud_frequency": {
+          "min": 1.1544010639190674,
+          "median": 1.2126442193984985,
+          "max": 1.365715503692627
+        },
+        "cloud_packet_loss_rate": {
+          "min": 82.8729248046875,
+          "median": 86.1878433227539,
+          "max": 86.1878433227539
+        },
+        "imu_frequency": {
+          "min": 248.74163818359375,
+          "median": 249.69496154785156,
+          "max": 251.1053466796875
+        },
+        "imu_packet_loss_rate": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "error_state": {
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "cloud_scan_num": {
+          "min": 180,
+          "median": 180.0,
+          "max": 180
+        }
+      },
+      "native_imu_receive_age_s": {
+        "count": 7686,
+        "mean": 3454302.8226471893,
+        "median": 3454302.851991337,
+        "p95": 3454302.8737102123,
+        "maximum": 3454302.875780924,
+        "minimum": 3454302.661445915,
+        "slope_per_second": -0.004752780017895241,
+        "first": 3454302.830228994,
+        "last": 3454302.661445915
+      },
+      "capture_elapsed_ros_sec": 30.602603817
+    }
+  ],
+  "conclusion": "NOT VERIFIED: Point-LIO has no sustained odometry; no motion release. Native cloud degradation and unstable cross-host timing remain. D435 images received after topic/peer fix; camera MAP TF 0/450."
+}

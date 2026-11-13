@@ -3,6 +3,61 @@
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
+## 2026-11-13 实机复测：Point-LIO未恢复，禁止恢复运动
+
+来源：基线 `b5ca59876d99`，本轮真实ROS/DDS采集和进程日志；没有发送运动命令。
+通过现有入口实际构建transform_sensors及go2_science_perception，启动Point-LIO、转换器、
+base_odom、D435和目标MAP链。开始时无旧定位/控制任务，重启入口记录的替换PID列表为空。
+失败后入口按既有生命周期清理节点，因此采集结束后查不到进程不表示未启动。
+
+- 最终窗口收到38帧原生点云、7686条IMU、154条LidarState、458帧D435图像。
+- 雷达自报cloud_frequency中位1.212644Hz，cloud_packet_loss_rate中位86.187843%；
+  IMU中位249.694962Hz、丢包0、error_state=0。PC网卡RX errors/dropped均0。
+  点内扫描跨度中位717.437ms、P95 1168.972ms、最大1336.256ms；首轮最大1424.244ms。
+- 最终冻结offset为 **+3454302.679386230s**（首轮+3454302.634609028s），只是IMU近似映射。
+  转换器锁存`cloud mapped time invalid (including scan end); restart localization`；
+  状态保留的扫描结束偏差为-63.785ms，扫描起点年龄保护阻断，不能靠增加年龄上限恢复。
+  首轮残差-0.027ms、最终残差24.886ms均是故障锁存前窗口的冻结统计，不是持续稳定性证明。
+- 正式30秒窗口转换cloud/IMU、state/base里程计均0条：**实际里程计时间误差不可测，不能报0ms**。
+  相机精确源时间map TF **0/450（0%）**，base无查询；目标MAP debug 0条。
+  camera_target_to_map有实际目标点，但定位TF停在旧时刻，出现TF_LOOKUP_DEFERRED/
+  pending_timeout，最后观测相差36.179s；D435目标MAP转换未通过。
+- 伴随主机启动日期2022-09-08。由用户在本地终端输入密码后执行现有对时脚本；
+  曾立即测到+4.108～+4.211ms，但后续检查+136.563ms及-109.036ms仍超过50ms。
+  PC NTP处于调频（观测-477.034ppm）；时差变动的唯一原因尚未确认，不只归因于调频。
+  最终使用已启动相机的existing只读模式采集payload，**不代表主机对时验收通过**。
+- 用户确认雷达无遮挡；旧记录20261112_235022首个LidarState为14.728Hz/1.657%丢包，
+  本次退化确实在原生输入可见。硬件/上游生产者丢包根因仍Unknown，不凭error_state=0排除故障。
+  /utlidar/server_log单次8秒观察没有收到日志，不冒称设备无异常。
+
+本轮最小修复仅两处诊断入口配置：沿用当前感知配置的真实图像话题
+`/camera/camera/color/image_raw`（同时用于已有流检查），默认DDS补上现有伴随主机peer。
+修复后458帧图像真实到达；没有改IMU映射算法、Point-LIO滤波器、阈值、MAP/三自由度停靠/S1算法。
+只执行必要包构建、脚本语法及真实采集；没有增加离线测试。
+证据：`camera_ws/analysis/go2_hardware_20261113/summary.json`及各轮report，
+原始JSONL/启动日志保留在主仓库`camera_ws/records/time_20261113_*`，摘要含SHA256。
+
+当前处置：先恢复原生雷达连续点云并稳定PC/伴随主机时钟，再运行原只读入口重新验收；
+仅重启PC定位无法修复当前上游输入。未取得已确认的源端恢复命令，不发送猜测配置、不重启整机。
+本轮不启动控制器/安全门或S1保持；运动运行条件尚不具备，完整运动/抓取仍 **NOT VERIFIED**。
+
+只读复验入口（不运动）：
+
+```bash
+bash go2_test.sh --time-diagnostic --restart-localization --keep-running
+```
+
+**以下是验收通过、退出只读链、现场确认急停/空旷环境后的唯一下一条运动测试命令；当前禁止执行：**
+
+```bash
+bash go2_test.sh --execute --mode dock
+```
+
+该入口会重新对时（可能要求本地sudo密码）、确认S1 ZERO_HOLD、连续传感器/里程计和TF、
+运行同一时间验收，再进入SEARCH→STOP_CONFIRM→三自由度单目标停靠→STOP，不进入趴下/抓取。
+运动前仍须通过原0.10s future保护、0.4s odom freshness等；没有自动避障。
+Ctrl+C请求原停止/清理，物理遥控急停需由操作者保持可用。本轮未验证物理停靠结果。
+
 ## 2026-11-13：IMU辅助统一时间映射（代码完成，实机 NOT VERIFIED）
 
 本轮基于已fetch核对的 `bac3a992feb7` 完成代码；提交号由本节所在Git提交标识，运行报告自动记录实际HEAD。

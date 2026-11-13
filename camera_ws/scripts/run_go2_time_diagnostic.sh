@@ -49,7 +49,7 @@ if [ -f "$go2_time_repo/.time_sync/install/setup.bash" ]; then
 fi
 if [ -z "${CYCLONEDDS_URI:-}" ]; then
   go2_time_iface="${GO2_TIME_INTERFACE:-enp12s0}"
-  export CYCLONEDDS_URI="<CycloneDDS><Domain><General><NetworkInterfaceAddress>$go2_time_iface</NetworkInterfaceAddress></General><Discovery><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
+  export CYCLONEDDS_URI="<CycloneDDS><Domain><General><NetworkInterfaceAddress>$go2_time_iface</NetworkInterfaceAddress></General><Discovery><Peers><Peer Address=\"192.168.123.18\"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>60</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
 fi
 export ROS_DOMAIN_ID=0
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp

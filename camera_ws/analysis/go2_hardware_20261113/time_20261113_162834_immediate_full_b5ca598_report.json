@@ -1,0 +1,302 @@
+{
+  "metrics": {
+    "receive_delay_s": {
+      "count": 35,
+      "mean": 3454303.2210393255,
+      "median": 3454303.207435803,
+      "p95": 3454303.5624797367,
+      "maximum": 3454303.842378367,
+      "minimum": 3454302.816151663,
+      "slope_per_second": 0.004982396901885033,
+      "first": 3454303.40321617,
+      "last": 3454303.269439801
+    },
+    "imu_receive_delay_s": {
+      "count": 7498,
+      "mean": 3454302.404038342,
+      "median": 3454302.4040633217,
+      "p95": 3454302.4109097254,
+      "maximum": 3454302.412002979,
+      "minimum": 3454302.396244163,
+      "slope_per_second": -0.00050561220545046,
+      "first": 3454302.412002979,
+      "last": 3454302.396650641
+    },
+    "cloud_future_s": {
+      "count": 0
+    },
+    "imu_future_s": {
+      "count": 0
+    },
+    "state_future_s": {
+      "count": 0
+    },
+    "base_future_s": {
+      "count": 0
+    },
+    "derived_lidar_end_future_s": {
+      "count": 0
+    },
+    "scan_span_s": {
+      "count": 35,
+      "mean": 0.8126915778432574,
+      "median": 0.7937417030334473,
+      "p95": 1.1582557678222651,
+      "maximum": 1.44026517868042,
+      "minimum": 0.40276333689689636,
+      "slope_per_second": 0.0054870026711485295,
+      "first": 0.9880874156951904,
+      "last": 0.8703687191009521
+    },
+    "go2_minus_pc_s": {
+      "count": 0
+    },
+    "raw_cloud_dds_source_minus_header_s": {
+      "count": 35,
+      "mean": 0.8153203851999999,
+      "median": 0.796374581,
+      "p95": 1.1609673684999997,
+      "maximum": 1.442858485,
+      "minimum": 0.405424909,
+      "slope_per_second": 0.005494492362078832,
+      "first": 0.990655117,
+      "last": 0.872374803
+    },
+    "raw_imu_dds_source_minus_header_s": {
+      "count": 7498,
+      "mean": 9.124615497465992e-06,
+      "median": 7.632e-06,
+      "p95": 1.030815e-05,
+      "maximum": 0.000619996,
+      "minimum": 3.112e-06,
+      "slope_per_second": 4.234054660054287e-08,
+      "first": 7.917e-06,
+      "last": 1.2826e-05
+    },
+    "raw_cloud_header_minus_pc_wall_s": {
+      "count": 35,
+      "mean": -3454303.2210446307,
+      "median": -3454303.207443055,
+      "p95": -3454302.9110088474,
+      "maximum": -3454302.81615738,
+      "minimum": -3454303.842383463,
+      "slope_per_second": -0.0049824135424228096,
+      "first": -3454303.403218986,
+      "last": -3454303.269444633
+    },
+    "raw_cloud_dds_source_minus_pc_wall_s": {
+      "count": 35,
+      "mean": -3454302.405724246,
+      "median": -3454302.40633092,
+      "p95": -3454302.3978549377,
+      "maximum": -3454302.39706983,
+      "minimum": -3454302.412563869,
+      "slope_per_second": 0.000512078868722962,
+      "first": -3454302.412563869,
+      "last": -3454302.39706983
+    },
+    "raw_imu_header_minus_pc_wall_s": {
+      "count": 7498,
+      "mean": -3454302.4040437345,
+      "median": -3454302.4040698437,
+      "p95": -3454302.3972693575,
+      "maximum": -3454302.396250741,
+      "minimum": -3454302.412009539,
+      "slope_per_second": 0.0005055993495011804,
+      "first": -3454302.412009539,
+      "last": -3454302.396657145
+    },
+    "raw_imu_dds_source_minus_pc_wall_s": {
+      "count": 7498,
+      "mean": -3454302.4040346104,
+      "median": -3454302.404061458,
+      "p95": -3454302.397263415,
+      "maximum": -3454302.396242223,
+      "minimum": -3454302.412001622,
+      "slope_per_second": 0.0005056422887691762,
+      "first": -3454302.412001622,
+      "last": -3454302.396644319
+    },
+    "lidar_state_header_minus_pc_wall_s": {
+      "count": 150,
+      "mean": -3454302.4040477052,
+      "median": -3454302.4039569316,
+      "p95": -3454302.397097298,
+      "maximum": -3454302.396652764,
+      "minimum": -3454302.411779772,
+      "slope_per_second": 0.0005051984844793434,
+      "first": -3454302.411534844,
+      "last": -3454302.396655639
+    },
+    "lidar_state_dds_source_minus_pc_wall_s": {
+      "count": 150,
+      "mean": -3454302.404029016,
+      "median": -3454302.4039381556,
+      "p95": -3454302.397088692,
+      "maximum": -3454302.396627103,
+      "minimum": -3454302.411723727,
+      "slope_per_second": 0.0005053223550427959,
+      "first": -3454302.411526357,
+      "last": -3454302.396631266
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_wall_ns_s": {
+      "count": 150,
+      "mean": -3454302.405479457,
+      "median": -3454302.405900034,
+      "p95": -3454302.3983204747,
+      "maximum": -3454302.397651932,
+      "minimum": -3454302.412580028,
+      "slope_per_second": 0.000504584315711284,
+      "first": -3454302.41209318,
+      "last": -3454302.399121943
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_stamp_ns_s": {
+      "count": 150,
+      "mean": -0.00143175168,
+      "median": -0.001466752,
+      "p95": 1.640959999999999e-05,
+      "maximum": 2.304e-05,
+      "minimum": -0.00402048,
+      "slope_per_second": -6.14364165359822e-07,
+      "first": -0.000558336,
+      "last": -0.002466304
+    },
+    "lidar_state_dds_source_ns_minus_serial_recv_stamp_ns_s": {
+      "count": 150,
+      "mean": 0.00145044102,
+      "median": 0.001477837,
+      "p95": 0.0035140396000000003,
+      "maximum": 0.004055743,
+      "minimum": 5.548e-06,
+      "slope_per_second": 7.381803042181923e-07,
+      "first": 0.000566823,
+      "last": 0.002490677
+    },
+    "lidar_state_dds_source_ns_minus_stamp_ns_s": {
+      "count": 150,
+      "mean": 1.868934e-05,
+      "median": 1.36545e-05,
+      "p95": 3.637545e-05,
+      "maximum": 7.4598e-05,
+      "minimum": 7.684e-06,
+      "slope_per_second": 1.238161388582852e-07,
+      "first": 8.487e-06,
+      "last": 2.4373e-05
+    },
+    "internal_lidar_end_future_s": {
+      "count": 0
+    }
+  },
+  "fixed_cloud_offsets_ns": [],
+  "analyzed_samples_start_mono_ns": 1242427447456,
+  "imu_matching_same_offset": 0,
+  "imu_matching_zero_offset": 0,
+  "base_exact_state_stamp_matches": 0,
+  "state_matches_derived_scan_end_within_2us": 0,
+  "internal_time_evidence": "NOT VERIFIED: no internal log; derived values separate",
+  "physical_motion_commanded": false,
+  "startup_imu_published_without_mapping": 0,
+  "tf_exact_query_success": 0,
+  "tf_queries": 0,
+  "receive_delay_warning": "Raw stamp uses a different epoch; receive age is NOT network latency.",
+  "status": "NOT VERIFIED: mapping_ready, mapping_without_fault, continuous_inputs, old_systematic_future_removed, exact_base_tf, exact_camera_tf",
+  "time_mapping": {
+    "ready": false,
+    "fault": "cloud mapped time invalid (including scan end); restart localization",
+    "scale": 1.0,
+    "offset_ns": 3454302418675925,
+    "offset_sec": 3454302.418675925,
+    "window_samples": 501,
+    "window_sec": 2.0,
+    "percentile": 5.0,
+    "candidate_low_offset_ns": 3454302418280991,
+    "residual_offset_sec": -0.000394934,
+    "spread_sec": 0.001034855,
+    "dds_metadata_samples": 750,
+    "producer_delay_median_sec": 7.327e-06,
+    "mapped_cloud_end_future_sec": -0.001850811,
+    "dropped": {},
+    "absolute_clock_synchronization": false,
+    "limitation": "One-way transport/dispatch delay is not identifiable separately from clock offset",
+    "ros_stamp_ns": 1794558571810193429
+  },
+  "mapping_offset_stability_s": {
+    "count": 30,
+    "mean": -0.0003949339999999999,
+    "median": -0.000394934,
+    "p95": -0.000394934,
+    "maximum": -0.000394934,
+    "minimum": -0.000394934,
+    "slope_per_second": -4.6887499194806725e-21,
+    "first": -0.000394934,
+    "last": -0.000394934
+  },
+  "stamp_nonadvancing": {
+    "cloud": 0,
+    "imu": 0,
+    "state": 0,
+    "base": 0
+  },
+  "maximum_receive_gap_s": {
+    "cloud": null,
+    "imu": null,
+    "state": null,
+    "base": null
+  },
+  "maximum_position_step_m": {
+    "state": null,
+    "base": null
+  },
+  "exact_source_time_tf": {
+    "base": {
+      "queries": 0,
+      "exact_success": 0,
+      "success_rate": null
+    },
+    "camera": {
+      "queries": 0,
+      "exact_success": 0,
+      "success_rate": null
+    }
+  },
+  "target_map_exact_stamp_matches": 0,
+  "target_map_samples": 0,
+  "target_map_validation": "NOT VERIFIED: missing or non-exact target map measurements",
+  "acceptance_checks": {
+    "clock_publishers_absent": true,
+    "slam_uses_wall_clock": true,
+    "raw_inputs_received": true,
+    "mapping_ready": false,
+    "mapping_without_fault": false,
+    "continuous_inputs": false,
+    "stamps_increasing": true,
+    "finite_positions": true,
+    "old_systematic_future_removed": false,
+    "exact_base_tf": false,
+    "exact_camera_tf": false,
+    "capture_complete": true,
+    "setup_ok": true
+  },
+  "earliest_bias_stage": "IMU receipt P5 approximates native-to-local offset before shared cloud/IMU conversion; remaining one-way network/dispatch delay is not independently identifiable",
+  "position_jump_assessment": "Observed position-step statistics only; physical trajectory/reference required to judge jumps",
+  "native_clock_repaired": false,
+  "setup_or_capture_error": null,
+  "comparison": {
+    "baseline": "/tmp/go2_live_verify/camera_ws/records/time_20261112_231501_before_internal/report.json",
+    "before_base_future": {
+      "count": 446,
+      "mean": 0.057411832896860984,
+      "median": 0.0572147305,
+      "p95": 0.06736103125000001,
+      "maximum": 0.071509918,
+      "minimum": 0.03594372,
+      "slope_per_second": -0.0007286427241507886,
+      "first": 0.069598449,
+      "last": 0.037377297
+    },
+    "after_base_future": {
+      "count": 0
+    },
+    "after_verified": false
+  }
+}

@@ -390,7 +390,7 @@ class ReadonlyChain:
             return
         if args.reuse_only:
             raise RuntimeError('--reuse-only 未发现已有定位节点')
-        if not self.node.count_publishers('/camera/color/image_raw') and args.camera_host != 'existing':
+        if not self.node.count_publishers('/camera/camera/color/image_raw') and args.camera_host != 'existing':
             if args.camera_host != 'local':
                 spec = importlib.util.spec_from_file_location('go2_existing_helper', REPO/'scripts/go2_full_test.py')
                 helper = importlib.util.module_from_spec(spec)
@@ -550,7 +550,7 @@ def main():
                       ('imu', '/utlidar/transformed_imu', 'sensor_msgs/msg/Imu'),
                       ('state', '/state_estimation', 'nav_msgs/msg/Odometry'),
                       ('base', '/base_state_estimation', 'nav_msgs/msg/Odometry'),
-                      ('camera', '/camera/color/image_raw', 'sensor_msgs/msg/Image'),
+                      ('camera', '/camera/camera/color/image_raw', 'sensor_msgs/msg/Image'),
                       ('mapping', '/utlidar/time_mapping/status', 'std_msgs/msg/String'),
                       ('map_debug', '/science/map_measurement_debug', 'std_msgs/msg/String')]
         specs += [('lidar_state', name, types[0]) for name, types in metadata['lidar_state_topics']]
