@@ -45,8 +45,7 @@ class GraspDocking:
                 core.visual_loss_count += 1
             if not core.p.allow_odom:
                 core.fault('visual target lost')
-            elif (now-core.lost_at >= core.p.odom_max_time or
-                  core.odom_travel >= core.p.odom_max_distance):
+            elif core.odom_travel >= core.p.odom_max_distance:
                 core.fault('odometry continuation limit')
             elif max(0.0, distance-self.p.position_tolerance) > (
                     core.p.odom_max_distance-core.odom_travel):
@@ -54,14 +53,12 @@ class GraspDocking:
         if distance > core.p.max_target_range:
             core.fault('docking goal out of range')
         out['odom_remaining_distance_m'] = core.p.odom_max_distance-core.odom_travel
-        out['odom_remaining_time_s'] = (core.p.odom_max_time-(now-core.lost_at)
-                                        if core.lost_at is not None else core.p.odom_max_time)
+        out['odom_remaining_time_s'] = None
+        out['docking_odom_time_limit_enabled'] = False
         # Translation and yaw now happen together, so use max, not their sum.
         lower_bound = max(max(0.0, distance-self.p.position_tolerance)/core.p.max_linear_speed,
                           max(0.0, abs(yaw_error)-self.p.yaw_tolerance)/core.p.max_angular_speed)
         out['docking_motion_time_lower_bound_s'] = lower_bound
-        if core.lost_at is not None and lower_bound > out['odom_remaining_time_s']:
-            core.fault('minimum docking time exceeds odometry budget')
 
         # Progress is telemetry only. Keep correcting even if the pose stalls;
         # freshness, localization faults, odometry budgets and manual stop remain.
@@ -87,7 +84,10 @@ class GraspDocking:
             a, latency = core.p.max_deceleration, core.p.braking_latency
             clearance = max(0.0, distance-self.p.position_tolerance/2)
             safe = math.sqrt((a*latency)**2+2*a*clearance)-a*latency
-            desired = min(core.p.max_linear_speed, core.p.kp_linear*distance, safe)
+            # Minimum applies to the requested planar magnitude, before all
+            # braking/slew limits; never force it on either axis separately.
+            desired = min(core.p.max_linear_speed,
+                          max(self.p.min_linear_speed, core.p.kp_linear*distance), safe)
             if core.actual_speed**2/(2*a)+core.actual_speed*latency >= clearance:
                 desired = min(desired, max(0.0, core.actual_speed-a*dt))
         # Kx=Ky=kp_linear. Map-frame slew limiting also accounts for rotation of

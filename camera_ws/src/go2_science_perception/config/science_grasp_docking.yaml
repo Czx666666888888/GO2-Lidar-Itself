@@ -6,6 +6,7 @@ science_target_approach:
     dock_s1_base_y: 0.0
     dock_target_s1_x: 0.0
     dock_target_s1_y: 0.41  # Additional 0.10m clearance from right-side target.
+    dock_min_linear_speed: 0.10  # Outside tolerance; braking/slew limits take priority.
     dock_position_tolerance: 0.04  # Navigation tolerance, not guaranteed arm reachability.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_settled_sec: 0.5

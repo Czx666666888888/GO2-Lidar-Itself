@@ -24,6 +24,7 @@ class DockSettings:
     position_tolerance: float = 0.04
     yaw_tolerance: float = math.radians(10)
     settled_sec: float = 0.5
+    min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     progress_timeout: float = 10.0  # Accepted for old configs; no longer stops docking.
     region_x_min: float = -0.05
     region_x_max: float = 0.05
@@ -36,6 +37,8 @@ class DockSettings:
         if min(self.position_tolerance, self.yaw_tolerance,
                self.settled_sec, self.progress_timeout) <= 0:
             raise ValueError('Dock tolerances and settling time must be positive')
+        if self.min_linear_speed < 0:
+            raise ValueError('Dock minimum speed must be nonnegative')
         # Dock clearance can exceed the original grasp reference region.
         # Keep that region unchanged so reachability diagnostics remain honest.
         if not (self.region_x_min <= self.region_x_max and

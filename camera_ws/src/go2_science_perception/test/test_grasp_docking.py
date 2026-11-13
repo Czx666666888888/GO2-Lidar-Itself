@@ -160,7 +160,7 @@ def test_no_progress_or_small_corrections_keep_docking_with_fresh_inputs(step_m)
 
 
 @pytest.mark.parametrize('budget', ['time', 'distance'])
-def test_independent_odom_limits_are_not_removed(budget):
+def test_docking_removes_odom_time_limit_but_keeps_distance(budget):
     c = dock_core()
     c.step(10.5)
     c.lost_at = 10.
@@ -170,8 +170,13 @@ def test_independent_odom_limits_are_not_removed(budget):
     c.last_tick = now-.1
     tick(c, now, c.robot[:2])
     out = c.step(now)
-    assert out['state'] == 'FAULT' and out['reason'] == 'odometry continuation limit'
-    assert out['vx'] == out['vy'] == out['wz'] == 0
+    if budget == 'time':
+        assert out['state'] == 'APPROACH_TO_GRASP_POSE'
+        assert out['docking_odom_time_limit_enabled'] is False
+        assert out['odom_remaining_time_s'] is None
+    else:
+        assert out['state'] == 'FAULT' and out['reason'] == 'odometry continuation limit'
+        assert out['vx'] == out['vy'] == out['wz'] == 0
 
 
 def test_localization_expiry_still_faults():
@@ -213,3 +218,24 @@ def test_additional_right_clearance_preserves_grasp_reference():
     report = geometry_report((1.0, -0.5), after, 0.0, new)
     assert report['position_error_m'] == pytest.approx(0.0)
     assert not report['predicted_in_grasp_region']
+
+
+@pytest.mark.parametrize('error', [(0.08, 0), (0, -0.08), (0.048, 0.064)])
+def test_ten_cm_minimum_is_planar_and_preserves_braking(error):
+    c = dock_core(error)
+    c.docking.p = DockSettings(min_linear_speed=0.10)
+    c.p.braking_latency = .30  # Actual deployed profile.
+    for i in range(12):
+        t = 10.6+i*.1
+        c.visual_time = t
+        tick(c, t, c.robot[:2])
+        out = c.step(t)
+    assert math.hypot(out['vx'], out['vy']) == pytest.approx(0.10)
+    # Near the tolerance boundary the braking cap can go below the minimum.
+    t += .1
+    c.visual_time = t
+    goal = docking_goal(c.target, 0)
+    tick(c, t, (goal[0]-.041, goal[1]))
+    c.actual_speed = 0.0
+    out = c.step(t)
+    assert math.hypot(out['vx'], out['vy']) < .10
