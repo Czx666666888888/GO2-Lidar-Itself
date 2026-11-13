@@ -1,5 +1,15 @@
 # Project Status
 
+## 2026-11-13 PC受控IMU定位验收通过（NX暂停）
+
+PC在线/暂停校时20秒对照未复现历史395ms差，NTP唯一因果未确认；不修改内核频率。
+修复相机伴随主机设时子进程延迟路径后立即检查约+2.9ms；不改GO2原装主控时间。
+临时暂停timesyncd下IMU会话映射60秒PASS：原生14.816Hz、Point-LIO/base889条，
+机身时间滞后16.5～59.9ms，机身/相机TF100%，目标MAP470/470，最终新鲜CONFIRMED ID1。
+不需在线offset修正；PC服务已恢复active，S1保持空闲。未运动或抓取。
+唯一dock入口增加同一受控暂停/恢复上下文并默认IMU，原算法/阈值不变；新增运动分支未实机执行。
+证据go2_pc_controlled_20261113，命令手册及experiments最新节。
+
 ## 2026-11-13 NX本机时间适配
 
 NX实查Ubuntu20.04/Foxy/aarch64，缺Point-LIO/transform/base/perception四包；已有D435与CycloneDDS。

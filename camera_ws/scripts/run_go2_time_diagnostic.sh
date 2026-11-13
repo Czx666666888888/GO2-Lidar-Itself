@@ -19,6 +19,10 @@ if [ ! -f "$go2_time_repo/camera_ws/scripts/go2_time_diagnostic.py" ]; then
   fi
   exec bash "$go2_time_integration/camera_ws/scripts/run_go2_time_diagnostic.sh" "$@"
 fi
+if [ "${1:-}" = --pc-time-check ]; then
+  shift
+  exec /usr/bin/python3 -u "$go2_time_repo/camera_ws/scripts/pc_time_check.py" "$@"
+fi
 if [ "${1:-}" = --legacy-check ]; then
   shift
   echo '只读legacy定位检查：原生雷达 → 准备受影响包 → 伴随主机对时 → 定位/D435/MAP；不运动。'

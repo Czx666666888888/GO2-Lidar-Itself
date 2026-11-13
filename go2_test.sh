@@ -5,6 +5,12 @@ go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [ "$(uname -m)" = aarch64 ]; then
   export GO2_RUNTIME_PROFILE="${GO2_RUNTIME_PROFILE:-local}"
 fi
+if [ "${GO2_RUNTIME_PROFILE:-}" != local ]; then
+  export GO2_TIME_MAPPING_MODE="${GO2_TIME_MAPPING_MODE:-imu}"
+  if [ "${1:-}" = --execute ] && [ "${GO2_PC_TIME_HELD:-}" != 1 ] && [[ " $* " == *" --mode dock "* ]]; then
+    exec /usr/bin/python3 -u "$go2_test_root/camera_ws/scripts/pc_time_check.py" "$@"
+  fi
+fi
 if [ "${GO2_RUNTIME_PROFILE:-}" = local ] && [ "$#" -eq 0 ]; then
   exec bash "$go2_test_root/camera_ws/scripts/run_go2_local.sh"
 fi

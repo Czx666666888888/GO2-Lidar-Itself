@@ -1,0 +1,214 @@
+{
+  "metrics": {
+    "receive_delay_s": {
+      "count": 0
+    },
+    "imu_receive_delay_s": {
+      "count": 0
+    },
+    "cloud_future_s": {
+      "count": 0
+    },
+    "imu_future_s": {
+      "count": 0
+    },
+    "state_future_s": {
+      "count": 0
+    },
+    "base_future_s": {
+      "count": 0
+    },
+    "derived_lidar_end_future_s": {
+      "count": 0
+    },
+    "scan_span_s": {
+      "count": 0
+    },
+    "go2_minus_pc_s": {
+      "count": 0
+    },
+    "raw_cloud_dds_source_minus_header_s": {
+      "count": 0
+    },
+    "raw_imu_dds_source_minus_header_s": {
+      "count": 0
+    },
+    "raw_cloud_header_minus_pc_wall_s": {
+      "count": 0
+    },
+    "raw_cloud_dds_source_minus_pc_wall_s": {
+      "count": 0
+    },
+    "raw_imu_header_minus_pc_wall_s": {
+      "count": 0
+    },
+    "raw_imu_dds_source_minus_pc_wall_s": {
+      "count": 0
+    },
+    "lidar_state_header_minus_pc_wall_s": {
+      "count": 0
+    },
+    "lidar_state_dds_source_minus_pc_wall_s": {
+      "count": 0
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_wall_ns_s": {
+      "count": 0
+    },
+    "lidar_state_serial_recv_stamp_ns_minus_stamp_ns_s": {
+      "count": 0
+    },
+    "lidar_state_dds_source_ns_minus_serial_recv_stamp_ns_s": {
+      "count": 0
+    },
+    "lidar_state_dds_source_ns_minus_stamp_ns_s": {
+      "count": 0
+    },
+    "internal_lidar_end_future_s": {
+      "count": 0
+    }
+  },
+  "fixed_cloud_offsets_ns": [],
+  "analyzed_samples_start_mono_ns": 0,
+  "imu_matching_same_offset": 0,
+  "imu_matching_zero_offset": 0,
+  "base_exact_state_stamp_matches": 0,
+  "state_matches_derived_scan_end_within_2us": 0,
+  "internal_time_evidence": "NOT VERIFIED: no internal log; derived values separate",
+  "physical_motion_commanded": false,
+  "startup_imu_published_without_mapping": 0,
+  "tf_exact_query_success": 0,
+  "tf_queries": 0,
+  "receive_delay_warning": "Raw stamp uses a different epoch; receive age is NOT network latency.",
+  "native_lidar": {
+    "pc_received_hz": null,
+    "received_clouds": 0,
+    "producer_fields": {
+      "cloud_frequency": {
+        "count": 0
+      },
+      "cloud_packet_loss_rate": {
+        "count": 0
+      },
+      "cloud_scan_num": {
+        "count": 0
+      },
+      "cloud_size": {
+        "count": 0
+      },
+      "imu_frequency": {
+        "count": 0
+      },
+      "imu_packet_loss_rate": {
+        "count": 0
+      },
+      "error_state": {
+        "count": 0
+      }
+    },
+    "scan_span_s": {
+      "count": 0
+    },
+    "assessment": "NOT VERIFIED: missing cloud or LidarState samples",
+    "checks": {
+      "pc_cloud_rate_at_least_10hz": false,
+      "producer_cloud_rate_at_least_10hz": false,
+      "producer_loss_at_most_10pct": false,
+      "median_scan_at_most_100ms": false
+    },
+    "passed": false,
+    "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+  },
+  "status": "NOT VERIFIED: native_lidar_healthy, clock_publishers_absent, slam_uses_wall_clock, raw_inputs_received, mapping_ready, mapping_without_fault, continuous_inputs, controller_timestamp_limits, controller_odom_continuity, exact_base_tf, exact_camera_tf, capture_complete, setup_ok, exact_target_map, confirmed_selected_target, fresh_confirmed_target",
+  "time_mapping": null,
+  "time_conversion_mode": null,
+  "mapping_offset_stability_s": {
+    "count": 0
+  },
+  "stamp_nonadvancing": {
+    "cloud": 0,
+    "imu": 0,
+    "state": 0,
+    "base": 0
+  },
+  "maximum_receive_gap_s": {
+    "cloud": null,
+    "imu": null,
+    "state": null,
+    "base": null
+  },
+  "maximum_position_step_m": {
+    "state": null,
+    "base": null
+  },
+  "exact_source_time_tf": {
+    "base": {
+      "queries": 0,
+      "exact_success": 0,
+      "success_rate": null
+    },
+    "camera": {
+      "queries": 0,
+      "exact_success": 0,
+      "success_rate": null
+    }
+  },
+  "target_map_exact_stamp_matches": 0,
+  "target_map_samples": 0,
+  "target_map_validation": "NOT VERIFIED: missing or non-exact target map measurements",
+  "target_manager": {
+    "track_snapshots": 0,
+    "confirmed_unvisited_ids": [],
+    "selected_samples": 0,
+    "coarse_samples": 0,
+    "map_point_samples": 0
+  },
+  "diagnostic_goals": {
+    "median_future_at_most_20ms": false
+  },
+  "controller_timestamp_limits_s": {
+    "future_tolerance": 0.15,
+    "odom_timeout": 0.4
+  },
+  "acceptance_checks": {
+    "native_lidar_healthy": false,
+    "clock_publishers_absent": false,
+    "slam_uses_wall_clock": false,
+    "raw_inputs_received": false,
+    "mapping_ready": false,
+    "mapping_without_fault": false,
+    "continuous_inputs": false,
+    "stamps_increasing": true,
+    "finite_positions": true,
+    "controller_timestamp_limits": false,
+    "controller_odom_continuity": false,
+    "exact_base_tf": false,
+    "exact_camera_tf": false,
+    "capture_complete": false,
+    "setup_ok": false,
+    "exact_target_map": false,
+    "confirmed_selected_target": false,
+    "fresh_confirmed_target": false
+  },
+  "earliest_bias_stage": "IMU receipt P5 approximates native-to-local offset before shared cloud/IMU conversion; remaining one-way network/dispatch delay is not independently identifiable",
+  "position_jump_assessment": "Observed position-step statistics only; physical trajectory/reference required to judge jumps",
+  "native_clock_repaired": false,
+  "setup_or_capture_error": "\u5bf9\u65f6\u504f\u5dee/SSH\u5f80\u8fd4\u8fc7\u5927\uff0c\u505c\u6b62\uff1b\u91cd\u65b0\u68c0\u67e5\u7f51\u7edc\u548c\u65f6\u949f",
+  "comparison": {
+    "baseline": "/tmp/go2_live_verify/camera_ws/records/time_20261112_231501_before_internal/report.json",
+    "before_base_future": {
+      "count": 446,
+      "mean": 0.057411832896860984,
+      "median": 0.0572147305,
+      "p95": 0.06736103125000001,
+      "maximum": 0.071509918,
+      "minimum": 0.03594372,
+      "slope_per_second": -0.0007286427241507886,
+      "first": 0.069598449,
+      "last": 0.037377297
+    },
+    "after_base_future": {
+      "count": 0
+    },
+    "after_verified": false
+  }
+}

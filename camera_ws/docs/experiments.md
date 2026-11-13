@@ -1918,3 +1918,65 @@ bash go2_test.sh --local-check
 
 PC仅可通过SSH执行同一NX入口。迁移完成后同一入口才会启动本机映射/Point-LIO/base/TF/D435/MAP
 并输出结果；它不依赖PC在线。当前不能提供已验收的NX完整运动启动命令。
+
+## 2026-11-13 PC受控IMU定位通过，NX部署暂停（基线28ffcbf）
+
+用户本轮改变优先级：只恢复PC运动条件，不推进NX容器/ROS迁移或完整S1抓取。
+只读检查PC时钟源tsc、timesyncd active，NTP频率-500ppm、网络delay641ms/jitter517ms。
+历史ROS与RAW60秒相差395ms的异常成立，但本次两轮20秒在线/暂停对照未复现：
+第一轮wall-minus-RAW为-1.852/-3.955ms；第二轮为-1.613/-5.221ms。
+因此**不能确认NTP是历史异常唯一原因**，也不能仅凭远端NTP高延迟推导本地时钟跳变。
+CLOCK_REALTIME/MONOTONIC受频率校正、RAW不受同类校正，参考Linux官方接口文档：
+https://man7.org/linux/man-pages/man2/clock_gettime.2.html
+停止timesyncd不等于把内核频率修正归零；本轮未修改adjtimex频率、系统日期或GO2原装主控时钟。
+
+### 实际受控执行与必要修复
+
+新入口pc_time_check.py先原生预检/按需构建，再记录20秒在线时钟，sudo临时停止原本active的
+systemd-timesyncd，记录20秒暂停时钟，运行当前会话IMU映射60秒；finally恢复原active状态。
+不更改服务enabled配置，Ctrl+C/SIGTERM先等待原停止流程退出再恢复校时，异常结果返回失败码。
+若恢复失败明确报错；人工恢复为sudo systemctl start systemd-timesyncd。
+第一轮定位未启动：相机伴随主机仍偏差-107.413ms，原50ms检查阻断；PC服务已恢复成功。
+已有sync_go2_clock.py在收到PC采样后再启动date子进程，会把该启动/调度延迟带入设时。
+最小改为sudo授权后的同一Python进程调用clock_settime；仍只设置既有.18相机伴随主机，
+不接触GO2原装原生雷达生产者主控。复验5次偏差+2.881～+2.972ms，启动检查通过。
+该实测支持设时路径改善，但未测量date子进程全部延迟，不声称它解释所有历史时差。
+
+### 第二轮60秒真实硬件验收
+
+- mode=imu，原始IMU2秒窗口P5初始化共享b，未用首帧完整点云，未按帧覆盖now。
+  b=3460654.208629460s；不复用上次offset；LiDAR/IMU共同使用，点内时间原样保留。
+- 原生点云14.816Hz、中位丢包0.552%；889帧cloud及14982条原生IMU。
+- Point-LIO/base各889条，机身最大接收间隔100.521ms；时间单调、位姿有限，最大相邻机身步长30.469mm。
+- base stamp-minus-receive中位 **-23.421ms**，范围 **-59.911～-16.508ms**，即本窗口没有超前，
+  已消除先前数百毫秒偏差，满足当前future_tolerance=150ms和odom_timeout=400ms。
+- 机身TF889/889、相机TF893/893，均100%；目标MAP470/470精确源时间匹配，
+  selected1359条，最终CONFIRMED未访问ID1且新鲜；用户确认蓝色目标已放好并保持可见。
+- IMU窗口候选残差最终+29.262ms；接收-header趋势约+0.128ms/s，DDS source-header中位7.959us，
+  暂无源端发布延迟放大的证据。接收差仍混合相对钟差与传输/调度，不能完全分离单向延迟。
+  本次满足控制要求，**未增加在线offset修正**，更未提高任何阈值或修改Point-LIO/MAP/D435/S1算法。
+- 总报告PASS，PC timesyncd已核对恢复active，S1只读ZERO_HOLD/busy=false/navigation_allowed=true。
+  测试结束清理相机/定位；没有发运动、抓取或姿态命令。通过仅代表此窗口和单次dock测试数据条件，
+  不代表长期定位精度或实际停车/抓取验收。
+
+### 一键入口
+
+只读复验：`bash go2_test.sh --time-diagnostic --pc-time-check`。
+PC默认选择IMU模式；legacy保留显式可选，不再作为当前PC默认。
+唯一单目标运动命令（由操作者在急停可用、路线空旷后执行）：
+
+```bash
+bash go2_test.sh --execute --mode dock
+```
+
+此命令自动进入同一受控校时暂停/恢复上下文，子流程通过GO2_PC_TIME_HELD防止递归。
+整个dock退出前保持同样时间条件，退出后恢复原服务；不在只读验证后恢复NTP又直接套用测试结论。
+复用原一键完整准备、原生预检、伴随主机对时、S1保持、D435/定位/TF/真实目标验收和唯一控制出口。
+不会省略定位新鲜度/异常停车、SEARCH/STOP_CONFIRM或4cm/10°/0.5s及三自由度控制。
+本轮没有执行这个运动分支，运动分支的新增上下文仅做语法/源码检查，实际运动仍NOT VERIFIED。
+不启动NX工作，也不改full抓取动作链。
+
+证据：camera_ws/analysis/go2_pc_controlled_20261113/；原始records下pc_time_1794566476733729043、
+pc_time_1794566682116417530、time_20261113_184240_pc_paused_imu（启动失败）、
+time_20261113_184550_pc_paused_imu（通过）。摘要含原始文件SHA256。
+仅按需构建transform_sensors一次（上一轮主机时钟检测变更尚未安装），无批量测试/全仓构建。

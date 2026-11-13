@@ -8,8 +8,13 @@ import time
 
 def main():
     password = getpass.getpass('GO2 sudo password (local input, not saved): ')
-    root_script = 'printf "CLOCK_SYNC_READY\\n"; read -r clock_epoch; date -s "@$clock_epoch"'
-    command = shlex.join(['sudo', '-k', '-S', '-p', '', 'sh', '-c', root_script])
+    # Set only the camera companion clock. Avoid spawning date after the PC
+    # sampled its time: that process startup becomes a clock-setting error.
+    root_script = ("import sys,time; print('CLOCK_SYNC_READY',flush=True); "
+                   "value=float(sys.stdin.readline()); "
+                   "time.clock_settime(time.CLOCK_REALTIME,value); "
+                   "print('COMPANION_CLOCK_SET',time.time(),flush=True)")
+    command = shlex.join(['sudo', '-k', '-S', '-p', '', '/usr/bin/python3', '-u', '-c', root_script])
     proc = subprocess.Popen(
         ['ssh', '-i', '/home/czx666/.ssh/id_ed25519_go2', '-o', 'ConnectTimeout=5',
          'unitree@192.168.123.18', command],

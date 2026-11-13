@@ -1,0 +1,63 @@
+{
+  "baseline": "28ffcbfe5ad2dba2b102326facdac34163ad25bb",
+  "physical_motion_commanded": false,
+  "fixed_imu_mapping_used": true,
+  "bounded_online_correction_added": false,
+  "reason": "60 s IMU-session fixed mapping met controller limits; no correction necessary",
+  "status": "PASS: read-only mapped localization and exact camera TF observed",
+  "raw_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_184550_pc_paused_imu",
+  "ntp_service_before": "active",
+  "ntp_service_during": "inactive",
+  "ntp_service_after": "active",
+  "ntp_sole_cause_confirmed": false,
+  "base_future_s": {
+    "count": 889,
+    "mean": -0.025275557020247467,
+    "median": -0.023421072,
+    "p95": -0.019223993800000002,
+    "maximum": -0.01650805,
+    "minimum": -0.059910853,
+    "slope_per_second": -0.00012879393630859832,
+    "first": -0.02258499,
+    "last": -0.053348066
+  },
+  "tf": {
+    "base": {
+      "queries": 889,
+      "exact_success": 889,
+      "success_rate": 1.0
+    },
+    "camera": {
+      "queries": 893,
+      "exact_success": 893,
+      "success_rate": 1.0
+    }
+  },
+  "target_map": {
+    "samples": 470,
+    "exact": 470,
+    "final_confirmed_ids": [
+      1
+    ]
+  },
+  "s1_status_readonly": {
+    "state": "ZERO_HOLD",
+    "busy": false,
+    "navigation_allowed": true
+  },
+  "raw_hashes": {
+    "samples.jsonl": "0110d4722d1aad0a7126d9d5457e399e49fa8bff861699140cf7946ef6f53e60",
+    "readonly_slam.log": "7a0f58e8bbe3d028bd2cc9496cfdc485cb49f821b18f618f715fd3932317c1af",
+    "trend.json": "6b05328ccf61ed6382058bb15aa5c4368bdba893db734463729b0d7a17cfe849",
+    "metadata.json": "9a45e110b866ef84ab94319cc59de5f3a8acaa9f1bfb5bdda5de88c6408b5a06",
+    "point_lio_internal.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "report.txt": "cf2a3cec91ad326d59f7faf6da2917e3b36880985c3a95ab90ffe6838be8dcc0",
+    "camera.log": "8a2cdbed5a0a3afef3f0e345413da73bdf7983558fe1fdcdb0dee194bb1ec704",
+    "replaced_localization_pids.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "report.json": "729a9d12454ffad4dbbdd538ca84ad4e7b3158568aae53f35512ebfbccb6b363"
+  },
+  "runtime_source_hashes": {
+    "camera_ws/scripts/sync_go2_clock.py": "48e0ee4a05947baa713585e44dec9e7ba3879ed6ca63c70fff582ec6c65ea6d6",
+    "code/autonomy_stack_go2_src/utilities/transform_sensors/transform_sensors/imu_time_mapping.py": "db41870b1c4aaa646945550952cc12a82e223193eaec332568371a919aaeb4cc"
+  }
+}
