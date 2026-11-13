@@ -1,5 +1,16 @@
 # Project Status
 
+## 2026-11-13 右侧物块横向净距调整（静态）
+
+用户确认前后到位但右侧过近，要求机身再远离20～35cm；本轮取中值27.5cm。
+集成停靠Y目标由S1右侧0.31m改为0.585m，机身停车位向左移0.275m；前后位置、
+4cm/10°/0.5s、速度和S1动作链不变。几何校验允许停车目标在抓取参考区外，
+原29～33cm抓取参考区保持，predicted_in_grasp_region=false不伪称可抓取。
+默认DockSettings历史值保留，真实入口通过science_grasp_docking.yaml覆盖；计划输出同步。
+新版仅定向软件检查，真实净距/机械臂可达性NOT VERIFIED；下一轮先用dock，不直接full。
+命令：bash go2_test.sh --execute --mode dock（真实运动，本轮未执行）。
+
+
 ## 2026-11-13 单次dock失败收尾与full入口静态接入
 
 用户现场确认已停稳但位置有偏差。实际单次dock在19.600s因无进展保护FAULT，末端129mm；

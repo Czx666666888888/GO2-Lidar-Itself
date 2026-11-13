@@ -36,9 +36,11 @@ class DockSettings:
         if min(self.position_tolerance, self.yaw_tolerance,
                self.settled_sec, self.progress_timeout) <= 0:
             raise ValueError('Dock tolerances and settling time must be positive')
-        if not (self.region_x_min <= self.target_s1_x <= self.region_x_max and
-                0 < self.region_y_min <= self.target_s1_y <= self.region_y_max):
-            raise ValueError('Recommended target must lie in the right-side S1 region')
+        # Dock clearance can exceed the original grasp reference region.
+        # Keep that region unchanged so reachability diagnostics remain honest.
+        if not (self.region_x_min <= self.region_x_max and
+                0 < self.region_y_min <= self.region_y_max and self.target_s1_y > 0):
+            raise ValueError('Invalid right-side dock target or grasp reference region')
 
 
 def target_in_s1(target_map, vehicle_pose, settings=None):

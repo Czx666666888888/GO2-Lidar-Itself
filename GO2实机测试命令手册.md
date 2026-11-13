@@ -1162,3 +1162,13 @@ LD_LIBRARY_PATH=/home/unitree/cyclonedds_ws/install/cyclonedds/lib
 若新版本出现`odometry continuation limit`，是独立的视觉丢失ODOM 5m/25s约束；
 若出现`grasp docking stalled`，是10s没有有效位姿/停稳进展。两者都需保留日志分析，不自动扩大保护。
 完整新控制与抓取仍需实机验证，原S1模块继续自行检查可观测性和可达性。
+
+## 2026-11-13 右侧物块横向净距调整（静态）
+
+用户确认前后到位但右侧过近，要求机身再远离20～35cm；本轮取中值27.5cm。
+集成停靠Y目标由S1右侧0.31m改为0.585m，机身停车位向左移0.275m；前后位置、
+4cm/10°/0.5s、速度和S1动作链不变。几何校验允许停车目标在抓取参考区外，
+原29～33cm抓取参考区保持，predicted_in_grasp_region=false不伪称可抓取。
+默认DockSettings历史值保留，真实入口通过science_grasp_docking.yaml覆盖；计划输出同步。
+新版仅定向软件检查，真实净距/机械臂可达性NOT VERIFIED；下一轮先用dock，不直接full。
+命令：bash go2_test.sh --execute --mode dock（真实运动，本轮未执行）。

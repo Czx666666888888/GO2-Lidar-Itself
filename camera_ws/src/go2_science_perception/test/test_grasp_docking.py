@@ -201,3 +201,15 @@ def test_new_tolerance_does_not_change_plain_map_stopping():
     out = c.step(10.5)
     assert out['state'] == 'STOP' and out['reason'] == 'camera XY aligned'
     assert out['vy'] == 0 and DockSettings().position_tolerance == .04
+
+
+def test_additional_right_clearance_preserves_grasp_reference():
+    old = DockSettings()
+    new = DockSettings(target_s1_y=0.585)
+    before = docking_goal((1.0, -0.5), 0.0, old)
+    after = docking_goal((1.0, -0.5), 0.0, new)
+    assert after[0] == pytest.approx(before[0])
+    assert after[1] - before[1] == pytest.approx(0.275)
+    report = geometry_report((1.0, -0.5), after, 0.0, new)
+    assert report['position_error_m'] == pytest.approx(0.0)
+    assert not report['predicted_in_grasp_region']

@@ -2034,3 +2034,15 @@ full运动前不要求物块已经在视野内，因此允许从无目标视野�
 首次接口检查因未source ROS缺builtin_interfaces而未收集；source现有Humble底包后同范围30项通过。
 单独go2_science_perception构建成功；脚本语法/计划打印通过，没有全仓构建或新运动。
 **修改后的持续修正与full完整动作实机NOT VERIFIED**。本轮只做静态修改，不沿用前次运动授权。
+
+## 2026-11-13 右侧物块横向净距调整（静态）
+
+用户确认前后到位但右侧过近，要求机身再远离20～35cm；本轮取中值27.5cm。
+集成停靠Y目标由S1右侧0.31m改为0.585m，机身停车位向左移0.275m；前后位置、
+4cm/10°/0.5s、速度和S1动作链不变。几何校验允许停车目标在抓取参考区外，
+原29～33cm抓取参考区保持，predicted_in_grasp_region=false不伪称可抓取。
+默认DockSettings历史值保留，真实入口通过science_grasp_docking.yaml覆盖；计划输出同步。
+新版仅定向软件检查，真实净距/机械臂可达性NOT VERIFIED；下一轮先用dock，不直接full。
+命令：bash go2_test.sh --execute --mode dock（真实运动，本轮未执行）。
+
+验证：26项停靠定向检查通过，go2_science_perception单包构建通过，py_compile/diff检查通过；无实机运动。
