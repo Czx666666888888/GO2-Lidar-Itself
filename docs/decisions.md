@@ -50,3 +50,47 @@ This is a lightweight Architecture Decision Record. “Accepted” means the dec
 - **Evidence:** Root `.gitignore`.
 - **Reason:** Keep the source repository reviewable and avoid large/generated/sensitive artifacts.
 - **Status:** Accepted. Raw experiment bags must be managed separately with an explicit location and checksum if used later.
+
+## ADR-008 — 在线offset跟踪方案评审（已由ADR-009取代，未实施）
+
+- **状态：Superseded by ADR-009；未实施滚动offset。**
+- **操作边界：** 用户本轮要求先记录、确认后执行；本次只记录方案，不据此启动运动/机械臂。
+- **实际实现基线：** 独立集成分支45eac367f7ca001a531985bc17dc03e6995934b5。
+  当前transform_everything.py委托ImuTimeMapping：原始IMU的2秒窗口、至少200样本、
+  接收时间减header的P5初始化b，初始化后固定；LiDAR/IMU共用该映射。
+  用户引用的time_stamp_offset_set/首帧完整点云代码已不在该版本，不能按旧行号直接替换。
+- **用户提出：** 只在transform_everything.py维护最近50帧完整点云recv-header中位数，逐帧更新b，
+  共用于IMU；不改topic/frame/QoS/控制路径，实施后测试。
+- **源码与实测风险：** 原始点云header对应扫描开始，Point-LIO继续加点内相对时间得到扫描末端。
+  因此完整点云接收时刻减header包含扫描跨度，以及发布/网络/调度延迟；并非纯钟差。
+  用该估计映射扫描开始后，再加点内时长，会把扫描结束推到接收时刻之后。
+  中位数能压抖动，不能消除扫描跨度偏差；共用该b还会把偏差传给IMU。
+  正常扫描中位约63.77ms；最新异常窗口约464ms、原生约2.07Hz/83.43%丢包。
+  50帧只在15Hz时约3.3秒，在2.07Hz时约24秒，跟踪延迟随退化显著变化。
+- **漂移数字核对：** 若漂移率真为780微秒/秒，30分钟累计为1.404秒，而非47ms；
+  47ms约对应60秒。该漂移率未在本次重新测量，不作为已确认的GO2固定特性。
+- **建议决策：** 不重新用完整点云recv-header估计b；如批准在线跟踪，优先在现有IMU
+  观测窗口上持续估计共享b，明确有界更新、映射单调性与时钟突变处理，保留现有故障锁存/100ms保护。
+  当前映射实现在imu_time_mapping.py，因此正式实现的文件范围需要按实际结构确定，
+  不能承诺只加一个同名属性就能让现有IMU/cloud自动跟随。
+  在线offset跟踪不等于独立UTC校准，也不能恢复原生雷达频率/丢包或修复伴随主机重启后的旧日期。
+- **确认后最小验证：** 只构建受影响转换包，先确认无运动任务与原生健康，再经现有只读入口
+  检查共享offset、IMU/点云/扫描末端与里程计时间、READY、单调性、精确TF/目标MAP；
+  不启动运动、不修改Point-LIO/MAP/S1控制算法，不以短时通过宣称长期漂移已治愈。
+- **证据：** 当前transform_everything.py/imu_time_mapping.py源码、
+  camera_ws/analysis/go2_native_lidar_20261113及go2_blue_target_20261113实测记录。
+
+## ADR-009 — 恢复历史legacy转换，保留当前控制功能（2026-11-13）
+
+- **状态：Accepted，用户本轮明确授权实施。** 取代ADR-008的滚动offset提案；不开发新时间同步框架。
+- **基线：** fetch后HEAD为45eac367f7ca；仅从a8f7c667874b提取时间转换公式，不回退整个仓库。
+- **决定：** 默认legacy，首帧LiDAR回调b=本机ROS接收时间-header，运行期间固定；LiDAR/IMU
+  都加同一b，点内时间不变，legacy不实例化/调用ImuTimeMapping的READY/FAULT/source_guard。
+  启动前IMU等待首帧LiDAR建立b，避免沿用历史初始化前offset=0的另一时基；不改几何转换。
+  imu/explicit模式保留可选，日志和状态明确模式。历史约57ms超前风险保留，不声称精确同步。
+- **参数例外：** 用户本轮末尾明确要求future_tolerance由0.10改为0.15，已同时修改控制器默认值
+  和YAML；odom_timeout=0.4s、停靠容差/速度/STOP/S1参数不变。IMU可选模式内部100ms保护未改。
+- **运行边界：** 原生雷达不健康先停止，不用legacy掩盖原生低频。只读一键入口复用现有健康、
+  新鲜度/TF/目标验收，不增加门限；运动需操作者另行执行原dock入口。
+- **证据：** 历史/当前源码、两包构建输出、已安装文件与源码逐字节一致；本轮原生LiDAR8.15Hz、
+  源端8.18Hz/35.36%丢包未通过，所以未启动legacy定位、D435/MAP或运动，实机恢复NOT VERIFIED。

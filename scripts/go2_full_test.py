@@ -246,6 +246,7 @@ class Workflow:
         self.folder.mkdir(parents=True)
         (self.folder/'manifest.json').write_text(json.dumps(dict(
             commit=head, branch=BRANCH, mode=self.args.mode,
+            time_mapping_mode=os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'),
             work_dir=str(self.work), physical_result='NOT VERIFIED'), indent=2))
         self.env_prefix = '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
             Path('/opt/ros/humble/setup.bash'), ROOT/'deploy_ws/install/setup.bash'])+'; '
@@ -267,6 +268,8 @@ class Workflow:
         self.env_prefix += '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
             self.overlay, self.work/'camera_ws/scripts/science_approach_pc_env.bash'])+'; '
         self.env_prefix += 'export SCIENCE_APPROACH_OVERLAY='+shlex.quote(str(self.overlay))+'; '
+        self.env_prefix += 'export GO2_TIME_MAPPING_MODE='+shlex.quote(
+            os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'))+'; '
 
     def execute(self):
         self.prepare()

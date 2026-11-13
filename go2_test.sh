@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unified entry; --time-diagnostic restores only the read-only localization chain.
+# Read-only legacy chain: --time-diagnostic --legacy-check. Motion: --execute.
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [ "${1:-}" = --time-diagnostic ]; then

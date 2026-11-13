@@ -1,0 +1,143 @@
+{
+  "baseline": "45eac367f7ca001a531985bc17dc03e6995934b5",
+  "history": "a8f7c667874b3416bb9af5a01b2ad1d0560f6442",
+  "historical_file_sha256": "f7f211e9da3dfaed2076cd4947e2057add0293eb1d077e5d70fe5fec3aa99ba1",
+  "restored_logic": "b=first LiDAR callback ROS receive ns minus raw header ns; frozen for session; cloud and IMU both stamp+b; point-relative times unchanged; legacy bypasses ImuTimeMapping",
+  "startup_difference": "IMU waits for first cloud offset, avoiding pre-initialization zero-offset epoch",
+  "time_mode_default": "legacy",
+  "optional_modes": [
+    "imu",
+    "explicit"
+  ],
+  "future_tolerance_requested": 0.15,
+  "odom_timeout_unchanged": 0.4,
+  "legacy_localization_started": false,
+  "legacy_runtime_verification": "NOT VERIFIED: native LiDAR health check failed; per user stop before localization",
+  "native_lidar": {
+    "pc_received_hz": 8.150484504756713,
+    "received_clouds": 81,
+    "producer_fields": {
+      "cloud_frequency": {
+        "count": 50,
+        "mean": 8.165682802200317,
+        "median": 8.175007820129395,
+        "p95": 8.443943548202515,
+        "maximum": 8.583641052246094,
+        "minimum": 7.732649326324463,
+        "slope_per_second": 0.005105856384387987,
+        "first": 8.254632949829102,
+        "last": 8.311216354370117
+      },
+      "cloud_packet_loss_rate": {
+        "count": 50,
+        "mean": 35.28176784515381,
+        "median": 35.35911560058594,
+        "p95": 38.674034118652344,
+        "maximum": 38.674034118652344,
+        "minimum": 31.49171257019043,
+        "slope_per_second": -0.016833323730563867,
+        "first": 37.01657485961914,
+        "last": 32.04419708251953
+      },
+      "cloud_scan_num": {
+        "count": 50,
+        "mean": 180.0,
+        "median": 180.0,
+        "p95": 180.0,
+        "maximum": 180.0,
+        "minimum": 180.0,
+        "slope_per_second": -1.6948566872179614e-14,
+        "first": 180.0,
+        "last": 180.0
+      },
+      "cloud_size": {
+        "count": 50,
+        "mean": 21384.0,
+        "median": 21384.0,
+        "p95": 21396.1,
+        "maximum": 21400.0,
+        "minimum": 21368.0,
+        "slope_per_second": 0.0067212805370496145,
+        "first": 21394.0,
+        "last": 21400.0
+      },
+      "imu_frequency": {
+        "count": 50,
+        "mean": 249.8853903198242,
+        "median": 249.73046875,
+        "p95": 250.6201286315918,
+        "maximum": 250.7740020751953,
+        "minimum": 248.98548889160156,
+        "slope_per_second": 0.048449259522812024,
+        "first": 249.70599365234375,
+        "last": 249.96017456054688
+      },
+      "imu_packet_loss_rate": {
+        "count": 50,
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "maximum": 0.0,
+        "minimum": 0.0,
+        "slope_per_second": 0.0,
+        "first": 0.0,
+        "last": 0.0
+      },
+      "error_state": {
+        "count": 50,
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "maximum": 0.0,
+        "minimum": 0.0,
+        "slope_per_second": 0.0,
+        "first": 0.0,
+        "last": 0.0
+      }
+    },
+    "scan_span_s": {
+      "count": 81,
+      "mean": 0.1153229135606024,
+      "median": 0.10871580988168716,
+      "p95": 0.14827381074428558,
+      "maximum": 0.15825997292995453,
+      "minimum": 0.09026268869638443,
+      "slope_per_second": -0.0005633829408429746,
+      "first": 0.13667069375514984,
+      "last": 0.11923602968454361
+    },
+    "assessment": "OBSERVED: compare PC frequency, producer frequency and scan span together",
+    "checks": {
+      "pc_cloud_rate_at_least_10hz": false,
+      "producer_cloud_rate_at_least_10hz": false,
+      "producer_loss_at_most_10pct": false,
+      "median_scan_at_most_100ms": false
+    },
+    "passed": false,
+    "limitation": "LidarState reports producer health; exact pre-DDS loss mechanism is unknown. cloud_scan_num has no proven equality to the standalone SDK initialization argument."
+  },
+  "pc_received_imu_hz": 249.9879419566137,
+  "record_directory": "/home/czx666/today_full_20260901/today_full/camera_ws/records/time_20261113_174547_legacy_native_check",
+  "physical_motion_commanded": false,
+  "arm_commands_sent": false,
+  "builds": {
+    "transform_sensors": "PASS (one build, .time_sync)",
+    "go2_science_perception": "PASS (one build, .onekey; future_tolerance code/config changed)",
+    "point_lio_unilidar": "NOT BUILT, C++ unchanged"
+  },
+  "installed_files_match_source": {
+    "transform_everything": true,
+    "controller_yaml": true,
+    "controller_python": true
+  },
+  "source_sha256": {
+    "code/autonomy_stack_go2_src/utilities/transform_sensors/transform_sensors/transform_everything.py": "01e2e5e3bddd94d852e0f7bd85b42461077c70e16b9994289f379fcf2ae85f63",
+    "camera_ws/src/go2_science_perception/config/science_target_approach.yaml": "15105cd07977a51ddce57a8ac6e73dcaa1aab4a195ab9c399e45bc506d49bf95",
+    "camera_ws/src/go2_science_perception/go2_science_perception/science_target_approach.py": "088c8f63020e22e817adf83077b1189026d708331311b7c3e1f94b339b4e0305"
+  },
+  "record_sha256": {
+    "samples.jsonl": "3d2c300d8d262befca19d37d87c5ab34b3fa709fd726ea76bfc3bd8a4019aae2",
+    "metadata.json": "8b48621586b9c1244e3d918071a81cdd70fc238a55ad988f7b4e0ba61d847cf8",
+    "report.json": "374a83260a00556da4328eb720d34098d00ff72a63e967424e4f3e724bf2ff1a"
+  }
+}

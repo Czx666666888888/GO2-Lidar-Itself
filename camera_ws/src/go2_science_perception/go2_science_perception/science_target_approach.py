@@ -34,7 +34,7 @@ class ScienceTargetApproach(Node):
         for field in fields(defaults):
             self.declare_parameter(field.name, getattr(defaults, field.name))
         for name, value in {'dry_run': True, 'map_frame': 'map',
-                            'future_tolerance': 0.10, 'camera_frame': 'camera_link',
+                            'future_tolerance': 0.15, 'camera_frame': 'camera_link',
                             'require_recording': False, 'recording_timeout': 2.0,
                             'log_directory': '/tmp'}.items():
             self.declare_parameter(name, value)

@@ -56,21 +56,26 @@ class Repuber(Node):
 
         self.imu_stationary_list = []
         
-        # No complete-cloud receipt offset: the window is formed only from IMU.
-        self.declare_parameter('time_mapping_mode', 'imu')
+        # Restore a8f7c667's first-cloud shared offset without reverting controls.
+        self.declare_parameter('time_mapping_mode', os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'))
         self.declare_parameter('sensor_time_offset_sec', 0.0)
         self.declare_parameter('time_mapping_window_sec', 2.0)
         self.declare_parameter('time_mapping_min_samples', 200)
         self.declare_parameter('time_mapping_percentile', 5.0)
-        mode = self.get_parameter('time_mapping_mode').value
-        if mode not in ('imu', 'explicit'):
-            raise ValueError('time_mapping_mode must be imu or explicit')
-        self.mapping = ImuTimeMapping(
+        self.time_mode = self.get_parameter('time_mapping_mode').value
+        if self.time_mode not in ('legacy', 'imu', 'explicit'):
+            raise ValueError('time_mapping_mode must be legacy, imu or explicit')
+        self.time_stamp_offset = 0
+        self.time_stamp_offset_set = False
+        self.mapping = None if self.time_mode == 'legacy' else ImuTimeMapping(
             window_sec=self.get_parameter('time_mapping_window_sec').value,
             min_samples=self.get_parameter('time_mapping_min_samples').value,
             percentile=self.get_parameter('time_mapping_percentile').value,
             explicit_offset_sec=(self.get_parameter('sensor_time_offset_sec').value
-                                 if mode == 'explicit' else None))
+                                 if self.time_mode == 'explicit' else None))
+        self.get_logger().warning(
+            f'TIME_MODE={self.time_mode}; legacy uses first-cloud receipt minus header, '
+            'not precise clock synchronization; historical odometry future bias about 57 ms')
         self.mapping_status_pub = self.create_publisher(String, '/utlidar/time_mapping/status', 10)
         self.create_timer(1.0, self.publish_mapping_status)
         
@@ -140,7 +145,16 @@ class Repuber(Node):
         self.z_filter_max = 0 - self.cam_offset
 
     def publish_mapping_status(self):
-        report = self.mapping.status()
+        if self.time_mode == 'legacy':
+            report = dict(ready=self.time_stamp_offset_set, fault='',
+                          offset_ns=self.time_stamp_offset if self.time_stamp_offset_set else None,
+                          offset_sec=self.time_stamp_offset/1e9 if self.time_stamp_offset_set else None,
+                          absolute_clock_synchronization=False,
+                          limitation='Historical first-cloud receipt offset includes scan/transport delay; '
+                                     'no ImuTimeMapping READY/FAULT/source guard is used')
+        else:
+            report = self.mapping.status()
+        report['mode'] = self.time_mode
         report['ros_stamp_ns'] = self.get_clock().now().nanoseconds
         self.mapping_status_pub.publish(String(data=json.dumps(report)))
                 
@@ -156,7 +170,13 @@ class Repuber(Node):
 
     def cloud_callback(self, data):
         receive_ns = self.get_clock().now().nanoseconds
-        if not self.mapping.ready:
+        if self.time_mode == 'legacy':
+            if not self.time_stamp_offset_set:
+                self.time_stamp_offset = receive_ns-Time.from_msg(data.header.stamp).nanoseconds
+                self.time_stamp_offset_set = True
+                self.get_logger().warning(
+                    f'TIME_MODE=legacy first_cloud_offset_ns={self.time_stamp_offset}; fixed for this run')
+        elif not self.mapping.ready:
             return
                 
         cloud_arr = pc2.read_points_list(data)
@@ -184,16 +204,19 @@ class Repuber(Node):
         for id_to_remove in remove_list:
             del transformed_points[id_to_remove]
 
-        time_index = next((i for i, f in enumerate(data.fields) if f.name == 'time'), None)
-        if time_index is None or not transformed_points:
-            return
-        relative = [p[time_index] for p in transformed_points]
-        if not all(np.isfinite(v) and v >= 0 for v in relative):
-            self.mapping.fault = 'invalid L1 point relative time'
-            return
-        mapped_stamp = self.mapping.map_stamp(
-            'cloud', Time.from_msg(data.header.stamp).nanoseconds,
-            receive_ns, round(max(relative)*1e9))
+        if self.time_mode == 'legacy':
+            mapped_stamp = Time.from_msg(data.header.stamp).nanoseconds+self.time_stamp_offset
+        else:
+            time_index = next((i for i, f in enumerate(data.fields) if f.name == 'time'), None)
+            if time_index is None or not transformed_points:
+                return
+            relative = [p[time_index] for p in transformed_points]
+            if not all(np.isfinite(v) and v >= 0 for v in relative):
+                self.mapping.fault = 'invalid L1 point relative time'
+                return
+            mapped_stamp = self.mapping.map_stamp(
+                'cloud', Time.from_msg(data.header.stamp).nanoseconds,
+                receive_ns, round(max(relative)*1e9))
         if mapped_stamp is None:
             return
         
@@ -222,10 +245,16 @@ class Repuber(Node):
     def imu_callback(self, data, info):
         receive_ns = self.get_clock().now().nanoseconds
         stamp_ns = Time.from_msg(data.header.stamp).nanoseconds
-        if not self.mapping.observe_imu(stamp_ns, info.get('source_timestamp', 0),
-                                        receive_ns, time.monotonic_ns()):
-            return
-        mapped_stamp = self.mapping.map_stamp('imu', stamp_ns, receive_ns)
+        if self.time_mode == 'legacy':
+            # Share the first cloud's offset; do not emit a second epoch at startup.
+            if not self.time_stamp_offset_set:
+                return
+            mapped_stamp = stamp_ns+self.time_stamp_offset
+        else:
+            if not self.mapping.observe_imu(stamp_ns, info.get('source_timestamp', 0),
+                                            receive_ns, time.monotonic_ns()):
+                return
+            mapped_stamp = self.mapping.map_stamp('imu', stamp_ns, receive_ns)
         if mapped_stamp is None:
             return
         trans = np.zeros(3)

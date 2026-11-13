@@ -19,6 +19,19 @@ if [ ! -f "$go2_time_repo/camera_ws/scripts/go2_time_diagnostic.py" ]; then
   fi
   exec bash "$go2_time_integration/camera_ws/scripts/run_go2_time_diagnostic.sh" "$@"
 fi
+if [ "${1:-}" = --legacy-check ]; then
+  shift
+  echo '只读legacy定位检查：原生雷达 → 准备受影响包 → 伴随主机对时 → 定位/D435/MAP；不运动。'
+  bash "$go2_time_repo/camera_ws/scripts/run_go2_time_diagnostic.sh" \
+    --lidar-check --duration 10 --label legacy_native_preflight
+  export GO2_TIME_MAPPING_MODE=legacy
+  bash "$go2_time_repo/camera_ws/scripts/run_go2_time_diagnostic.sh" --prepare-only
+  if [ "${GO2_CAMERA_HOST:-unitree@192.168.123.18}" = unitree@192.168.123.18 ]; then
+    /usr/bin/python3 "$go2_time_repo/camera_ws/scripts/sync_go2_clock.py"
+  fi
+  exec bash "$go2_time_repo/camera_ws/scripts/run_go2_time_diagnostic.sh" \
+    --time-mode legacy --restart-localization --require-target --label legacy_localization "$@"
+fi
 source /opt/ros/humble/setup.bash
 source "${GO2_TIME_UNDERLAY:-$go2_time_repo/deploy_ws/install/setup.bash}"
 go2_time_observe=false
@@ -26,10 +39,14 @@ for go2_time_arg in "$@"; do
   case "$go2_time_arg" in --observe-only|--lidar-check|--help|-h) go2_time_observe=true ;; esac
 done
 if [ "$go2_time_observe" = false ]; then
-  if [ ! -f "$go2_time_repo/.onekey/install/go2_science_perception/share/go2_science_perception/package.xml" ]; then
+  go2_time_perception="$go2_time_repo/camera_ws/src/go2_science_perception"
+  go2_time_perception_hash="$(sha256sum "$go2_time_perception/config/science_target_approach.yaml" "$go2_time_perception/go2_science_perception/science_target_approach.py" | sha256sum | cut -d' ' -f1)"
+  go2_time_perception_marker="$go2_time_repo/.git/time_build_perception_config"
+  if [ ! -f "$go2_time_repo/.onekey/install/go2_science_perception/share/go2_science_perception/package.xml" ] || [ ! -f "$go2_time_perception_marker" ] || [ "$(cat "$go2_time_perception_marker")" != "$go2_time_perception_hash" ]; then
     (cd "$go2_time_repo" && PYTHONNOUSERSITE=1 /usr/bin/python3 /usr/bin/colcon \
       --log-base .onekey/log build --base-paths camera_ws/src \
       --build-base .onekey/build --install-base .onekey/install --packages-select go2_science_perception)
+    printf '%s\n' "$go2_time_perception_hash" > "$go2_time_perception_marker"
   fi
   go2_time_source="$go2_time_repo/code/autonomy_stack_go2_src/utilities/transform_sensors"
   go2_time_hash="$(sha256sum "$go2_time_source/transform_sensors/transform_everything.py" "$go2_time_source/transform_sensors/imu_time_mapping.py" "$go2_time_source/package.xml" | sha256sum | cut -d' ' -f1)"

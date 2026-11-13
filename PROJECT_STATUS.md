@@ -1,5 +1,15 @@
 # Project Status
 
+## 2026-11-13 恢复a8f7c667历史legacy模式（实施基线45eac367）
+
+仅恢复首帧LiDAR接收-header固定offset、LiDAR/IMU共用、点内时间不变，legacy绕过新版IMU锁存。
+默认legacy，IMU可选代码保留；Point-LIO算法、D435/MAP管理、SEARCH/STOP_CONFIRM、3DOF/S1均保留。
+用户明确要求future_tolerance由0.10改0.15，已同步默认/YAML/安装包；400ms新鲜度不变。
+两受影响包各构建部署一次，安装源码一致。原生实测cloud8.150Hz/IMU249.988Hz，源端8.175Hz/
+35.359%丢包，检查未通过；按用户要求未启动legacy定位/D435/MAP，运动恢复NOT VERIFIED。
+只读一键：bash go2_test.sh --time-diagnostic --legacy-check；原dock运动入口保留，当前不放行。
+证据camera_ws/analysis/go2_legacy_restore_20261113；当前legacy可能仍带历史约57ms超前，不是精确同步。
+
 ## 2026-11-13 蓝色目标运动前验收（cbf71eb基线）
 
 20ms调整为诊断报告目标，硬检查对齐现有100ms future/400ms odom freshness，未改任何算法/阈值。

@@ -3,7 +3,7 @@
 	<arg name="rviz" default="true" />
 	<arg name="use_sim_time" default="true" />
 	<arg name="time_diagnostic_log" default="false" />
-	<arg name="time_mapping_mode" default="imu" />
+	<arg name="time_mapping_mode" default="$(env GO2_TIME_MAPPING_MODE legacy)" />
 	<arg name="sensor_time_offset_sec" default="0.0" />
 
 	<node pkg="transform_sensors" exec="transform_everything" name="transform_everything" output="screen">

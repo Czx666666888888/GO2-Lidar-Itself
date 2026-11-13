@@ -35,4 +35,4 @@ science_target_approach:
     max_run_time: 45.0
     odom_max_time: 25.0
     odom_max_distance: 2.0
-    future_tolerance: 0.10
+    future_tolerance: 0.15

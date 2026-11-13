@@ -3,6 +3,73 @@
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
+## 2026-11-13 历史legacy恢复（实际基线45eac367，原生异常时未启动定位）
+
+本轮先fetch，远端集成分支仍为45eac367f7ca。只从a8f7c667874b提取历史时间转换，
+没有回退仓库、Point-LIO算法、D435识别/MAP目标管理或S1协调代码。
+
+### 当前默认与参数
+
+- 默认`time_mapping_mode=legacy`：首帧LiDAR回调计算`b=本机ROS接收ns-原始header ns`，
+  本次运行固定；LiDAR和IMU共用`stamp+b`，不改变点内相对时间。
+- legacy不创建/调用新版ImuTimeMapping，不受其READY、FAULT或source_guard锁存影响。
+  初始化前只等待首帧LiDAR建立共享b，不发布offset=0的另一个IMU时基。
+- 日志明确`TIME_MODE=legacy`及`first_cloud_offset_ns`，状态也带mode/offset；
+  `ready`在legacy只表示首帧offset已建立，不是新版IMU状态机。
+- 保留`imu`和`explicit`可选模式；本轮没有实现滚动中位数或新同步框架。
+- **按用户本轮最后的明确要求，future_tolerance已从0.10改为0.15s**，默认值和YAML一致，
+  已安装文件也一致；odom_timeout仍0.4s。IMU可选模式内部100ms保护保留，不影响legacy。
+- 历史方案曾有约57ms系统性超前，本次恢复不等于精确校时。实际50～100ms超前是否重现，
+  必须等原生健康后测量；本轮没有legacy里程计数据，不能把历史值写成本轮值。
+
+### 唯一只读实机入口
+
+先把蓝色目标放到相机视野内，PC执行：
+
+```bash
+bash go2_test.sh --time-diagnostic --legacy-check
+```
+
+顺序：环境/原生LiDAR+IMU+LidarState检查 → 准备有变化的转换包/控制配置 →
+现有伴随主机对时（同终端询问sudo密码，不保存）→ 明确选择legacy →
+只读Point-LIO/base/TF/D435/目标MAP/管理器 → 输出原始记录和结果。
+不启动速度控制或机械臂动作，不需要手动开多个终端；初始化会建立新地图。
+原生检查失败会立即退出，**不会用legacy时间戳掩盖上游故障**。
+原生健康后此入口检查连续里程计、400ms新鲜度、当前150ms未来容差、TF、真实MAP及CONFIRMED目标；
+20ms诊断目标继续仅记录，不新增验收门槛。默认采30秒；可加`--duration 60`。
+通过后如需持续保持只读链可加`--keep-running`；运动前退出该只读会话。
+
+完整运动入口保留不变（当前不得执行，需只读验收通过并确认现场急停/空旷路线）：
+
+```bash
+bash go2_test.sh --execute --mode dock
+```
+
+该入口默认legacy，保留原生检查、S1 ZERO_HOLD、SEARCH→STOP_CONFIRM→MAP目标追踪→
+vx/vy/wz三自由度闭环→4cm/10°/0.5s停稳确认→STOP；不进入抓取。
+原full模式的StandDown/StandUp、S1抓取协调与唯一运动出口也保留，不改这些算法或参数。
+Ctrl+C请求原停止/清理，物理急停仍由操作者保持可用。
+可选IMU模式仍可经`GO2_TIME_MAPPING_MODE=imu`或诊断的`--time-mode imu`选择；
+`--legacy-check`始终明确选legacy，避免继承错误模式。未测试Orin硬件，NOT VERIFIED。
+
+### 本轮必要实测与部署结果
+
+- 初次DDS初始化出现接口枚举错误；宿主确认enp12s0为UP/192.168.123.99后，重试取得真实流。
+- 10秒81帧原生cloud、2501条IMU、50条LidarState：PC点云 **8.150485Hz**，
+  PC IMU **249.987942Hz**；源端cloud_frequency中位 **8.175008Hz**、
+  cloud_packet_loss_rate中位 **35.359116%**，cloud_scan_num=180。
+  扫描跨度中位108.716ms，P95 148.274ms、最大158.260ms。
+  虽不再是2Hz/80%，但仍显著偏离历史约15Hz/低丢包，原生检查未通过。
+- 遵照“原生异常直接报告”，**未启动legacy定位链、D435/MAP或运动**。
+  Point-LIO持续定位、跳变、里程计实际超前、TF/目标MAP/CONFIRMED均为本轮 **NOT VERIFIED**，
+  不借用上一轮数据宣称这次恢复成功，当前不具备单目标停靠放行条件。
+- 已通过现有准备入口各构建一次transform_sensors和go2_science_perception；后者仅因future_tolerance
+  的代码/配置变化而构建。两个包部署成功，安装文件与源码逐字节一致。
+  未编译Point-LIO或其他包；Python/Shell/XML语法和diff检查通过，无离线仿真/批量单元测试。
+- 证据：`camera_ws/analysis/go2_legacy_restore_20261113/summary.json`和native_report.json；
+  原始数据在主仓库`camera_ws/records/time_20261113_174547_legacy_native_check/`，摘要含SHA256。
+  下一步先恢复原生健康，再执行上述同一只读入口；不再研究主控SSH或继续开发时间算法。
+
 ## 2026-11-13 蓝色目标与运动前验收（cbf71eb基线，未放行）
 
 本轮真实放置目标（用户回复“完成”），启动D435/Point-LIO/base/目标MAP和目标管理，

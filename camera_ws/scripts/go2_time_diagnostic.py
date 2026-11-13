@@ -259,9 +259,11 @@ def analyze(folder):
                     'internal_time_evidence', 'startup_imu_published_without_mapping',
                     'tf_exact_query_success', 'tf_queries'):
             result.pop(key, None)
-    if metadata.get('transport') == 'IMU mapping read-only localization':
+    if metadata.get('transport') in ('IMU mapping read-only localization',
+                                      'Read-only time conversion/localization'):
         statuses = [r['fields'] for r in groups['mapping']]
         result['time_mapping'] = statuses[-1] if statuses else None
+        result['time_conversion_mode'] = statuses[-1].get('mode', 'imu') if statuses else None
         result['mapping_offset_stability_s'] = stats([
             (r['mono_ns']/1e9, r['fields']['residual_offset_sec'])
             for r in groups['mapping'] if r['fields'].get('residual_offset_sec') is not None])
@@ -331,6 +333,9 @@ def analyze(folder):
             exact_camera_tf=bool(exact['camera']['queries'] and exact['camera']['success_rate'] >= .95),
             capture_complete=metadata.get('record_complete', False),
             setup_ok=not metadata.get('setup_or_capture_error'))
+        if result['time_conversion_mode'] == 'legacy':
+            checks['legacy_offset_initialized'] = checks.pop('mapping_ready')
+            checks.pop('mapping_without_fault')
         if metadata.get('arguments', {}).get('require_target'):
             checks['exact_target_map'] = bool(len(debug) >= 5 and
                 result['target_map_exact_stamp_matches'] == len(debug))
@@ -343,6 +348,9 @@ def analyze(folder):
                             if all(checks.values()) else 'NOT VERIFIED: '+', '.join(
                                 k for k, passed in checks.items() if not passed))
         result['earliest_bias_stage'] = (
+            'Historical first-cloud receipt minus header, fixed and shared by cloud/IMU; '
+            'includes scan/transport delay, historically about 57 ms odometry future bias'
+            if result['time_conversion_mode'] == 'legacy' else
             'IMU receipt P5 approximates native-to-local offset before shared cloud/IMU conversion; '
             'remaining one-way network/dispatch delay is not independently identifiable')
         result['position_jump_assessment'] = (
@@ -509,7 +517,9 @@ class ReadonlyChain:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--duration', type=float, default=30)
-    parser.add_argument('--label', default='imu_mapping')
+    parser.add_argument('--label', default='localization')
+    parser.add_argument('--time-mode', choices=('legacy', 'imu', 'explicit'),
+                        default=os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'))
     parser.add_argument('--observe-only', action='store_true', help='只记录原生DDS，不构建/启动/停止节点')
     parser.add_argument('--lidar-check', action='store_true', help='仅验原生点云/LidarState健康，不以原生epoch作UTC验收')
     parser.add_argument('--require-target', action='store_true', help='同时要求真实目标精确MAP转换与CONFIRMED/selected输出')
@@ -520,6 +530,7 @@ def main():
     parser.add_argument('--camera-host', default=os.environ.get('GO2_CAMERA_HOST', 'unitree@192.168.123.18'),
                         help='相机伴随主机SSH名，或local（Orin本地）、existing（仅复用）')
     args = parser.parse_args()
+    os.environ['GO2_TIME_MAPPING_MODE'] = args.time_mode
     if args.lidar_check:
         args.observe_only = True
     if not 0 < args.duration <= 120:
@@ -543,7 +554,7 @@ def main():
                     rmw=os.environ.get('RMW_IMPLEMENTATION'),
                     cyclone_configuration=os.environ.get('CYCLONEDDS_URI'),
                     transport=('PC ROS2 DDS; native observation only' if args.observe_only
-                               else 'IMU mapping read-only localization'),
+                               else 'Read-only time conversion/localization'),
                     hardware_model='L1', model_evidence='User confirmed L1 in this session',
                     existing_slam_policy=('observe only' if args.observe_only else
                                           'reuse existing; restart only with explicit flag'),
