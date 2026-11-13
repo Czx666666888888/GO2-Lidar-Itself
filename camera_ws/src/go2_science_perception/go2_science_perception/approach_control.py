@@ -69,8 +69,8 @@ class Settings:
             raise ValueError('unknown stop reference')
         if self.anchor_alpha > 1:
             raise ValueError('anchor_alpha must be <= 1')
-        if self.search_enabled and self.search_speed > min(0.30, self.max_linear_speed):
-            raise ValueError('search speed exceeds motion cap')
+        if self.search_enabled and self.search_speed > 0.35:
+            raise ValueError('SEARCH speed cap is 0.35; approach cap remains 0.30')
         if self.search_enabled and self.stop_reference != 'camera_origin':
             raise ValueError('SEARCH requires camera_origin')
         if self.search_enabled and (not isinstance(self.search_trigger_observations, int) or

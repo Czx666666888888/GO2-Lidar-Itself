@@ -2062,3 +2062,12 @@ SEARCH原5m/60秒及普通MAP时间逻辑不变；横向额外10cm保留，前�
 本轮未实机运动，新速度和长时间丢视觉停靠实机NOT VERIFIED，实际可达性不据软件检查推断。
 
 本轮构建：仅go2_science_perception构建成功，git diff --check通过；未启动硬件。
+
+## 2026-11-13 SEARCH速度0.35m/s（用户指定）
+
+SEARCH profile从0.25改0.35m/s，SEARCH独立上限校验改0.35；共享安全门max_speed改0.35以免截断。
+接近/停靠控制器max_linear_speed仍0.30，微调最低目标0.10且制动优先，角速度及加减速不变。
+SEARCH仍5m/60秒，停稳确认/唯一控制出口/定位异常停车不变；前移3cm尚未实施。
+本轮仅软件修改，不启动运动，新速度真实行走与停止表现NOT VERIFIED。
+
+验证：39项SEARCH/停靠检查通过，go2_science_perception单包构建成功，diff检查通过。未运动。清理本机遗留录像与监视进程；远端SSH拒绝/超时，远端残留未确认。

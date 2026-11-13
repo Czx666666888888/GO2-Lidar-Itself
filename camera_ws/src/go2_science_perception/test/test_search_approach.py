@@ -183,3 +183,21 @@ def test_extended_confirmation_budget_keeps_zero_until_six_seconds():
         else:
             break
     assert r['state'] == 'SEARCH' and c.target is None
+
+
+def test_search_can_reach_035_while_approach_cap_stays_030():
+    c = search()
+    c.p.search_speed = .35
+    c.p.__post_init__()
+    for i in range(1, 32):
+        out = sample(c, 10+i*.1, distance=5.0)
+    assert out['state'] == 'SEARCH'
+    assert abs(out['vx']-.35) < 1e-9
+    assert c.p.max_linear_speed == .30
+    c.p.search_speed = .351
+    try:
+        c.p.__post_init__()
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('SEARCH must retain the new explicit cap')

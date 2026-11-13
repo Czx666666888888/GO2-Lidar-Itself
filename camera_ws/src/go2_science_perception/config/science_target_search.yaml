@@ -2,7 +2,7 @@
 science_target_approach:
   ros__parameters:
     search_enabled: true
-    search_speed: 0.25
+    search_speed: 0.35
     search_distance: 5.0
     search_timeout: 60.0
     search_cross_track_limit: 0.20
