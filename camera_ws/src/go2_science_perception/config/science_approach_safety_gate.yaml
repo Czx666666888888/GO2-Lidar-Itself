@@ -2,7 +2,7 @@
 go2_safety_gate:
   ros__parameters:
     dry_run: true
-    max_speed: 0.35  # SEARCH; approach controller remains capped at 0.30.
+    max_speed: 0.30
     min_speed: 0.0
     max_yaw_rate: 0.30
     max_accel: 0.30
