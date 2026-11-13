@@ -28,3 +28,6 @@ datasets/science_targets_synthetic*/
 # Original video links and annotation media stay local.
 video_sources/
 datasets/science_targets_video_v1/
+annotations/
+datasets/science_targets_mixed_v1/
+!reports/science_targets_mixed_v1/results.csv

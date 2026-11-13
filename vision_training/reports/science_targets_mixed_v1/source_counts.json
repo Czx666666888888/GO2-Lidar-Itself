@@ -1,0 +1,33 @@
+{
+  "train:synthetic": {
+    "images": 480,
+    "boxes": {
+      "0": 302,
+      "2": 356,
+      "1": 292
+    }
+  },
+  "train:phone_real": {
+    "images": 117,
+    "boxes": {
+      "0": 107,
+      "2": 34
+    }
+  },
+  "val:synthetic": {
+    "images": 120,
+    "boxes": {
+      "0": 90,
+      "2": 88,
+      "1": 76
+    }
+  },
+  "val:phone_real": {
+    "images": 57,
+    "boxes": {
+      "2": 60,
+      "0": 224,
+      "1": 33
+    }
+  }
+}

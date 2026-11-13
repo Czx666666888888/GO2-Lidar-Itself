@@ -1,0 +1,7387 @@
+{
+  "weights_sha256": "d0b6dc563add714d3b4b01485f604781c91b53dca8cb8797e22cee91a57692e4",
+  "groups": {
+    "synthetic_val": {
+      "images": 120,
+      "precision": 0.9915667688772247,
+      "recall": 0.9977649364047368,
+      "map50": 0.9949259167798493,
+      "map50_95": 0.9447319112587551,
+      "per_class": {
+        "color_block": {
+          "precision": 0.9873016049668526,
+          "recall": 1.0,
+          "map50": 0.9948901098901098,
+          "map50_95": 0.9717937070127481
+        },
+        "rock_compact": {
+          "precision": 1.0,
+          "recall": 0.9932948092142104,
+          "map50": 0.995,
+          "map50_95": 0.9137615341693376
+        },
+        "rock_spiky": {
+          "precision": 0.9873987016648215,
+          "recall": 1.0,
+          "map50": 0.9948876404494381,
+          "map50_95": 0.9486404925941798
+        }
+      },
+      "scope": "held-out validation",
+      "confusion_matrix": [
+        [
+          90.0,
+          0.0,
+          0.0,
+          2.0
+        ],
+        [
+          0.0,
+          75.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0,
+          88.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "speed_ms": {
+        "preprocess": 0.16668438911437988,
+        "inference": 2.022381623586019,
+        "loss": 0.0005026658376057943,
+        "postprocess": 0.666972001393636
+      },
+      "fixed_conf_025_iou_05_counts": {
+        "tp": 254,
+        "fp": 2,
+        "fn": 0
+      },
+      "cases": [
+        {
+          "image": "c0_s0000_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.0,
+            51.0,
+            27.99999839999998
+          ]
+        },
+        {
+          "image": "c0_s0000_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            75.0,
+            80.0,
+            41.0
+          ]
+        },
+        {
+          "image": "c0_s0005_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            77.0,
+            23.00000160000002
+          ]
+        },
+        {
+          "image": "c0_s0005_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            80.0,
+            17.99999999999997
+          ]
+        },
+        {
+          "image": "c0_s0010_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            53.0,
+            14.000000000000057,
+            63.0
+          ]
+        },
+        {
+          "image": "c0_s0010_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            151.0,
+            32.00000159999999,
+            40.0
+          ]
+        },
+        {
+          "image": "c0_s0015_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            99.00000000000006,
+            109.0
+          ]
+        },
+        {
+          "image": "c0_s0015_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.0,
+            62.00000000000002
+          ]
+        },
+        {
+          "image": "c0_s0020_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.0
+          ]
+        },
+        {
+          "image": "c0_s0020_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            92.0
+          ]
+        },
+        {
+          "image": "c0_s0025_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            106.0
+          ]
+        },
+        {
+          "image": "c0_s0025_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            140.0
+          ]
+        },
+        {
+          "image": "c0_s0030_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            111.0,
+            62.00000160000002
+          ]
+        },
+        {
+          "image": "c0_s0030_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            75.0,
+            32.99999999999997
+          ]
+        },
+        {
+          "image": "c0_s0035_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            90.0
+          ]
+        },
+        {
+          "image": "c0_s0035_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            94.00000000000006
+          ]
+        },
+        {
+          "image": "c0_s0040_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            72.99999999999994,
+            35.0,
+            92.99999999999994
+          ]
+        },
+        {
+          "image": "c0_s0040_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            111.0,
+            57.0,
+            74.0
+          ]
+        },
+        {
+          "image": "c0_s0045_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            68.0,
+            23.00000160000002
+          ]
+        },
+        {
+          "image": "c0_s0045_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            53.0,
+            15.0
+          ]
+        },
+        {
+          "image": "c0_s0050_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            107.0,
+            97.0
+          ]
+        },
+        {
+          "image": "c0_s0050_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            51.0,
+            63.0
+          ]
+        },
+        {
+          "image": "c0_s0055_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            84.0,
+            18.99999839999998
+          ]
+        },
+        {
+          "image": "c0_s0055_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            128.0,
+            30.999998400000038
+          ]
+        },
+        {
+          "image": "c0_s0060_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            139.00000000000006,
+            60.9999984,
+            53.000001600000004
+          ]
+        },
+        {
+          "image": "c0_s0060_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            82.99999999999994,
+            37.99999999999994,
+            37.0
+          ]
+        },
+        {
+          "image": "c0_s0065_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            80.0,
+            70.0
+          ]
+        },
+        {
+          "image": "c0_s0065_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            97.00000000000006,
+            98.0
+          ]
+        },
+        {
+          "image": "c0_s0070_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            132.0,
+            65.99999999999997,
+            85.0
+          ]
+        },
+        {
+          "image": "c0_s0070_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.0,
+            35.00000159999996,
+            78.0
+          ]
+        },
+        {
+          "image": "c0_s0075_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            64.0,
+            18.99999839999998
+          ]
+        },
+        {
+          "image": "c0_s0075_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            112.00000000000003,
+            49.0
+          ]
+        },
+        {
+          "image": "c0_s0080_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            67.0
+          ]
+        },
+        {
+          "image": "c0_s0080_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            75.0
+          ]
+        },
+        {
+          "image": "c0_s0085_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            70.0,
+            64.00000000000006,
+            63.0
+          ]
+        },
+        {
+          "image": "c0_s0085_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            94.0,
+            110.00000159999999,
+            32.0
+          ]
+        },
+        {
+          "image": "c0_s0090_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.0,
+            25.999999999999943,
+            18.0
+          ]
+        },
+        {
+          "image": "c0_s0090_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            52.0,
+            32.0,
+            15.0
+          ]
+        },
+        {
+          "image": "c0_s0095_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            62.0,
+            86.00000000000003
+          ]
+        },
+        {
+          "image": "c0_s0095_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            117.99999999999996,
+            146.0
+          ]
+        },
+        {
+          "image": "c1_s0000_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.0,
+            21.99999840000001,
+            72.0
+          ]
+        },
+        {
+          "image": "c1_s0000_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.0,
+            33.0,
+            144.0
+          ]
+        },
+        {
+          "image": "c1_s0005_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            14.0
+          ]
+        },
+        {
+          "image": "c1_s0005_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            33.0
+          ]
+        },
+        {
+          "image": "c1_s0010_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.99999839999998,
+            51.0
+          ]
+        },
+        {
+          "image": "c1_s0010_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            35.99999999999994,
+            126.00000000000003
+          ]
+        },
+        {
+          "image": "c1_s0015_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.99999839999998,
+            20.99999999999997,
+            21.99999840000001
+          ]
+        },
+        {
+          "image": "c1_s0015_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            14.000001599999962,
+            16.0,
+            18.000000000000057
+          ]
+        },
+        {
+          "image": "c1_s0020_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            26.00000159999999,
+            45.99999999999994,
+            104.00000159999995
+          ]
+        },
+        {
+          "image": "c1_s0020_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.0,
+            31.0,
+            76.0
+          ]
+        },
+        {
+          "image": "c1_s0025_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            22.0,
+            92.0
+          ]
+        },
+        {
+          "image": "c1_s0025_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            14.000000000000057,
+            47.99999999999997
+          ]
+        },
+        {
+          "image": "c1_s0030_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            16.0,
+            30.99999839999998,
+            27.0
+          ]
+        },
+        {
+          "image": "c1_s0030_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.999999999999943,
+            36.00000000000003,
+            38.00000160000002
+          ]
+        },
+        {
+          "image": "c1_s0035_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.00000000000003,
+            21.99999840000001
+          ]
+        },
+        {
+          "image": "c1_s0035_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.99999999999997,
+            33.0
+          ]
+        },
+        {
+          "image": "c1_s0040_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.0,
+            112.00000000000003
+          ]
+        },
+        {
+          "image": "c1_s0040_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.0,
+            88.99999999999997
+          ]
+        },
+        {
+          "image": "c1_s0045_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            26.00000160000002,
+            51.99999840000004
+          ]
+        },
+        {
+          "image": "c1_s0045_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            39.99999840000004,
+            90.0
+          ]
+        },
+        {
+          "image": "c1_s0050_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.99999839999998,
+            51.99999840000004
+          ]
+        },
+        {
+          "image": "c1_s0050_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.00000159999999,
+            37.99999999999997
+          ]
+        },
+        {
+          "image": "c1_s0055_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.00000160000002
+          ]
+        },
+        {
+          "image": "c1_s0055_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            19.0
+          ]
+        },
+        {
+          "image": "c1_s0060_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.00000000000003
+          ]
+        },
+        {
+          "image": "c1_s0060_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.0
+          ]
+        },
+        {
+          "image": "c1_s0065_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 4,
+          "tp": 3,
+          "fn": 0,
+          "fp": 1,
+          "missed_classes": [],
+          "false_classes": [
+            2
+          ],
+          "missed_gt": [],
+          "false_predictions": [
+            [
+              2.0,
+              37.593467712402344,
+              425.74456787109375,
+              85.35345458984375,
+              480.0
+            ]
+          ],
+          "gt_short_side_at_640": [
+            31.0,
+            161.99999999999997,
+            47.0
+          ]
+        },
+        {
+          "image": "c1_s0065_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.999998400000038,
+            62.0,
+            18.000000000000057
+          ]
+        },
+        {
+          "image": "c1_s0070_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.999999999999943,
+            44.00000159999996
+          ]
+        },
+        {
+          "image": "c1_s0070_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.999999999999943,
+            35.0
+          ]
+        },
+        {
+          "image": "c1_s0075_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            14.0,
+            15.0
+          ]
+        },
+        {
+          "image": "c1_s0075_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            17.999999999999943,
+            20.0
+          ]
+        },
+        {
+          "image": "c1_s0080_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.0,
+            31.0
+          ]
+        },
+        {
+          "image": "c1_s0080_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            38.00000160000002,
+            60.99999840000004
+          ]
+        },
+        {
+          "image": "c1_s0085_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            23.0
+          ]
+        },
+        {
+          "image": "c1_s0085_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.999999999999943
+          ]
+        },
+        {
+          "image": "c1_s0090_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            17.000000000000057
+          ]
+        },
+        {
+          "image": "c1_s0090_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.0
+          ]
+        },
+        {
+          "image": "c1_s0095_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.999998400000038,
+            30.0
+          ]
+        },
+        {
+          "image": "c1_s0095_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.0,
+            39.99999840000001
+          ]
+        },
+        {
+          "image": "c2_s0000_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            51.99999839999998,
+            50.0
+          ]
+        },
+        {
+          "image": "c2_s0000_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            42.0,
+            45.0
+          ]
+        },
+        {
+          "image": "c2_s0005_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            35.0,
+            36.99999840000001,
+            58.0
+          ]
+        },
+        {
+          "image": "c2_s0005_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.0000016,
+            47.99999999999997,
+            80.99999999999997
+          ]
+        },
+        {
+          "image": "c2_s0010_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            45.99999840000004,
+            24.0
+          ]
+        },
+        {
+          "image": "c2_s0010_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            52.00000000000006,
+            29.00000160000002
+          ]
+        },
+        {
+          "image": "c2_s0015_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            26.0,
+            12.0
+          ]
+        },
+        {
+          "image": "c2_s0015_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            42.99999839999998,
+            20.0
+          ]
+        },
+        {
+          "image": "c2_s0020_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            38.00000159999996
+          ]
+        },
+        {
+          "image": "c2_s0020_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            31.0
+          ]
+        },
+        {
+          "image": "c2_s0025_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            29.0,
+            28.0
+          ]
+        },
+        {
+          "image": "c2_s0025_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            54.0,
+            47.99999999999994
+          ]
+        },
+        {
+          "image": "c2_s0030_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            44.0,
+            85.00000000000001,
+            18.99999840000001
+          ]
+        },
+        {
+          "image": "c2_s0030_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.999999999999943,
+            75.99999999999994,
+            20.0
+          ]
+        },
+        {
+          "image": "c2_s0035_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            57.99999839999998,
+            124.00000000000004
+          ]
+        },
+        {
+          "image": "c2_s0035_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.99999839999998,
+            45.0
+          ]
+        },
+        {
+          "image": "c2_s0040_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            35.99999999999997
+          ]
+        },
+        {
+          "image": "c2_s0040_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            48.0
+          ]
+        },
+        {
+          "image": "c2_s0045_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            39.0
+          ]
+        },
+        {
+          "image": "c2_s0045_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.0
+          ]
+        },
+        {
+          "image": "c2_s0050_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            45.0,
+            47.00000160000002,
+            56.99999999999998
+          ]
+        },
+        {
+          "image": "c2_s0050_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.00000000000006,
+            27.0,
+            24.0
+          ]
+        },
+        {
+          "image": "c2_s0055_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.0,
+            13.0,
+            14.0
+          ]
+        },
+        {
+          "image": "c2_s0055_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            37.99999999999994,
+            19.0,
+            20.00000160000002
+          ]
+        },
+        {
+          "image": "c2_s0060_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            33.99999840000001,
+            32.99999999999994,
+            68.0
+          ]
+        },
+        {
+          "image": "c2_s0060_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            53.0,
+            47.00000000000003,
+            117.0
+          ]
+        },
+        {
+          "image": "c2_s0065_v00.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.00000159999999,
+            67.99999999999994
+          ]
+        },
+        {
+          "image": "c2_s0065_v01.png",
+          "source_video": null,
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.0,
+            46.0
+          ]
+        },
+        {
+          "image": "c2_s0070_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.99999840000001
+          ]
+        },
+        {
+          "image": "c2_s0070_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            71.99999999999994
+          ]
+        },
+        {
+          "image": "c2_s0075_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            48.99999839999998,
+            92.0,
+            68.0
+          ]
+        },
+        {
+          "image": "c2_s0075_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.0,
+            64.0,
+            51.0
+          ]
+        },
+        {
+          "image": "c2_s0080_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            42.99999999999994,
+            41.00000159999996,
+            35.99999999999997
+          ]
+        },
+        {
+          "image": "c2_s0080_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            56.99999999999998,
+            80.0,
+            22.0
+          ]
+        },
+        {
+          "image": "c2_s0085_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 4,
+          "tp": 3,
+          "fn": 0,
+          "fp": 1,
+          "missed_classes": [],
+          "false_classes": [
+            2
+          ],
+          "missed_gt": [],
+          "false_predictions": [
+            [
+              2.0,
+              399.72137451171875,
+              452.3712158203125,
+              453.09820556640625,
+              480.0
+            ]
+          ],
+          "gt_short_side_at_640": [
+            40.0,
+            80.99999999999994,
+            27.99999839999998
+          ]
+        },
+        {
+          "image": "c2_s0085_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.999998400000038,
+            75.0,
+            35.00000159999996
+          ]
+        },
+        {
+          "image": "c2_s0090_v00.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.99999840000001,
+            17.00000160000002,
+            62.99999999999994
+          ]
+        },
+        {
+          "image": "c2_s0090_v01.png",
+          "source_video": null,
+          "gt": 3,
+          "pred": 3,
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            71.99999999999997,
+            38.00000160000002,
+            45.0
+          ]
+        },
+        {
+          "image": "c2_s0095_v00.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            29.000000000000057
+          ]
+        },
+        {
+          "image": "c2_s0095_v01.png",
+          "source_video": null,
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            64.00000000000006
+          ]
+        }
+      ]
+    },
+    "phone_val": {
+      "images": 57,
+      "precision": 0.3040725385361675,
+      "recall": 0.5359307359307359,
+      "map50": 0.3673460882385195,
+      "map50_95": 0.23546910603160498,
+      "per_class": {
+        "color_block": {
+          "precision": 0.6996197718631179,
+          "recall": 0.8214285714285714,
+          "map50": 0.8374488624117399,
+          "map50_95": 0.5754685158595374
+        },
+        "rock_compact": {
+          "precision": 0.08196721311475409,
+          "recall": 0.30303030303030304,
+          "map50": 0.05381830601092897,
+          "map50_95": 0.020771516440882664
+        },
+        "rock_spiky": {
+          "precision": 0.13063063063063063,
+          "recall": 0.48333333333333334,
+          "map50": 0.21077109629288965,
+          "map50_95": 0.1101672857943949
+        }
+      },
+      "scope": "held-out validation",
+      "confusion_matrix": [
+        [
+          125.0,
+          0.0,
+          7.0,
+          2.0
+        ],
+        [
+          14.0,
+          0.0,
+          0.0,
+          2.0
+        ],
+        [
+          8.0,
+          1.0,
+          10.0,
+          8.0
+        ],
+        [
+          77.0,
+          32.0,
+          43.0,
+          0.0
+        ]
+      ],
+      "speed_ms": {
+        "preprocess": 0.16304902863084222,
+        "inference": 2.9014913659346733,
+        "loss": 0.0005814067104406524,
+        "postprocess": 0.20877101965117872
+      },
+      "fixed_conf_025_iou_05_counts": {
+        "tp": 134,
+        "fp": 50,
+        "fn": 183
+      },
+      "cases": [
+        {
+          "image": "video_B_f0000000.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            2
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              410.37023999999997,
+              134.140064,
+              511.70976,
+              235.93987199999998
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            67.55968000000003
+          ]
+        },
+        {
+          "image": "video_B_f0000048.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            67.25326933333334
+          ]
+        },
+        {
+          "image": "video_B_f0000096.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            2
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              398.94960000000003,
+              243.70003200000002,
+              476.1,
+              325.87014400000004
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            51.43359999999999
+          ]
+        },
+        {
+          "image": "video_B_f0000144.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            2
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              491.15999999999997,
+              348.68985599999996,
+              546.40032,
+              422.189696
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            36.826879999999996
+          ]
+        },
+        {
+          "image": "video_B_f0000192.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 1,
+          "tp": 1,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              866.4000000000001,
+              0.3900480000000013,
+              960.0,
+              50.609952
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            52.64640000000001,
+            33.479935999999995
+          ]
+        },
+        {
+          "image": "video_B_f0000240.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            86.42673066666663
+          ]
+        },
+        {
+          "image": "video_B_f0000286.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            25.56654933333334,
+            37.73312000000002
+          ]
+        },
+        {
+          "image": "video_B_f0000335.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 4,
+          "pred": 1,
+          "tp": 1,
+          "fn": 3,
+          "fp": 0,
+          "missed_classes": [
+            1,
+            0,
+            2
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              495.7296,
+              3.589856,
+              519.0096000000001,
+              18.189728000000002
+            ],
+            [
+              0.0,
+              825.7704,
+              2.6699519999999994,
+              870.0504,
+              20.929855999999997
+            ],
+            [
+              2.0,
+              424.51968,
+              170.660144,
+              453.27936000000005,
+              206.73006400000003
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            9.733248000000001,
+            25.926399999999983,
+            12.173269333333334,
+            19.17312000000004
+          ]
+        },
+        {
+          "image": "video_B_f0000388.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 8,
+          "pred": 5,
+          "tp": 5,
+          "fn": 3,
+          "fp": 0,
+          "missed_classes": [
+            2,
+            2,
+            1
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              261.55055999999996,
+              88.94998400000001,
+              291.68016,
+              114.059936
+            ],
+            [
+              2.0,
+              426.33984,
+              241.869744,
+              449.61984,
+              274.739856
+            ],
+            [
+              1.0,
+              440.95008,
+              93.970016,
+              458.7504,
+              110.86012800000002
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.526399999999986,
+            16.739967999999987,
+            15.52000000000002,
+            11.260074666666677,
+            17.34670933333333,
+            20.693119999999947,
+            20.386559999999992,
+            27.386773333333327
+          ]
+        },
+        {
+          "image": "video_B_f0000441.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 9,
+          "pred": 6,
+          "tp": 5,
+          "fn": 4,
+          "fp": 1,
+          "missed_classes": [
+            1,
+            0,
+            2,
+            2
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              1.0,
+              401.24016,
+              182.07027200000002,
+              421.32048,
+              195.310144
+            ],
+            [
+              0.0,
+              219.55008,
+              1.7601119999999995,
+              256.98048,
+              27.319952
+            ],
+            [
+              2.0,
+              177.09984,
+              218.13992000000002,
+              214.53023999999996,
+              248.71979199999998
+            ],
+            [
+              2.0,
+              466.05984,
+              412.60033599999997,
+              496.63968000000006,
+              455.06008
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              179.5612030029297,
+              217.81198120117188,
+              213.4896240234375,
+              248.70046997070312
+            ]
+          ],
+          "gt_short_side_at_640": [
+            8.826581333333328,
+            27.06688000000001,
+            33.479936,
+            17.039893333333335,
+            29.519999999999982,
+            18.866645333333338,
+            23.433600000000013,
+            20.38658133333331,
+            20.38656000000003
+          ]
+        },
+        {
+          "image": "video_B_f0000489.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 9,
+          "pred": 4,
+          "tp": 4,
+          "fn": 5,
+          "fp": 0,
+          "missed_classes": [
+            2,
+            2,
+            1,
+            0,
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              237.81024000000002,
+              280.67979199999996,
+              278.90016,
+              321.299728
+            ],
+            [
+              2.0,
+              695.6697600000001,
+              407.580032,
+              732.19008,
+              464.64019199999996
+            ],
+            [
+              1.0,
+              451.90992000000006,
+              178.41976,
+              474.73008000000004,
+              198.05
+            ],
+            [
+              0.0,
+              74.3904,
+              227.27014400000002,
+              123.69023999999999,
+              270.630208
+            ],
+            [
+              0.0,
+              215.50032,
+              129.999952,
+              257.00016,
+              183.900016
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.07995733333337,
+            24.346879999999903,
+            13.086826666666676,
+            28.90670933333331,
+            27.666560000000004,
+            38.95359999999997,
+            32.55985066666666,
+            33.173120000000004,
+            24.653354666666665
+          ]
+        },
+        {
+          "image": "video_B_f0000539.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 9,
+          "pred": 6,
+          "tp": 5,
+          "fn": 4,
+          "fp": 1,
+          "missed_classes": [
+            2,
+            2,
+            1,
+            0
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              672.38976,
+              314.000064,
+              705.26016,
+              348.689856
+            ],
+            [
+              2.0,
+              290.30976,
+              277.939936,
+              320.8896,
+              314.91017600000004
+            ],
+            [
+              1.0,
+              432.73008,
+              182.989904,
+              446.43024,
+              193.489648
+            ],
+            [
+              0.0,
+              130.07999999999998,
+              256.03006400000004,
+              172.07999999999998,
+              296.65000000000003
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              177.6452178955078,
+              16.044307708740234,
+              198.40191650390625,
+              34.894744873046875
+            ]
+          ],
+          "gt_short_side_at_640": [
+            31.646656,
+            21.913600000000013,
+            20.386559999999992,
+            6.999829333333328,
+            25.56002133333334,
+            24.34687999999998,
+            27.07995733333333,
+            26.780031999999988,
+            30.73998933333333
+          ]
+        },
+        {
+          "image": "video_B_f0000592.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 11,
+          "pred": 6,
+          "tp": 5,
+          "fn": 6,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            2,
+            2,
+            0,
+            0,
+            1
+          ],
+          "false_classes": [
+            2
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              131.44944,
+              41.48,
+              150.61968000000002,
+              56.079872
+            ],
+            [
+              2.0,
+              502.11984000000007,
+              228.63966399999998,
+              526.76976,
+              253.289936
+            ],
+            [
+              2.0,
+              210.42048,
+              212.19998399999997,
+              235.53024,
+              233.200016
+            ],
+            [
+              0.0,
+              251.50944000000004,
+              0.3900480000000013,
+              285.28992000000005,
+              26.869792
+            ],
+            [
+              0.0,
+              429.08016,
+              111.780032,
+              463.32048,
+              141.449792
+            ],
+            [
+              1.0,
+              329.11008,
+              148.75,
+              344.17056,
+              161.530192
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              428.9368896484375,
+              109.46768188476562,
+              465.00555419921875,
+              143.7593536376953
+            ]
+          ],
+          "gt_short_side_at_640": [
+            21.606591999999996,
+            9.733248000000003,
+            23.126528,
+            20.080128000000002,
+            19.47338666666667,
+            16.433279999999968,
+            14.000021333333356,
+            17.653162666666667,
+            21.30666666666666,
+            19.779839999999997,
+            8.520128
+          ]
+        },
+        {
+          "image": "video_B_f0000646.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 11,
+          "pred": 6,
+          "tp": 5,
+          "fn": 6,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          "false_classes": [
+            1
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              177.09984,
+              64.759936,
+              190.78944,
+              76.630016
+            ],
+            [
+              0.0,
+              423.14975999999996,
+              109.03990399999999,
+              446.42976,
+              130.489824
+            ],
+            [
+              2.0,
+              481.11936000000003,
+              179.789824,
+              499.39968,
+              198.099776
+            ],
+            [
+              1.0,
+              342.35040000000004,
+              133.69017599999998,
+              361.98048000000006,
+              146.920256
+            ],
+            [
+              0.0,
+              271.14048,
+              38.739872,
+              298.0704,
+              58.82
+            ],
+            [
+              0.0,
+              114.56016,
+              86.21012800000001,
+              142.85999999999999,
+              109.040176
+            ]
+          ],
+          "false_predictions": [
+            [
+              1.0,
+              110.74395751953125,
+              82.1119384765625,
+              148.28314208984375,
+              114.74282836914062
+            ]
+          ],
+          "gt_short_side_at_640": [
+            7.913386666666668,
+            13.693205333333347,
+            18.293269333333342,
+            17.64671999999996,
+            14.29994666666667,
+            12.17343999999999,
+            12.186879999999974,
+            8.820053333333343,
+            13.386752000000001,
+            15.220031999999994,
+            13.693205333333347
+          ]
+        },
+        {
+          "image": "video_B_f0000700.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 11,
+          "pred": 5,
+          "tp": 2,
+          "fn": 9,
+          "fp": 3,
+          "missed_classes": [
+            0,
+            2,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "false_classes": [
+            2,
+            1,
+            2
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              347.36976,
+              120.89992000000001,
+              371.1096,
+              138.24971200000002
+            ],
+            [
+              2.0,
+              554.6198400000001,
+              154.230256,
+              576.07008,
+              170.21025600000002
+            ],
+            [
+              1.0,
+              445.05984,
+              125.010112,
+              462.86015999999995,
+              136.880192
+            ],
+            [
+              0.0,
+              256.52975999999995,
+              91.68983999999999,
+              284.8296,
+              114.510096
+            ],
+            [
+              0.0,
+              299.43984,
+              79.36008,
+              312.22032,
+              88.950256
+            ],
+            [
+              0.0,
+              372.02016000000003,
+              58.370112000000006,
+              392.56032,
+              77.990016
+            ],
+            [
+              0.0,
+              323.6304,
+              140.53016,
+              341.44032,
+              156.97038400000002
+            ],
+            [
+              0.0,
+              494.36016,
+              72.519824,
+              514.45008,
+              93.059632
+            ],
+            [
+              0.0,
+              503.0395199999999,
+              105.380144,
+              523.1198400000001,
+              124.559952
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              370.1080627441406,
+              57.80947494506836,
+              392.83831787109375,
+              76.68624877929688
+            ],
+            [
+              1.0,
+              501.5977478027344,
+              105.56201934814453,
+              525.850830078125,
+              127.29393768310547
+            ],
+            [
+              2.0,
+              257.12774658203125,
+              89.79959106445312,
+              285.34197998046875,
+              114.03158569335938
+            ]
+          ],
+          "gt_short_side_at_640": [
+            11.566528000000005,
+            8.520128,
+            10.653333333333345,
+            7.913386666666658,
+            15.21350400000001,
+            6.393450666666666,
+            13.079935999999995,
+            10.960149333333353,
+            15.21350400000001,
+            13.393279999999967,
+            12.786538666666663
+          ]
+        },
+        {
+          "image": "video_B_f0000754.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 11,
+          "pred": 4,
+          "tp": 2,
+          "fn": 9,
+          "fp": 2,
+          "missed_classes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            1
+          ],
+          "false_classes": [
+            1,
+            1
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              350.57040000000006,
+              71.60019199999999,
+              375.22032,
+              86.67008
+            ],
+            [
+              0.0,
+              376.12991999999997,
+              13.62992,
+              397.58016000000003,
+              32.350048
+            ],
+            [
+              0.0,
+              326.8296,
+              91.23015999999998,
+              345.99984,
+              105.840368
+            ],
+            [
+              0.0,
+              258.34992,
+              40.559824,
+              281.17968,
+              61.559855999999996
+            ],
+            [
+              0.0,
+              300.34992000000005,
+              34.169728,
+              308.1096,
+              42.84
+            ],
+            [
+              2.0,
+              573.33024,
+              104.470032,
+              590.2204800000001,
+              123.64004800000001
+            ],
+            [
+              0.0,
+              508.04976000000005,
+              32.350048,
+              526.30992,
+              50.609952
+            ],
+            [
+              0.0,
+              514.4500800000001,
+              62.47024000000001,
+              540.0100799999999,
+              80.730144
+            ],
+            [
+              1.0,
+              454.65024,
+              77.539856,
+              472.89984,
+              89.85982399999999
+            ]
+          ],
+          "false_predictions": [
+            [
+              1.0,
+              254.50210571289062,
+              39.00225067138672,
+              283.3724365234375,
+              62.90245819091797
+            ],
+            [
+              1.0,
+              516.6978149414062,
+              60.00944137573242,
+              540.892822265625,
+              81.89851379394531
+            ]
+          ],
+          "gt_short_side_at_640": [
+            10.046592000000004,
+            12.480085333333335,
+            9.740138666666676,
+            14.000021333333333,
+            5.173119999999964,
+            11.260160000000042,
+            12.173269333333334,
+            12.480085333333326,
+            12.173269333333321,
+            8.213311999999993,
+            14.633237333333332
+          ]
+        },
+        {
+          "image": "video_B_f0000808.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 11,
+          "pred": 6,
+          "tp": 4,
+          "fn": 7,
+          "fp": 2,
+          "missed_classes": [
+            0,
+            0,
+            1,
+            2,
+            2,
+            0,
+            0
+          ],
+          "false_classes": [
+            0,
+            1
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              362.42976,
+              8.609616000000003,
+              389.36928000000006,
+              28.239856
+            ],
+            [
+              0.0,
+              272.05008,
+              25.95016,
+              283.45968,
+              37.370352000000004
+            ],
+            [
+              1.0,
+              463.31952,
+              77.539856,
+              480.6696,
+              91.22961600000001
+            ],
+            [
+              2.0,
+              625.3704,
+              113.59998399999999,
+              651.8500799999999,
+              134.139792
+            ],
+            [
+              2.0,
+              399.87024,
+              97.619984,
+              419.04048,
+              120.450032
+            ],
+            [
+              0.0,
+              542.29008,
+              64.759664,
+              566.9399999999999,
+              84.389904
+            ],
+            [
+              0.0,
+              524.02992,
+              27.319952,
+              545.0299200000001,
+              48.319984
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              399.12823486328125,
+              96.57994079589844,
+              418.6004638671875,
+              117.81134033203125
+            ],
+            [
+              1.0,
+              540.0282592773438,
+              59.86921691894531,
+              569.782958984375,
+              87.12742614746094
+            ]
+          ],
+          "gt_short_side_at_640": [
+            15.519957333333329,
+            16.433151999999993,
+            13.086826666666665,
+            7.606400000000008,
+            18.566719999999997,
+            9.126506666666671,
+            13.693205333333339,
+            12.780159999999986,
+            13.086826666666667,
+            14.000000000000076,
+            14.000021333333327
+          ]
+        },
+        {
+          "image": "video_B_f0000862.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 8,
+          "pred": 8,
+          "tp": 6,
+          "fn": 2,
+          "fp": 2,
+          "missed_classes": [
+            2,
+            1
+          ],
+          "false_classes": [
+            0,
+            2
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              320.44032,
+              123.189888,
+              346.46016,
+              156.049664
+            ],
+            [
+              1.0,
+              417.67008,
+              78.909648,
+              440.04,
+              96.709872
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              322.4635009765625,
+              124.3634033203125,
+              347.09649658203125,
+              154.15956115722656
+            ],
+            [
+              2.0,
+              632.3955078125,
+              123.72489166259766,
+              666.497314453125,
+              166.49966430664062
+            ]
+          ],
+          "gt_short_side_at_640": [
+            17.346559999999993,
+            20.38656000000007,
+            22.820074666666674,
+            24.346538666666667,
+            23.126400000000007,
+            25.86683733333333,
+            18.86656000000001,
+            11.866816
+          ]
+        },
+        {
+          "image": "video_B_f0000911.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 9,
+          "pred": 7,
+          "tp": 6,
+          "fn": 3,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            1,
+            2
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              218.64048000000003,
+              236.84971199999998,
+              265.66032,
+              288.439952
+            ],
+            [
+              1.0,
+              506.2296,
+              142.81985600000002,
+              529.04976,
+              165.64011200000002
+            ],
+            [
+              2.0,
+              413.09999999999997,
+              247.80995199999998,
+              454.64976,
+              291.179808
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              417.1175537109375,
+              246.0775146484375,
+              451.4842529296875,
+              288.0159912109375
+            ]
+          ],
+          "gt_short_side_at_640": [
+            40.47323733333333,
+            37.43359999999999,
+            37.12654933333332,
+            31.346559999999993,
+            14.606762666666667,
+            29.826560000000047,
+            15.213439999999991,
+            26.780160000000024,
+            27.699840000000034
+          ]
+        },
+        {
+          "image": "video_B_f0000959.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 6,
+          "pred": 4,
+          "tp": 3,
+          "fn": 3,
+          "fp": 1,
+          "missed_classes": [
+            2,
+            1,
+            0
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              450.99024,
+              388.85990400000003,
+              507.60048,
+              459.62016
+            ],
+            [
+              1.0,
+              563.7504,
+              178.879984,
+              590.6803199999999,
+              201.70024
+            ],
+            [
+              0.0,
+              700.6896,
+              76.16979199999999,
+              761.4096000000001,
+              144.63980800000002
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              454.24517822265625,
+              391.4830627441406,
+              506.2420654296875,
+              451.7984619140625
+            ]
+          ],
+          "gt_short_side_at_640": [
+            37.740160000000024,
+            15.213504,
+            40.48000000000002,
+            53.26016,
+            57.5200213333333,
+            54.473599999999955
+          ]
+        },
+        {
+          "image": "video_B_f0001007.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 4,
+          "pred": 3,
+          "tp": 2,
+          "fn": 2,
+          "fp": 1,
+          "missed_classes": [
+            2,
+            1
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              464.68992,
+              273.82974400000006,
+              533.61984,
+              363.299792
+            ],
+            [
+              1.0,
+              560.55024,
+              36.450176000000006,
+              591.1406400000001,
+              62.92992
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              467.4082946777344,
+              279.8673095703125,
+              531.0686645507812,
+              354.2734680175781
+            ]
+          ],
+          "gt_short_side_at_640": [
+            64.51985066666667,
+            45.953279999999985,
+            17.653162666666663,
+            70.00010666666667
+          ]
+        },
+        {
+          "image": "video_B_f0001055.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            2
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              516.2697599999999,
+              151.95008,
+              576.07008,
+              212.20025600000002
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            39.86688000000004
+          ]
+        },
+        {
+          "image": "video_B_f0001103.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 0,
+          "tp": 0,
+          "fn": 2,
+          "fp": 0,
+          "missed_classes": [
+            2,
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              393.01968,
+              315.37012799999997,
+              454.18992,
+              383.390256
+            ],
+            [
+              0.0,
+              10.020000000000003,
+              57.909888,
+              47.91024,
+              141.449792
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            40.78015999999999,
+            25.26016
+          ]
+        },
+        {
+          "image": "video_B_f0001151.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.86666666666667,
+            68.47360000000003
+          ]
+        },
+        {
+          "image": "video_B_f0001199.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            70.90688,
+            62.033408000000044
+          ]
+        },
+        {
+          "image": "video_B_f0001247.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 5,
+          "pred": 5,
+          "tp": 5,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            44.42688000000006,
+            47.47328000000001,
+            14.606762666666667,
+            33.473408,
+            51.43338666666667
+          ]
+        },
+        {
+          "image": "video_B_f0001295.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            53.86687999999997
+          ]
+        },
+        {
+          "image": "video_B_f0001343.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_B_f0001391.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_B_f0001439.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            1
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              512.19984,
+              382.499728,
+              586.0996799999999,
+              456.89988800000003
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            49.26655999999995
+          ]
+        },
+        {
+          "image": "video_B_f0001487.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            1
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              438.67008000000004,
+              223.160224,
+              487.05983999999995,
+              264.700064
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.693226666666664
+          ]
+        },
+        {
+          "image": "video_B_f0001535.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            50.819839999999964,
+            43.81992533333334
+          ]
+        },
+        {
+          "image": "video_B_f0001584.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 8,
+          "pred": 5,
+          "tp": 4,
+          "fn": 4,
+          "fp": 1,
+          "missed_classes": [
+            1,
+            2,
+            2,
+            0
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              1.0,
+              391.1904,
+              203.530256,
+              420.0,
+              228.20011200000002
+            ],
+            [
+              2.0,
+              597.5303999999999,
+              491.11993600000005,
+              650.02032,
+              544.0
+            ],
+            [
+              2.0,
+              130.54032,
+              311.25993600000004,
+              177.60047999999998,
+              352.799776
+            ],
+            [
+              0.0,
+              135.55968000000001,
+              143.729696,
+              184.85952,
+              195.769824
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              137.369140625,
+              138.47364807128906,
+              183.488037109375,
+              172.681640625
+            ]
+          ],
+          "gt_short_side_at_640": [
+            38.646399999999936,
+            16.446570666666673,
+            34.99328000000006,
+            27.693226666666646,
+            37.43359999999999,
+            32.86655999999999,
+            39.86688000000004,
+            34.086677333333334
+          ]
+        },
+        {
+          "image": "video_B_f0001632.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 6,
+          "pred": 3,
+          "tp": 3,
+          "fn": 3,
+          "fp": 0,
+          "missed_classes": [
+            1,
+            2,
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              871.41984,
+              315.83008,
+              903.82944,
+              352.80032000000006
+            ],
+            [
+              2.0,
+              698.41008,
+              515.769936,
+              752.7297599999999,
+              543.999728
+            ],
+            [
+              0.0,
+              445.06032,
+              442.729776,
+              503.02992,
+              512.1196960000001
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.60639999999997,
+            18.819861333333318,
+            38.64640000000001,
+            48.07999999999993,
+            46.86655999999997,
+            50.819840000000035
+          ]
+        },
+        {
+          "image": "video_B_f0001680.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 10,
+          "pred": 3,
+          "tp": 3,
+          "fn": 7,
+          "fp": 0,
+          "missed_classes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            1
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              350.5704,
+              88.949984,
+              373.39056,
+              112.690144
+            ],
+            [
+              0.0,
+              782.8603199999999,
+              16.819936000000002,
+              829.88016,
+              65.209824
+            ],
+            [
+              0.0,
+              934.41984,
+              166.09979199999998,
+              960.0,
+              218.589808
+            ],
+            [
+              0.0,
+              620.80992,
+              307.61024,
+              689.73984,
+              382.47008
+            ],
+            [
+              0.0,
+              671.4801600000001,
+              493.400112,
+              723.0600000000001,
+              544.000272
+            ],
+            [
+              2.0,
+              867.3095999999999,
+              466.00998400000003,
+              910.67952,
+              525.8097280000001
+            ],
+            [
+              1.0,
+              856.36032,
+              272.900048,
+              881.90016,
+              292.54008
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.213439999999991,
+            18.873173333333337,
+            42.306559999999955,
+            37.74016000000006,
+            31.346560000000107,
+            17.053439999999984,
+            45.95327999999995,
+            33.73344000000001,
+            28.91328000000006,
+            13.093354666666642
+          ]
+        },
+        {
+          "image": "video_B_f0001729.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 8,
+          "pred": 4,
+          "tp": 3,
+          "fn": 5,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          "false_classes": [
+            2
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              385.72031999999996,
+              102.190128,
+              403.05984,
+              125.01038400000002
+            ],
+            [
+              1.0,
+              880.0905600000001,
+              163.359936,
+              904.2902399999999,
+              186.639872
+            ],
+            [
+              0.0,
+              435.93024,
+              -0.000272000000000272,
+              472.89984000000004,
+              22.29992
+            ],
+            [
+              0.0,
+              886.03008,
+              67.499792,
+              929.8502400000001,
+              110.409968
+            ],
+            [
+              0.0,
+              889.21968,
+              371.520176,
+              949.47984,
+              424.010192
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              878.8836669921875,
+              66.007568359375,
+              930.4747314453125,
+              111.36376953125
+            ]
+          ],
+          "gt_short_side_at_640": [
+            11.559680000000034,
+            15.519957333333329,
+            14.866794666666665,
+            38.320000000000014,
+            41.08031999999995,
+            28.606784000000005,
+            34.693418666666666,
+            34.993344000000015
+          ]
+        },
+        {
+          "image": "video_B_f0001780.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 10,
+          "pred": 6,
+          "tp": 5,
+          "fn": 5,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            0,
+            1,
+            2,
+            0
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              183.02976,
+              241.870016,
+              209.96928,
+              270.63020800000004
+            ],
+            [
+              0.0,
+              199.92,
+              67.94968,
+              252.42048,
+              124.55995200000001
+            ],
+            [
+              1.0,
+              700.6900800000001,
+              205.809888,
+              725.34,
+              227.720032
+            ],
+            [
+              2.0,
+              850.87968,
+              339.999728,
+              893.79936,
+              382.01992
+            ],
+            [
+              0.0,
+              794.7297599999999,
+              439.990192,
+              848.13936,
+              491.12020800000005
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              852.3286743164062,
+              344.36846923828125,
+              886.8856201171875,
+              379.79974365234375
+            ]
+          ],
+          "gt_short_side_at_640": [
+            17.95967999999999,
+            35.00032000000001,
+            53.253120000000045,
+            14.606762666666668,
+            28.01346133333334,
+            34.08667733333338,
+            38.653376000000016,
+            28.300160000000005,
+            38.34687999999998,
+            30.433280000000043
+          ]
+        },
+        {
+          "image": "video_B_f0001828.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 7,
+          "pred": 5,
+          "tp": 4,
+          "fn": 3,
+          "fp": 1,
+          "missed_classes": [
+            1,
+            0,
+            0
+          ],
+          "false_classes": [
+            1
+          ],
+          "missed_gt": [
+            [
+              1.0,
+              797.47056,
+              84.390176,
+              821.2104,
+              107.67011199999999
+            ],
+            [
+              0.0,
+              331.39008,
+              233.199744,
+              371.56032,
+              275.19980799999996
+            ],
+            [
+              0.0,
+              710.2800000000001,
+              -0.000272000000000272,
+              758.66976,
+              22.29992
+            ]
+          ],
+          "false_predictions": [
+            [
+              1.0,
+              713.7880859375,
+              0.0,
+              756.3890380859375,
+              21.140419006347656
+            ]
+          ],
+          "gt_short_side_at_640": [
+            15.519957333333329,
+            26.780159999999984,
+            14.866794666666665,
+            61.479680000000066,
+            44.126741333333335,
+            46.866560000000014,
+            40.480127999999986
+          ]
+        },
+        {
+          "image": "video_B_f0001876.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 6,
+          "pred": 5,
+          "tp": 2,
+          "fn": 4,
+          "fp": 3,
+          "missed_classes": [
+            2,
+            0,
+            0,
+            0
+          ],
+          "false_classes": [
+            0,
+            0,
+            0
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              866.40048,
+              18.190271999999997,
+              901.0900800000001,
+              48.320256
+            ],
+            [
+              0.0,
+              794.26944,
+              58.81972799999999,
+              842.20992,
+              115.43
+            ],
+            [
+              0.0,
+              160.2096,
+              0.8500000000000008,
+              243.28992000000002,
+              55.17003199999999
+            ],
+            [
+              0.0,
+              453.73008,
+              193.490192,
+              487.9704,
+              230.92011200000002
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              868.1482543945312,
+              17.492277145385742,
+              900.7673950195312,
+              46.757232666015625
+            ],
+            [
+              0.0,
+              943.251220703125,
+              81.5951156616211,
+              959.89501953125,
+              139.47442626953125
+            ],
+            [
+              0.0,
+              802.8590087890625,
+              54.53886795043945,
+              845.95849609375,
+              84.94499206542969
+            ]
+          ],
+          "gt_short_side_at_640": [
+            20.086656,
+            31.960319999999985,
+            36.21335466666666,
+            58.43327999999997,
+            22.82688,
+            38.606592
+          ]
+        },
+        {
+          "image": "video_B_f0001924.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 6,
+          "pred": 5,
+          "tp": 5,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              613.9603199999999,
+              240.960176,
+              650.01984,
+              278.39009599999997
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            48.693119999999986,
+            23.740160000000014,
+            24.03968000000009,
+            50.51982933333333,
+            35.86664533333333,
+            30.12672
+          ]
+        },
+        {
+          "image": "video_B_f0001972.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 3,
+          "pred": 2,
+          "tp": 2,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              757.7596800000001,
+              147.83988799999997,
+              785.59968,
+              173.399728
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            17.039893333333357,
+            52.953600000000016,
+            40.473599999999955
+          ]
+        },
+        {
+          "image": "video_B_f0002020.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 7,
+          "pred": 4,
+          "tp": 3,
+          "fn": 4,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "false_classes": [
+            1
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              233.24975999999998,
+              0.0,
+              271.58928,
+              28.240128
+            ],
+            [
+              0.0,
+              634.05024,
+              39.649984,
+              668.28,
+              76.169792
+            ],
+            [
+              0.0,
+              481.5801599999999,
+              0.850272000000001,
+              514.45056,
+              19.110176
+            ],
+            [
+              0.0,
+              629.01984,
+              105.379872,
+              650.47968,
+              125.930016
+            ]
+          ],
+          "false_predictions": [
+            [
+              1.0,
+              233.04437255859375,
+              0.2679619789123535,
+              270.0836181640625,
+              27.208568572998047
+            ]
+          ],
+          "gt_short_side_at_640": [
+            18.826752,
+            26.173290666666663,
+            22.81983999999996,
+            37.75999999999999,
+            31.953471999999994,
+            12.173269333333334,
+            13.700095999999993
+          ]
+        },
+        {
+          "image": "video_B_f0002074.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 11,
+          "pred": 5,
+          "tp": 3,
+          "fn": 8,
+          "fp": 2,
+          "missed_classes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            2,
+            1
+          ],
+          "false_classes": [
+            1,
+            1
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              565.11984,
+              80.730144,
+              587.9399999999999,
+              104.01008
+            ],
+            [
+              0.0,
+              277.0704,
+              74.34004800000001,
+              304.00032,
+              98.539888
+            ],
+            [
+              0.0,
+              569.67984,
+              122.730208,
+              580.64016,
+              132.77027199999998
+            ],
+            [
+              0.0,
+              447.79967999999997,
+              64.300256,
+              469.24992000000003,
+              84.39017600000001
+            ],
+            [
+              0.0,
+              460.58016,
+              49.239888,
+              475.64064,
+              63.389872000000004
+            ],
+            [
+              2.0,
+              241.92047999999997,
+              46.94992,
+              270.22032,
+              68.860064
+            ],
+            [
+              2.0,
+              397.12992,
+              49.69032,
+              414.02016000000003,
+              67.040112
+            ],
+            [
+              1.0,
+              352.84992,
+              77.990288,
+              367.91040000000004,
+              89.90008
+            ]
+          ],
+          "false_predictions": [
+            [
+              1.0,
+              276.05938720703125,
+              75.94526672363281,
+              302.53466796875,
+              99.89315795898438
+            ],
+            [
+              1.0,
+              564.328369140625,
+              78.35668182373047,
+              589.50439453125,
+              104.039794921875
+            ]
+          ],
+          "gt_short_side_at_640": [
+            16.739967999999994,
+            15.213439999999991,
+            20.386581333333343,
+            16.133226666666662,
+            20.38656000000003,
+            6.693375999999982,
+            13.393280000000004,
+            9.433322666666669,
+            14.606762666666665,
+            11.260160000000004,
+            7.93986133333333
+          ]
+        },
+        {
+          "image": "video_B_f0002128.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 9,
+          "pred": 4,
+          "tp": 0,
+          "fn": 9,
+          "fp": 4,
+          "missed_classes": [
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            2
+          ],
+          "false_classes": [
+            2,
+            2,
+            1,
+            1
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              417.20975999999996,
+              133.230224,
+              437.29967999999997,
+              144.190192
+            ],
+            [
+              0.0,
+              337.3296,
+              175.23028799999997,
+              365.1696,
+              198.96011199999998
+            ],
+            [
+              0.0,
+              448.70975999999996,
+              149.210224,
+              470.16959999999995,
+              171.58004799999998
+            ],
+            [
+              1.0,
+              390.27984,
+              147.37993600000001,
+              405.80016000000006,
+              160.619808
+            ],
+            [
+              0.0,
+              493.90031999999997,
+              182.98990400000002,
+              518.5502399999999,
+              209.009968
+            ],
+            [
+              0.0,
+              554.1600000000001,
+              144.190192,
+              574.70016,
+              167.920016
+            ],
+            [
+              0.0,
+              334.12992,
+              153.31035200000002,
+              355.58976,
+              170.660144
+            ],
+            [
+              0.0,
+              560.0904,
+              174.769792,
+              572.8804799999999,
+              184.80985600000002
+            ],
+            [
+              2.0,
+              298.06991999999997,
+              135.970352,
+              315.41999999999996,
+              146.470096
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              333.3382263183594,
+              149.70834350585938,
+              356.60272216796875,
+              167.54153442382812
+            ],
+            [
+              2.0,
+              553.3399658203125,
+              144.9882049560547,
+              573.1671142578125,
+              165.61026000976562
+            ],
+            [
+              1.0,
+              494.2679443359375,
+              184.87796020507812,
+              518.0388793945312,
+              208.24203491210938
+            ],
+            [
+              1.0,
+              553.2474365234375,
+              145.09130859375,
+              573.042236328125,
+              165.74839782714844
+            ]
+          ],
+          "gt_short_side_at_640": [
+            7.306645333333336,
+            15.819882666666672,
+            14.30655999999999,
+            8.826581333333328,
+            16.433279999999968,
+            13.693439999999933,
+            11.566527999999986,
+            6.693376000000019,
+            6.999829333333348
+          ]
+        },
+        {
+          "image": "video_B_f0002182.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 7,
+          "pred": 7,
+          "tp": 0,
+          "fn": 7,
+          "fp": 7,
+          "missed_classes": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2
+          ],
+          "false_classes": [
+            2,
+            2,
+            0,
+            2,
+            1,
+            1,
+            0
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              395.30016,
+              117.710176,
+              409.45056,
+              132.770272
+            ],
+            [
+              0.0,
+              322.71984000000003,
+              134.10008000000002,
+              336.90000000000003,
+              145.10030400000002
+            ],
+            [
+              0.0,
+              333.70032,
+              149.210224,
+              356.04048,
+              166.600272
+            ],
+            [
+              0.0,
+              422.68944,
+              129.580256,
+              439.11984,
+              142.82012799999998
+            ],
+            [
+              0.0,
+              459.67008,
+              153.320144,
+              481.12032000000005,
+              170.660144
+            ],
+            [
+              0.0,
+              508.9699199999999,
+              124.559952,
+              525.86016,
+              141.899952
+            ],
+            [
+              2.0,
+              287.11008,
+              118.620288,
+              302.18015999999994,
+              133.690176
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              323.2489013671875,
+              129.66822814941406,
+              348.7365417480469,
+              146.86224365234375
+            ],
+            [
+              2.0,
+              324.94146728515625,
+              129.93829345703125,
+              352.07989501953125,
+              168.5396728515625
+            ],
+            [
+              0.0,
+              422.4626770019531,
+              121.55032348632812,
+              444.6455383300781,
+              144.2027587890625
+            ],
+            [
+              2.0,
+              323.66510009765625,
+              129.5779266357422,
+              349.377685546875,
+              159.06106567382812
+            ],
+            [
+              1.0,
+              507.139892578125,
+              124.07341003417969,
+              524.390625,
+              142.2645721435547
+            ],
+            [
+              1.0,
+              460.741455078125,
+              150.58554077148438,
+              480.42510986328125,
+              168.97601318359375
+            ],
+            [
+              0.0,
+              330.0830383300781,
+              134.23193359375,
+              353.9263916015625,
+              167.75155639648438
+            ]
+          ],
+          "gt_short_side_at_640": [
+            9.433599999999993,
+            7.333482666666669,
+            11.593365333333319,
+            8.826581333333328,
+            11.560000000000002,
+            11.260160000000042,
+            10.046592000000004
+          ]
+        },
+        {
+          "image": "video_B_f0002236.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 8,
+          "pred": 4,
+          "tp": 0,
+          "fn": 8,
+          "fp": 4,
+          "missed_classes": [
+            0,
+            2,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "false_classes": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              548.23008,
+              65.209824,
+              567.85056,
+              85.75996799999999
+            ],
+            [
+              2.0,
+              311.79983999999996,
+              57.910160000000005,
+              331.84944,
+              73.899952
+            ],
+            [
+              2.0,
+              426.33984,
+              59.279952,
+              438.19968,
+              74.799728
+            ],
+            [
+              0.0,
+              349.19952,
+              73.429936,
+              367.45967999999993,
+              86.210128
+            ],
+            [
+              0.0,
+              360.14976,
+              93.51985600000002,
+              384.34944,
+              114.510096
+            ],
+            [
+              0.0,
+              456.92976,
+              69.78024,
+              475.18992,
+              90.320048
+            ],
+            [
+              0.0,
+              500.75039999999996,
+              97.169824,
+              520.3804799999999,
+              117.24995200000001
+            ],
+            [
+              0.0,
+              464.68992000000003,
+              56.539823999999996,
+              485.23008,
+              76.170064
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              351.6041564941406,
+              71.39783477783203,
+              379.20428466796875,
+              102.2874755859375
+            ],
+            [
+              2.0,
+              351.22857666015625,
+              71.07691955566406,
+              381.27972412109375,
+              115.4619140625
+            ],
+            [
+              2.0,
+              350.87445068359375,
+              71.05400085449219,
+              374.2785339355469,
+              94.74066162109375
+            ],
+            [
+              2.0,
+              502.54583740234375,
+              95.78487396240234,
+              522.344482421875,
+              115.6897201538086
+            ]
+          ],
+          "gt_short_side_at_640": [
+            13.080319999999952,
+            10.65986133333333,
+            7.906560000000013,
+            8.520128,
+            13.993493333333324,
+            12.17343999999999,
+            13.086719999999977,
+            13.086826666666667
+          ]
+        },
+        {
+          "image": "video_B_f0002290.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 5,
+          "pred": 2,
+          "tp": 2,
+          "fn": 3,
+          "fp": 0,
+          "missed_classes": [
+            0,
+            0,
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              297.61008,
+              0.8502720000000001,
+              313.1304,
+              10.430112000000001
+            ],
+            [
+              0.0,
+              429.07967999999994,
+              0.38977600000000007,
+              451.44960000000003,
+              16.369776
+            ],
+            [
+              0.0,
+              542.29008,
+              0.0,
+              565.11984,
+              12.719808
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            6.386560000000001,
+            16.433514666666664,
+            15.213503999999997,
+            10.653333333333334,
+            8.479872
+          ]
+        },
+        {
+          "image": "video_B_f0002344.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 9,
+          "pred": 5,
+          "tp": 2,
+          "fn": 7,
+          "fp": 3,
+          "missed_classes": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            2,
+            2
+          ],
+          "false_classes": [
+            2,
+            1,
+            1
+          ],
+          "missed_gt": [
+            [
+              1.0,
+              376.12992,
+              23.669712,
+              397.10016,
+              36.499952
+            ],
+            [
+              0.0,
+              301.26000000000005,
+              28.690016000000004,
+              325.90992,
+              50.609952
+            ],
+            [
+              0.0,
+              559.64016,
+              83.92967999999999,
+              591.1406400000001,
+              121.81982400000001
+            ],
+            [
+              0.0,
+              605.2896,
+              21.849760000000003,
+              628.5696,
+              48.779936
+            ],
+            [
+              0.0,
+              627.1996800000001,
+              62.929648,
+              641.35008,
+              77.539856
+            ],
+            [
+              2.0,
+              243.28991999999997,
+              0.0,
+              264.74016,
+              11.350016
+            ],
+            [
+              2.0,
+              403.52016,
+              0.45968000000000014,
+              429.08016,
+              13.62992
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              556.6417236328125,
+              82.96920776367188,
+              592.2857666015625,
+              121.52384948730469
+            ],
+            [
+              1.0,
+              300.48016357421875,
+              25.27225112915039,
+              329.2897033691406,
+              50.73862838745117
+            ],
+            [
+              1.0,
+              603.7659912109375,
+              21.941627502441406,
+              630.9690551757812,
+              48.31319046020508
+            ]
+          ],
+          "gt_short_side_at_640": [
+            8.553493333333334,
+            14.613290666666664,
+            21.913407999999997,
+            21.000320000000027,
+            19.17312000000004,
+            15.520000000000058,
+            9.433599999999993,
+            7.566677333333333,
+            8.78016
+          ]
+        },
+        {
+          "image": "video_B_f0002398.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 10,
+          "pred": 6,
+          "tp": 5,
+          "fn": 5,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          "false_classes": [
+            2
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              491.6193599999999,
+              48.320256,
+              522.20976,
+              72.969984
+            ],
+            [
+              2.0,
+              192.15984,
+              36.000016,
+              215.89968,
+              55.630256
+            ],
+            [
+              1.0,
+              375.67008,
+              72.060144,
+              392.56032,
+              86.210128
+            ],
+            [
+              0.0,
+              635.8704,
+              171.58032,
+              682.4304,
+              221.33020799999997
+            ],
+            [
+              0.0,
+              713.48016,
+              128.669872,
+              733.56048,
+              151.490128
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              373.5359802246094,
+              68.02246856689453,
+              390.15606689453125,
+              84.81461334228516
+            ]
+          ],
+          "gt_short_side_at_640": [
+            16.433151999999996,
+            23.740160000000003,
+            13.086826666666667,
+            12.473600000000033,
+            9.433322666666669,
+            22.213333333333335,
+            31.346559999999993,
+            21.606400000000047,
+            31.039999999999964,
+            13.38688000000002
+          ]
+        },
+        {
+          "image": "video_B_f0002450.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 10,
+          "pred": 9,
+          "tp": 7,
+          "fn": 3,
+          "fp": 2,
+          "missed_classes": [
+            2,
+            1,
+            0
+          ],
+          "false_classes": [
+            2,
+            0
+          ],
+          "missed_gt": [
+            [
+              2.0,
+              350.5704,
+              91.22988799999999,
+              379.78031999999996,
+              122.729664
+            ],
+            [
+              1.0,
+              296.23968,
+              169.289808,
+              316.78944,
+              183.900016
+            ],
+            [
+              0.0,
+              454.18992,
+              91.68983999999999,
+              485.69039999999995,
+              117.709904
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              59.17686080932617,
+              114.20309448242188,
+              84.1229248046875,
+              141.89898681640625
+            ],
+            [
+              0.0,
+              355.8320617675781,
+              93.89935302734375,
+              376.8468933105469,
+              118.3770751953125
+            ]
+          ],
+          "gt_short_side_at_640": [
+            33.48032000000004,
+            31.04680533333334,
+            56.906880000000015,
+            51.126400000000025,
+            35.29984000000002,
+            19.47327999999997,
+            9.740138666666667,
+            17.346709333333333,
+            22.219861333333338,
+            14.29994666666668
+          ]
+        },
+        {
+          "image": "video_B_f0002498.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 7,
+          "pred": 4,
+          "tp": 4,
+          "fn": 3,
+          "fp": 0,
+          "missed_classes": [
+            1,
+            0,
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              552.79008,
+              214.02972800000003,
+              582.4598400000001,
+              234.10985599999998
+            ],
+            [
+              0.0,
+              789.2496,
+              162.900256,
+              849.0499199999999,
+              219.509984
+            ],
+            [
+              0.0,
+              768.2496,
+              90.78,
+              800.20992,
+              132.31984
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            13.386751999999964,
+            65.12640000000003,
+            37.739818666666665,
+            21.306880000000017,
+            47.480320000000006,
+            21.906560000000052,
+            25.566719999999993
+          ]
+        },
+        {
+          "image": "video_B_f0002546.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 1,
+          "tp": 1,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            2
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              2.0,
+              641.80992,
+              98.990048,
+              689.28,
+              136.43030399999998
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            66.33984000000002,
+            24.960170666666652
+          ]
+        },
+        {
+          "image": "video_B_f0002594.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            1
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              389.37023999999997,
+              392.969824,
+              445.52064,
+              446.37974399999996
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            35.60661333333329
+          ]
+        },
+        {
+          "image": "video_B_f0002642.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            1
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              436.83984,
+              389.779808,
+              487.06032000000005,
+              436.79990399999997
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            31.346730666666645
+          ]
+        },
+        {
+          "image": "video_B_f0002690.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 2,
+          "pred": 0,
+          "tp": 0,
+          "fn": 2,
+          "fp": 0,
+          "missed_classes": [
+            1,
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              1.0,
+              393.01968,
+              140.99011199999998,
+              429.08016,
+              167.920288
+            ],
+            [
+              0.0,
+              926.65968,
+              29.60992,
+              959.9995200000001,
+              81.18982399999999
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            17.95345066666668,
+            22.226560000000063
+          ]
+        },
+        {
+          "image": "video_B_f0002738.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 7,
+          "pred": 3,
+          "tp": 2,
+          "fn": 5,
+          "fp": 1,
+          "missed_classes": [
+            0,
+            1,
+            2,
+            2,
+            0
+          ],
+          "false_classes": [
+            2
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              692.0193599999999,
+              63.399663999999994,
+              727.59984,
+              102.64980800000001
+            ],
+            [
+              1.0,
+              774.1895999999999,
+              58.82,
+              795.1896,
+              73.889888
+            ],
+            [
+              2.0,
+              571.0502399999999,
+              12.259856,
+              588.85056,
+              31.429871999999996
+            ],
+            [
+              2.0,
+              781.0396800000001,
+              14.089872000000002,
+              801.57984,
+              33.259888
+            ],
+            [
+              0.0,
+              887.85024,
+              42.840272,
+              921.6403200000001,
+              73.89016
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              692.0882568359375,
+              62.5377197265625,
+              731.023681640625,
+              105.85626983642578
+            ]
+          ],
+          "gt_short_side_at_640": [
+            23.720320000000054,
+            10.046591999999999,
+            11.866880000000037,
+            12.780010666666666,
+            20.699925333333333,
+            24.94656000000009,
+            38.04663466666667
+          ]
+        },
+        {
+          "image": "video_B_f0002791.jpg",
+          "source_video": "dd8dafc5a77083eef395edd8e8dd34e1.mp4",
+          "gt": 10,
+          "pred": 4,
+          "tp": 2,
+          "fn": 8,
+          "fp": 2,
+          "missed_classes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            2,
+            2
+          ],
+          "false_classes": [
+            2,
+            1
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              570.5904,
+              116.79979200000001,
+              592.9603199999999,
+              140.98984000000002
+            ],
+            [
+              0.0,
+              715.29984,
+              96.709872,
+              736.75968,
+              115.87988800000001
+            ],
+            [
+              0.0,
+              860.46,
+              112.200272,
+              891.49968,
+              137.340144
+            ],
+            [
+              0.0,
+              896.07024,
+              183.40008,
+              936.7003199999999,
+              217.68024000000003
+            ],
+            [
+              0.0,
+              919.35024,
+              159.299792,
+              939.39984,
+              175.68996799999996
+            ],
+            [
+              1.0,
+              628.10976,
+              111.78030399999999,
+              643.17984,
+              123.640048
+            ],
+            [
+              2.0,
+              473.81951999999995,
+              81.190096,
+              493.4496,
+              100.820336
+            ],
+            [
+              2.0,
+              633.58992,
+              81.190096,
+              648.64944,
+              97.170096
+            ]
+          ],
+          "false_predictions": [
+            [
+              2.0,
+              891.6676025390625,
+              179.23512268066406,
+              936.1549072265625,
+              217.8944549560547
+            ],
+            [
+              1.0,
+              568.02783203125,
+              115.52497100830078,
+              594.4305419921875,
+              141.98577880859375
+            ]
+          ],
+          "gt_short_side_at_640": [
+            23.766634666666636,
+            14.91327999999991,
+            15.533376000000013,
+            12.78001066666667,
+            16.759914666666674,
+            22.853440000000017,
+            10.926783999999978,
+            7.906496000000004,
+            13.086720000000014,
+            10.039680000000013
+          ]
+        }
+      ]
+    },
+    "phone_train_fit": {
+      "images": 117,
+      "precision": 0.9855357864542396,
+      "recall": 0.9898081990492935,
+      "map50": 0.9946265362644972,
+      "map50_95": 0.8516912422621127,
+      "per_class": {
+        "color_block": {
+          "precision": 0.9905497713024752,
+          "recall": 0.9796163980985871,
+          "map50": 0.9942530725289943,
+          "map50_95": 0.8550847475954244
+        },
+        "rock_spiky": {
+          "precision": 0.980521801606004,
+          "recall": 1.0,
+          "map50": 0.995,
+          "map50_95": 0.8482977369288015
+        }
+      },
+      "scope": "training fit only",
+      "confusion_matrix": [
+        [
+          106.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          34.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "speed_ms": {
+        "preprocess": 0.11703091808873364,
+        "inference": 1.467641602214585,
+        "loss": 0.0005074036427033254,
+        "postprocess": 0.195260740752913
+      },
+      "fixed_conf_025_iou_05_counts": {
+        "tp": 138,
+        "fp": 1,
+        "fn": 3
+      },
+      "cases": [
+        {
+          "image": "video_A_f0000000.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_A_f0000048.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_A_f0000096.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            13.953237333333334
+          ]
+        },
+        {
+          "image": "video_A_f0000144.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            44.43967999999995,
+            21.866624
+          ]
+        },
+        {
+          "image": "video_A_f0000196.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            50.520320000000005
+          ]
+        },
+        {
+          "image": "video_A_f0000245.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            83.68639999999998
+          ]
+        },
+        {
+          "image": "video_A_f0000291.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            65.74015999999999
+          ]
+        },
+        {
+          "image": "video_A_f0000339.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            44.73343999999997
+          ]
+        },
+        {
+          "image": "video_A_f0000388.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 1,
+          "tp": 1,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              0.0004799999999988147,
+              24.589616000000003,
+              15.96048,
+              75.70984
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            33.47327999999997,
+            10.640000000000002
+          ]
+        },
+        {
+          "image": "video_A_f0000441.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            30.46015999999999,
+            29.21344000000003
+          ]
+        },
+        {
+          "image": "video_A_f0000494.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            35.60640000000001,
+            33.173120000000004
+          ]
+        },
+        {
+          "image": "video_A_f0000547.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.08032000000003,
+            32.25992533333336
+          ]
+        },
+        {
+          "image": "video_A_f0000601.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.953280000000024,
+            22.213119999999964
+          ]
+        },
+        {
+          "image": "video_A_f0000655.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.306880000000092,
+            21.306666666666654
+          ]
+        },
+        {
+          "image": "video_A_f0000709.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.993279999999988,
+            23.466879999999986
+          ]
+        },
+        {
+          "image": "video_A_f0000763.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.39360000000003,
+            19.173119999999926
+          ]
+        },
+        {
+          "image": "video_A_f0000817.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.000320000000027,
+            23.12640000000003
+          ]
+        },
+        {
+          "image": "video_A_f0000871.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.566719999999997,
+            25.559680000000032
+          ]
+        },
+        {
+          "image": "video_A_f0000925.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            29.819904000000008
+          ]
+        },
+        {
+          "image": "video_A_f0000978.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.393280000000004
+          ]
+        },
+        {
+          "image": "video_A_f0001032.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.953280000000003
+          ]
+        },
+        {
+          "image": "video_A_f0001082.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.87360000000001,
+            21.306880000000053
+          ]
+        },
+        {
+          "image": "video_A_f0001136.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.60639999999997,
+            19.17346133333334
+          ]
+        },
+        {
+          "image": "video_A_f0001185.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_A_f0001233.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            74.25343999999998
+          ]
+        },
+        {
+          "image": "video_A_f0001281.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            82.73333333333333
+          ]
+        },
+        {
+          "image": "video_A_f0001329.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            103.48657066666665
+          ]
+        },
+        {
+          "image": "video_A_f0001377.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            80.34662399999998
+          ]
+        },
+        {
+          "image": "video_A_f0001425.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            103.77983999999998
+          ]
+        },
+        {
+          "image": "video_A_f0001473.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_A_f0001521.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_A_f0001569.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            84.60672000000007
+          ]
+        },
+        {
+          "image": "video_A_f0001617.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            69.06688000000001
+          ]
+        },
+        {
+          "image": "video_A_f0001666.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            38.64640000000001
+          ]
+        },
+        {
+          "image": "video_A_f0001715.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.99351466666667
+          ]
+        },
+        {
+          "image": "video_A_f0001763.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            60.259840000000004,
+            37.43359999999992
+          ]
+        },
+        {
+          "image": "video_A_f0001811.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            70.30016,
+            47.47327999999993
+          ]
+        },
+        {
+          "image": "video_A_f0001863.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            79.133504,
+            48.99327999999999
+          ]
+        },
+        {
+          "image": "video_A_f0001912.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            55.086528000000044,
+            42.90688
+          ]
+        },
+        {
+          "image": "video_A_f0001961.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            41.69344000000001
+          ]
+        },
+        {
+          "image": "video_A_f0002009.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            41.99317333333335,
+            51.126400000000025
+          ]
+        },
+        {
+          "image": "video_A_f0002060.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            62.07982933333333
+          ]
+        },
+        {
+          "image": "video_A_f0002108.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            54.47360000000003
+          ]
+        },
+        {
+          "image": "video_A_f0002157.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            36.819840000000035
+          ]
+        },
+        {
+          "image": "video_A_f0002206.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 0,
+          "tp": 0,
+          "fn": 1,
+          "fp": 0,
+          "missed_classes": [
+            0
+          ],
+          "false_classes": [],
+          "missed_gt": [
+            [
+              0.0,
+              412.65024,
+              0.8497280000000005,
+              476.10048,
+              34.629951999999996
+            ]
+          ],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            22.520149333333332
+          ]
+        },
+        {
+          "image": "video_A_f0002254.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.25992533333333
+          ]
+        },
+        {
+          "image": "video_A_f0002303.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            49.00032000000002
+          ]
+        },
+        {
+          "image": "video_A_f0002351.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            43.21344000000003
+          ]
+        },
+        {
+          "image": "video_A_f0002399.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            32.25984000000002
+          ]
+        },
+        {
+          "image": "video_A_f0002447.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            23.433344
+          ]
+        },
+        {
+          "image": "video_A_f0002497.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.700117333333342
+          ]
+        },
+        {
+          "image": "video_A_f0002546.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            23.12640000000003,
+            39.57312000000002
+          ]
+        },
+        {
+          "image": "video_A_f0002596.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            34.086400000000026,
+            28.859925333333308
+          ]
+        },
+        {
+          "image": "video_A_f0002644.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            80.64640000000003,
+            56.300160000000005
+          ]
+        },
+        {
+          "image": "video_A_f0002692.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            43.21343999999991,
+            62.693461333333325
+          ]
+        },
+        {
+          "image": "video_A_f0002741.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            44.73344,
+            34.086400000000026
+          ]
+        },
+        {
+          "image": "video_A_f0002793.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            29.519999999999982,
+            35.60640000000001
+          ]
+        },
+        {
+          "image": "video_A_f0002846.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.69983999999992,
+            40.473599999999955
+          ]
+        },
+        {
+          "image": "video_A_f0002900.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            27.999999999999925,
+            21.913407999999986
+          ]
+        },
+        {
+          "image": "video_A_f0002954.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.566719999999993,
+            25.260095999999976
+          ]
+        },
+        {
+          "image": "video_A_f0003006.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.046613333333344,
+            17.653162666666663
+          ]
+        },
+        {
+          "image": "video_A_f0003058.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_A_f0003111.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            19.173119999999926
+          ]
+        },
+        {
+          "image": "video_A_f0003165.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.000320000000027,
+            10.646805333333335
+          ]
+        },
+        {
+          "image": "video_A_f0003218.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            13.69320533333333,
+            18.559999999999945
+          ]
+        },
+        {
+          "image": "video_A_f0003272.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            12.78001066666667,
+            14.606762666666649
+          ]
+        },
+        {
+          "image": "video_A_f0003326.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            12.480085333333335,
+            13.086720000000014
+          ]
+        },
+        {
+          "image": "video_A_f0003380.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            12.480085333333326,
+            15.219840000000053
+          ]
+        },
+        {
+          "image": "video_A_f0003434.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            13.393280000000004,
+            13.393280000000004
+          ]
+        },
+        {
+          "image": "video_A_f0003488.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            14.913215999999997,
+            13.99999999999998
+          ]
+        },
+        {
+          "image": "video_A_f0003542.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            12.780010666666678,
+            16.433514666666657
+          ]
+        },
+        {
+          "image": "video_A_f0003596.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            12.473194666666663,
+            14.000021333333317
+          ]
+        },
+        {
+          "image": "video_A_f0003650.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 2,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            13.69320533333333,
+            13.086826666666658
+          ]
+        },
+        {
+          "image": "video_A_f0003704.jpg",
+          "source_video": "8f2e99f3a500d624abdbbeb69df46bf4.mp4",
+          "gt": 2,
+          "pred": 2,
+          "tp": 1,
+          "fn": 1,
+          "fp": 1,
+          "missed_classes": [
+            0
+          ],
+          "false_classes": [
+            0
+          ],
+          "missed_gt": [
+            [
+              0.0,
+              524.0304000000001,
+              126.839856,
+              543.66048,
+              144.64008
+            ]
+          ],
+          "false_predictions": [
+            [
+              0.0,
+              516.7805786132812,
+              123.10283660888672,
+              538.8922119140625,
+              143.418212890625
+            ]
+          ],
+          "gt_short_side_at_640": [
+            15.526399999999967,
+            11.866816000000009
+          ]
+        },
+        {
+          "image": "video_C_f0000026.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            36.82008
+          ]
+        },
+        {
+          "image": "video_C_f0000079.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            37.130039999999994
+          ]
+        },
+        {
+          "image": "video_C_f0000131.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.300119999999993
+          ]
+        },
+        {
+          "image": "video_C_f0000180.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.39004
+          ]
+        },
+        {
+          "image": "video_C_f0000228.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0000273.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0000321.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            28.604799999999955
+          ]
+        },
+        {
+          "image": "video_C_f0000370.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            34.69499999999999
+          ]
+        },
+        {
+          "image": "video_C_f0000418.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            47.16991999999999
+          ]
+        },
+        {
+          "image": "video_C_f0000466.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            59.64983999999998
+          ]
+        },
+        {
+          "image": "video_C_f0000514.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            47.47519999999997
+          ]
+        },
+        {
+          "image": "video_C_f0000562.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            34.68991999999997
+          ]
+        },
+        {
+          "image": "video_C_f0000610.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            29.519999999999982
+          ]
+        },
+        {
+          "image": "video_C_f0000662.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            17.955199999999934
+          ]
+        },
+        {
+          "image": "video_C_f0000716.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.824879999999979
+          ]
+        },
+        {
+          "image": "video_C_f0000770.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            15.21472
+          ]
+        },
+        {
+          "image": "video_C_f0000824.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0000878.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            14.0
+          ]
+        },
+        {
+          "image": "video_C_f0000931.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.999879999999976
+          ]
+        },
+        {
+          "image": "video_C_f0000982.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            25.86495999999994
+          ]
+        },
+        {
+          "image": "video_C_f0001032.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            45.345279999999946
+          ]
+        },
+        {
+          "image": "video_C_f0001080.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            126.29503999999997
+          ]
+        },
+        {
+          "image": "video_C_f0001128.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            70.13988
+          ]
+        },
+        {
+          "image": "video_C_f0001176.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0001224.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            38.04012
+          ]
+        },
+        {
+          "image": "video_C_f0001272.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            26.475120000000004
+          ]
+        },
+        {
+          "image": "video_C_f0001320.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            22.82508
+          ]
+        },
+        {
+          "image": "video_C_f0001368.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.389760000000024
+          ]
+        },
+        {
+          "image": "video_C_f0001416.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            22.820040000000013
+          ]
+        },
+        {
+          "image": "video_C_f0001464.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            21.605040000000017
+          ]
+        },
+        {
+          "image": "video_C_f0001513.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            33.47520000000003
+          ]
+        },
+        {
+          "image": "video_C_f0001562.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            24.029999999999987
+          ]
+        },
+        {
+          "image": "video_C_f0001610.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0001658.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0001706.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0001754.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            18.56511999999998
+          ]
+        },
+        {
+          "image": "video_C_f0001807.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            16.73983999999996
+          ]
+        },
+        {
+          "image": "video_C_f0001859.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.085120000000018
+          ]
+        },
+        {
+          "image": "video_C_f0001907.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0001956.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 0,
+          "pred": 0,
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": []
+        },
+        {
+          "image": "video_C_f0002010.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.090239999999937
+          ]
+        },
+        {
+          "image": "video_C_f0002062.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            20.389759999999967
+          ]
+        },
+        {
+          "image": "video_C_f0002111.jpg",
+          "source_video": "57a69b15bd9774176c1bed4d15c602ea.mp4",
+          "gt": 1,
+          "pred": 1,
+          "tp": 1,
+          "fn": 0,
+          "fp": 0,
+          "missed_classes": [],
+          "false_classes": [],
+          "missed_gt": [],
+          "false_predictions": [],
+          "gt_short_side_at_640": [
+            52.3449599999999
+          ]
+        }
+      ]
+    }
+  },
+  "timing": {
+    "samples": 90,
+    "warmup": 10,
+    "batch": 1,
+    "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "wall_mean_ms": 4.763137944327253,
+    "wall_p50_ms": 4.7481905021413695,
+    "wall_p95_ms": 5.132004400002188,
+    "network_inference_mean_ms": 2.269199159410265,
+    "fp16": false,
+    "scope": "FP32 GPU, file decode + preprocessing + inference + NMS; excludes ROS/camera"
+  }
+}

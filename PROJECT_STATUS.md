@@ -490,3 +490,16 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 - 无自动标签、审核或split；先人工标第一批。原600张合成数据只读保留，manifest匹配历史hash。
 - 交付与导回：vision_training/reports/science_targets_video_20261113/REPORT.md。
 - 未训练/启动机器人；正式三类效果和D435泛化NOT VERIFIED。
+
+## 首轮三类混合GPU训练（2026-11-14）
+
+- 来源：用户明确确认157张标全/类别正确、17张全部无目标；原CVAT缺17标签，保留原ZIP并在规范化副本补空标签。
+- 174张成功导入，真实框331/33/94（color_block/compact/spiky），83张多目标。
+- 新版本独立复制：train480合成+117手机A/C，val120合成+57手机B；采集组和图片hash无跨split泄漏。
+- RTX4060实际100轮、batch8/nbs64、warmup边界225 batch，7500批/971 optimizer step，用时948.53秒；best第100轮。
+- 分来源mAP50/50-95：合成val0.9949/0.9447；手机B val0.3673/0.2355；手机A/C训练拟合0.9946/0.8517。
+- 手机B各类AP50为0.8374/0.0538/0.2108，conf0.25时compact TP0/FN33；未达到可部署三类效果。
+- 37项检查、全量导入检查、实际评估、三类失败/成功拼图；原600张合成图标签1200项hash复核一致。
+- 真实compact训练样本仍缺；手机验证只有一个场景，独立最终test与D435泛化NOT VERIFIED。
+- 报告：vision_training/reports/science_targets_mixed_v1/README.md；权重/大数据本地runs/science_targets_mixed_v1。
+- 未修改ROS2/MAP/Point-LIO/导航/抓取；无硬件操作。

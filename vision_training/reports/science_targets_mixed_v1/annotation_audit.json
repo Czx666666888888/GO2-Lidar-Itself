@@ -1,0 +1,1069 @@
+{
+  "imported": 174,
+  "positive": 157,
+  "negative": 17,
+  "missing_labels_normalized": 17,
+  "archive_sha256": "9f43c78f9f1d7456b354f4069cc091b0fa5a07fe5f1a321effe6d750d6807ee8",
+  "normalized_sha256": "acd1cf0620dfcb6ed442be91280c684aedd350750ac374c8edea488289427d06",
+  "boxes": {
+    "0": 331,
+    "2": 94,
+    "1": 33
+  },
+  "multi_object_images": 83,
+  "split_sources": {
+    "val:synthetic": 120,
+    "train:synthetic": 480,
+    "train:phone_real": 117,
+    "val:phone_real": 57
+  },
+  "synthetic_files_unchanged": 2404,
+  "review": [
+    {
+      "image": "video_A_f0000000.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000048.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000096.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000144.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000196.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000245.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000291.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000339.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000388.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000441.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000494.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000547.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000601.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000655.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000709.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000763.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000817.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000871.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000925.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0000978.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001032.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001082.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001136.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001185.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001233.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001281.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001329.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001377.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001425.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001473.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001521.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001569.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001617.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001666.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001715.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001763.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001811.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001863.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001912.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0001961.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002009.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002060.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002108.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002157.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002206.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002254.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002303.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002351.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002399.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002447.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002497.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002546.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002596.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002644.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002692.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002741.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002793.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002846.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002900.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0002954.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003006.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003058.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003111.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003165.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003218.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003272.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003326.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003380.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003434.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003488.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003542.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003596.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003650.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_A_f0003704.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000000.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000048.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000096.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000144.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000192.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000240.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000286.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000335.jpg",
+      "status": "positive",
+      "boxes": 4,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000388.jpg",
+      "status": "positive",
+      "boxes": 8,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000441.jpg",
+      "status": "positive",
+      "boxes": 9,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000489.jpg",
+      "status": "positive",
+      "boxes": 9,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000539.jpg",
+      "status": "positive",
+      "boxes": 9,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000592.jpg",
+      "status": "positive",
+      "boxes": 11,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000646.jpg",
+      "status": "positive",
+      "boxes": 11,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000700.jpg",
+      "status": "positive",
+      "boxes": 11,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000754.jpg",
+      "status": "positive",
+      "boxes": 11,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000808.jpg",
+      "status": "positive",
+      "boxes": 11,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000862.jpg",
+      "status": "positive",
+      "boxes": 8,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000911.jpg",
+      "status": "positive",
+      "boxes": 9,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0000959.jpg",
+      "status": "positive",
+      "boxes": 6,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001007.jpg",
+      "status": "positive",
+      "boxes": 4,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001055.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001103.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001151.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001199.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001247.jpg",
+      "status": "positive",
+      "boxes": 5,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001295.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001343.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001391.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001439.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001487.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001535.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001584.jpg",
+      "status": "positive",
+      "boxes": 8,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001632.jpg",
+      "status": "positive",
+      "boxes": 6,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001680.jpg",
+      "status": "positive",
+      "boxes": 10,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001729.jpg",
+      "status": "positive",
+      "boxes": 8,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001780.jpg",
+      "status": "positive",
+      "boxes": 10,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001828.jpg",
+      "status": "positive",
+      "boxes": 7,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001876.jpg",
+      "status": "positive",
+      "boxes": 6,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001924.jpg",
+      "status": "positive",
+      "boxes": 6,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0001972.jpg",
+      "status": "positive",
+      "boxes": 3,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002020.jpg",
+      "status": "positive",
+      "boxes": 7,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002074.jpg",
+      "status": "positive",
+      "boxes": 11,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002128.jpg",
+      "status": "positive",
+      "boxes": 9,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002182.jpg",
+      "status": "positive",
+      "boxes": 7,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002236.jpg",
+      "status": "positive",
+      "boxes": 8,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002290.jpg",
+      "status": "positive",
+      "boxes": 5,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002344.jpg",
+      "status": "positive",
+      "boxes": 9,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002398.jpg",
+      "status": "positive",
+      "boxes": 10,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002450.jpg",
+      "status": "positive",
+      "boxes": 10,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002498.jpg",
+      "status": "positive",
+      "boxes": 7,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002546.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002594.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002642.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002690.jpg",
+      "status": "positive",
+      "boxes": 2,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002738.jpg",
+      "status": "positive",
+      "boxes": 7,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_B_f0002791.jpg",
+      "status": "positive",
+      "boxes": 10,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000026.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000079.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000131.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000180.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000228.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000273.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000321.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000370.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000418.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000466.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000514.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000562.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000610.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000662.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000716.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000770.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000824.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000878.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000931.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0000982.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001032.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001080.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001128.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001176.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001224.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001272.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001320.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001368.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001416.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001464.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001513.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001562.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001610.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001658.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001706.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001754.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001807.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001859.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001907.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0001956.jpg",
+      "status": "negative",
+      "boxes": 0,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0002010.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0002062.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    },
+    {
+      "image": "video_C_f0002111.jpg",
+      "status": "positive",
+      "boxes": 1,
+      "notes": "User explicitly confirmed 157 complete positives and all 17 missing labels negative on 2026-11-14"
+    }
+  ],
+  "split_reason": "Hold out full phone scene B for independent three-class real validation; A/C train; synthetic original 480/120 scene split",
+  "limitation": "Real compact labels occur only in scene B validation; training compact relies on synthetic samples"
+}

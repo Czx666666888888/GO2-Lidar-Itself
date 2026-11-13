@@ -1,0 +1,15 @@
+{
+  "actual_epochs": 100,
+  "best_epoch_by_csv": 100,
+  "training_seconds": 948.5348166940021,
+  "checks": 37,
+  "commands": {
+    "train": "python -m vision_training.train --config vision_training/configs/science_targets_mixed_v1.yaml --pilot"
+  },
+  "tool_sha256": {
+    "vision_training/train.py": "13fcda6d27a706c0e724d99d2a70dc14ba7c979cd0df8dd8a66d16f5b51d6663",
+    "vision_training/runtime_audit.py": "a96e186f93a2f2399224fd52bf4168163f53cbca55d5f82b1b581ef99f25cee2",
+    "vision_training/tools/prepare_science_mixed_v1.py": "9b5b073da96891532ccbeee7b65825c5e55b722e4d6621c5c4452f4f0c961e6c",
+    "vision_training/tools/evaluate_science_mixed_v1.py": "0100c329f1348b58284d6e11975124f4d90ee27e30b98033a0194f05d6157276"
+  }
+}

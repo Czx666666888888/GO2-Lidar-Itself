@@ -95,6 +95,12 @@ def main():
         except ImportError:
             from pilot_monitor import attach_monitor
         attach_monitor(model, manifest, output, opts.monitor_every, args)
+    if cfg.get('runtime_audit', False):
+        try:
+            from .runtime_audit import attach_runtime_audit
+        except ImportError:
+            from runtime_audit import attach_runtime_audit
+        attach_runtime_audit(model, output)
     started = time.perf_counter()
     metrics = model.train(data=str(output / 'data.yaml'), project=str(output.parent),
                           name=output.name, exist_ok=True, **args)
