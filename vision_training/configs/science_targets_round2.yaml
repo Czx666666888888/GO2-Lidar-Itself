@@ -1,0 +1,9 @@
+# Visual timeline priorities, NOT object labels. Full video_B remains validation-only.
+windows:
+  - {video_id: video_C, start: 0, end: 23, count: 50, reason: gray_rock_visual_candidate_near_far}
+  - {video_id: video_C, start: 31, end: 52, count: 55, reason: gray_rock_visual_candidate_angles_blur}
+  - {video_id: video_C, start: 57, end: 72, count: 35, reason: gray_rock_visual_candidate_small_dark_background}
+  - {video_id: video_A, start: 6, end: 16, count: 16, reason: uncertain_gray_patch_with_blocks_manual_check}
+  - {video_id: video_A, start: 45, end: 49, count: 8, reason: uncertain_gray_patch_edge_blur_manual_check}
+  - {video_id: video_A, start: 60, end: 73, count: 8, reason: multi_block_color_confusion_context}
+  - {video_id: video_A, start: 105, end: 125, count: 8, reason: darker_small_multi_target_background}

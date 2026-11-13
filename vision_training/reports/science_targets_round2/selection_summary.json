@@ -1,0 +1,108 @@
+{
+  "remaining": 869,
+  "source_counts": {
+    "video_A": 370,
+    "video_B": 282,
+    "video_C": 217
+  },
+  "selected": 180,
+  "selected_sources": {
+    "video_C": 140,
+    "video_A": 40
+  },
+  "inventory_quality": {
+    "video_A": {
+      "images": 370,
+      "sharpness_percentiles": [
+        1.9636354224180446,
+        5.864605677666823,
+        10.348742721662848,
+        22.413370404836538,
+        245.12181564028563
+      ],
+      "mean_gray_percentiles": [
+        49.695936734068624,
+        77.3792542700674,
+        104.15977041207108,
+        127.10008473115809,
+        182.49839728860294
+      ],
+      "low_sharpness_readback_metric": 284
+    },
+    "video_B": {
+      "images": 282,
+      "sharpness_percentiles": [
+        2.480313600406697,
+        16.98375440258377,
+        40.09987250345114,
+        85.50501230722661,
+        427.97418389918414
+      ],
+      "mean_gray_percentiles": [
+        51.56938380821079,
+        85.8036989698223,
+        103.83363108915441,
+        123.48951296338848,
+        186.6928347120098
+      ],
+      "low_sharpness_readback_metric": 104
+    },
+    "video_C": {
+      "images": 217,
+      "sharpness_percentiles": [
+        2.2725824643547154,
+        7.046247814559936,
+        16.967811047023016,
+        32.45644843399495,
+        330.7443412826431
+      ],
+      "mean_gray_percentiles": [
+        73.10337456597222,
+        104.15111653645833,
+        120.57944552951389,
+        132.52408745659721,
+        188.60483289930556
+      ],
+      "low_sharpness_readback_metric": 146
+    }
+  },
+  "selected_quality": {
+    "images": 180,
+    "sharpness_percentiles": [
+      2.3412530983524564,
+      7.338943550448943,
+      16.33877109940788,
+      33.46356433119244,
+      330.7443412826431
+    ],
+    "mean_gray_percentiles": [
+      49.695936734068624,
+      107.91921983506944,
+      122.74406218086193,
+      134.01835071040136,
+      188.60483289930556
+    ],
+    "low_sharpness_readback_metric": 119
+  },
+  "selection_reasons": {
+    "gray_rock_visual_candidate_near_far": 50,
+    "gray_rock_visual_candidate_angles_blur": 55,
+    "gray_rock_visual_candidate_small_dark_background": 35,
+    "uncertain_gray_patch_with_blocks_manual_check": 16,
+    "uncertain_gray_patch_edge_blur_manual_check": 8,
+    "multi_block_color_confusion_context": 8,
+    "darker_small_multi_target_background": 8
+  },
+  "zip": "vision_training/annotations/science_targets_round2_priority/round2_priority_180.zip",
+  "zip_sha256": "b8908f42033b5ad88dd5bef6cc3dfb7791f985b2cc74639cffb5b742f8f4382c",
+  "zip_integrity": "PASS",
+  "images_readable": true,
+  "filename_content_collisions": 0,
+  "previously_reviewed_selected": 0,
+  "video_B_selected": 0,
+  "new_labels": 0,
+  "new_reviews": 0,
+  "object_class_counts": "Unknown: requires manual annotation",
+  "config_sha256": "900e51b21300b763c60ddf51857d42578fe59e00b410564464ce72a107df6417",
+  "script_sha256": "db54ef9a923be6f4f4b0193084c8beebd83b8195e9031f6c3f32513733fc54f3"
+}

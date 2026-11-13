@@ -1,0 +1,26 @@
+{
+  "imgsz": 960,
+  "input_shapes": [
+    [
+      1,
+      3,
+      544,
+      960
+    ]
+  ],
+  "images": 1,
+  "repeats": 20,
+  "warmup": 5,
+  "batch": 1,
+  "fp16": false,
+  "square_input": false,
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "peak_allocated_mib": 71.87939453125,
+  "peak_reserved_mib": 90.0,
+  "mean_wall_ms": 17.3277802492521,
+  "p95_wall_ms": 18.795286697422853,
+  "weights_sha256": "d0b6dc563add714d3b4b01485f604781c91b53dca8cb8797e22cee91a57692e4",
+  "status": "PASS",
+  "training_memory": "NOT VERIFIED: inference only",
+  "scope": "single image, recorded actual auto-padding tensor, PyTorch allocator; excludes driver/context/other process VRAM"
+}

@@ -503,3 +503,13 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 - 真实compact训练样本仍缺；手机验证只有一个场景，独立最终test与D435泛化NOT VERIFIED。
 - 报告：vision_training/reports/science_targets_mixed_v1/README.md；权重/大数据本地runs/science_targets_mixed_v1。
 - 未修改ROS2/MAP/Point-LIO/导航/抓取；无硬件操作。
+
+## 第二轮优先送标与960兼容性（2026-11-14）
+
+- 远端起点0691a5d；剩余869张逐图hash/读回检查通过，A370/B282/C217。
+- 定制送标180张（C140/A40/B0），原尺寸/文件名/来源保留，ZIP与五页拼图本地annotations/science_targets_round2_priority。
+- 按目视时间窗覆盖灰色岩石候选、不同大小/角度、方块多目标和较暗/模糊背景；不自动区分compact/spiky，不能保证补齐compact。
+- 所有180张pending，无标签/新审核/训练；完整B继续验证组。原best/last和首轮评估hash核对一致。
+- PT960 GPU推理通过：实际矩形1×3×544×960峰值allocated71.88MiB，方形warmup94.82MiB，均不含CUDA上下文/ROS等额外显存。
+- 固定640 ONNX需另行960导出并匹配元数据；本轮未导出或修改ROS2。960训练显存/精度、ROS实流仍NOT VERIFIED。
+- 报告和预览：vision_training/reports/science_targets_round2/README.md。2项测试、ZIP/逐图检查通过。

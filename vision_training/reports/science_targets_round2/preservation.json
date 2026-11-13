@@ -1,0 +1,8 @@
+{
+  "best.pt": "d0b6dc563add714d3b4b01485f604781c91b53dca8cb8797e22cee91a57692e4",
+  "last.pt": "fb9f6d210c2219338e75829c07f400ee2c6c757488410b6bb1821fe6abf27dc5",
+  "vision_training/runs/science_targets_mixed_v1/baseline/results.csv": "72d965f96ef34fc5d86358bc062a03aacf2133acfa6617b211a5d6e7d4ab7b6a",
+  "vision_training/runs/science_targets_mixed_v1/evaluation/metrics.json": "5af5839a91b2057eb60223593ef7dd0511f968622d4f87f4ea5857373065f476",
+  "pool_reviewed": 174,
+  "pool_unreviewed": 869
+}
