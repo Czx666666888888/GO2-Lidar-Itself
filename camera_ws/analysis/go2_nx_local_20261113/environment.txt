@@ -1,0 +1,11 @@
+Actual SSH target: unitree@192.168.123.18 (deployment access only; not core time dependency)
+Ubuntu 20.04.5 LTS, aarch64; Python 3.8.10; ROS Foxy and Noetic; no Humble.
+nvidia-l4t-core 35.3.1-20230319081403; docker executable exists (container/runtime compatibility NOT VERIFIED).
+Present packages: realsense2_camera, rmw_cyclonedds_cpp.
+Missing in sourced Foxy/DDS/camera overlays: point_lio_unilidar, transform_sensors, go2_keyboard_teleop, go2_science_perception.
+NX 12-second actual native subscription: cloud179, 14.882621Hz; IMU2999, 249.819258Hz.
+Last NX receive-header difference: cloud3460654.340580s, IMU3460654.273801s. Source and NX dates need not agree.
+Deployed entry subset: /home/unitree/go2_host_local (go2_test.sh, local runner, diagnostic and host config).
+Actual bash go2_test.sh --local-check result: exit2; BLOCKED four missing packages; no sensors/localization/motion started.
+Point-LIO on NX: NOT VERIFIED / not started. D435 stream and MAP TF on NX this cycle: NOT VERIFIED.
+S1 preexisting hold process retained. No motion, grasp, system upgrades or clock changes performed.

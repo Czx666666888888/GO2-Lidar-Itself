@@ -67,6 +67,11 @@ class Repuber(Node):
             raise ValueError('time_mapping_mode must be legacy, imu or explicit')
         self.time_stamp_offset = 0
         self.time_stamp_offset_set = False
+        self.local_clock_pair = None
+        self.local_clock_fault = ''
+        self.legacy_imu_age_first = None
+        self.legacy_imu_age_delta = None
+        self.legacy_source_pair = None
         self.mapping = None if self.time_mode == 'legacy' else ImuTimeMapping(
             window_sec=self.get_parameter('time_mapping_window_sec').value,
             min_samples=self.get_parameter('time_mapping_min_samples').value,
@@ -146,7 +151,9 @@ class Repuber(Node):
 
     def publish_mapping_status(self):
         if self.time_mode == 'legacy':
-            report = dict(ready=self.time_stamp_offset_set, fault='',
+            report = dict(ready=self.time_stamp_offset_set and not self.local_clock_fault,
+                          fault=self.local_clock_fault,
+                          residual_offset_sec=self.legacy_imu_age_delta,
                           offset_ns=self.time_stamp_offset if self.time_stamp_offset_set else None,
                           offset_sec=self.time_stamp_offset/1e9 if self.time_stamp_offset_set else None,
                           absolute_clock_synchronization=False,
@@ -154,9 +161,24 @@ class Repuber(Node):
                                      'no ImuTimeMapping READY/FAULT/source guard is used')
         else:
             report = self.mapping.status()
+        if self.local_clock_fault:
+            report['ready'] = False
+            report['fault'] = self.local_clock_fault
         report['mode'] = self.time_mode
         report['ros_stamp_ns'] = self.get_clock().now().nanoseconds
         self.mapping_status_pub.publish(String(data=json.dumps(report)))
+
+    def local_clock_ok(self, receive_ns):
+        mono = time.monotonic_ns()
+        if self.local_clock_pair:
+            ros_delta = receive_ns-self.local_clock_pair[0]
+            mono_delta = mono-self.local_clock_pair[1]
+            if abs(ros_delta-mono_delta) > 50_000_000:
+                if not self.local_clock_fault:
+                    self.get_logger().error('Local ROS clock stepped: stop output; restart localization session')
+                self.local_clock_fault = 'local ROS clock stepped; restart localization session'
+        self.local_clock_pair = (receive_ns, mono)
+        return not self.local_clock_fault
                 
     def is_in_filter_box(self, point):
         # Check if the point is in the filter box
@@ -170,6 +192,8 @@ class Repuber(Node):
 
     def cloud_callback(self, data):
         receive_ns = self.get_clock().now().nanoseconds
+        if not self.local_clock_ok(receive_ns):
+            return
         if self.time_mode == 'legacy':
             if not self.time_stamp_offset_set:
                 self.time_stamp_offset = receive_ns-Time.from_msg(data.header.stamp).nanoseconds
@@ -244,11 +268,26 @@ class Repuber(Node):
 
     def imu_callback(self, data, info):
         receive_ns = self.get_clock().now().nanoseconds
+        if not self.local_clock_ok(receive_ns):
+            return
         stamp_ns = Time.from_msg(data.header.stamp).nanoseconds
         if self.time_mode == 'legacy':
             # Share the first cloud's offset; do not emit a second epoch at startup.
             if not self.time_stamp_offset_set:
                 return
+            mono = time.monotonic_ns()
+            if self.legacy_source_pair:
+                source_delta = stamp_ns-self.legacy_source_pair[0]
+                elapsed = mono-self.legacy_source_pair[1]
+                if source_delta < 0 or abs(source_delta-elapsed) > 100_000_000:
+                    self.local_clock_fault = 'source time stepped; restart localization session'
+                    self.get_logger().error(self.local_clock_fault)
+                    return
+            self.legacy_source_pair = (stamp_ns, mono)
+            age = receive_ns-stamp_ns
+            if self.legacy_imu_age_first is None:
+                self.legacy_imu_age_first = age
+            self.legacy_imu_age_delta = (age-self.legacy_imu_age_first)/1e9
             mapped_stamp = stamp_ns+self.time_stamp_offset
         else:
             if not self.mapping.observe_imu(stamp_ns, info.get('source_timestamp', 0),

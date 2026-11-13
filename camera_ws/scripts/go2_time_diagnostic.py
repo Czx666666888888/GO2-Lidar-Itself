@@ -335,7 +335,6 @@ def analyze(folder):
             setup_ok=not metadata.get('setup_or_capture_error'))
         if result['time_conversion_mode'] == 'legacy':
             checks['legacy_offset_initialized'] = checks.pop('mapping_ready')
-            checks.pop('mapping_without_fault')
         if metadata.get('arguments', {}).get('require_target'):
             checks['exact_target_map'] = bool(len(debug) >= 5 and
                 result['target_map_exact_stamp_matches'] == len(debug))
@@ -548,8 +547,8 @@ def main():
     metadata = dict(commit=command(['git', '-C', str(REPO), 'rev-parse', 'HEAD']),
                     pc_time_status=command(['timedatectl', 'status']),
                     pc_timesync_status=command(['timedatectl', 'timesync-status']),
-                    route=command(['ip', 'route', 'get', '192.168.123.161']),
-                    interfaces=command(['ip', '-br', 'addr', 'show', 'enp12s0']),
+                    route=command(['ip', 'route']),
+                    interfaces=command(['ip', '-br', 'addr']),
                     domain=os.environ.get('ROS_DOMAIN_ID'),
                     rmw=os.environ.get('RMW_IMPLEMENTATION'),
                     cyclone_configuration=os.environ.get('CYCLONEDDS_URI'),

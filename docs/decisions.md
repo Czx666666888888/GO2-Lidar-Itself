@@ -94,3 +94,12 @@ This is a lightweight Architecture Decision Record. “Accepted” means the dec
   新鲜度/TF/目标验收，不增加门限；运动需操作者另行执行原dock入口。
 - **证据：** 历史/当前源码、两包构建输出、已安装文件与源码逐字节一致；本轮原生LiDAR8.15Hz、
   源端8.18Hz/35.36%丢包未通过，所以未启动legacy定位、D435/MAP或运动，实机恢复NOT VERIFIED。
+
+## ADR-010 — 运行主机本地时间及NX本机入口（2026-11-13）
+
+- Accepted：用户明确最终所有计算部署NX，PC仅开发/SSH/RViz。
+- 每次启动用运行主机ROS系统时间建立会话offset，共享LiDAR/IMU，保持点内时间；不持久化offset。
+- 本机入口无PC SSH/NTP/IP/clock；环境配置与算法分离，真实系统时间，记录漂移与突变故障。
+- 突变停止数据输出并由既有控制超时请求停止；停止控制后重启定位建立新会话，不在运动中改地图。
+- NX实查缺四包，完整定位及运动/S1编排NOT VERIFIED；本轮实际部署只读入口并验证缺包阻断。
+- PC专用完整启动器保留开发用途；NX的execute明确阻断直到部署迁移验收，不能误用PC流程。

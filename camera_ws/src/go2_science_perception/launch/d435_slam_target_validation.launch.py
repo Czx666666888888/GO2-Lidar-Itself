@@ -9,6 +9,7 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch_ros.actions import SetParameter
 
 
 def static_tf(name, parent, child, xyz):
@@ -98,6 +99,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        SetParameter(name="use_sim_time", value=False),
         DeclareLaunchArgument("remote_camera", default_value="false"),
         DeclareLaunchArgument("use_rviz", default_value="true"),
         GroupAction(actions=[slam], scoped=True),

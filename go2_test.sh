@@ -2,6 +2,19 @@
 # Read-only legacy chain: --time-diagnostic --legacy-check. Motion: --execute.
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$(uname -m)" = aarch64 ]; then
+  export GO2_RUNTIME_PROFILE="${GO2_RUNTIME_PROFILE:-local}"
+fi
+if [ "${GO2_RUNTIME_PROFILE:-}" = local ] && [ "$#" -eq 0 ]; then
+  exec bash "$go2_test_root/camera_ws/scripts/run_go2_local.sh"
+fi
+if [ "${1:-}" = --local-check ]; then
+  shift
+  exec bash "$go2_test_root/camera_ws/scripts/run_go2_local.sh" "$@"
+fi
+if [ "${GO2_RUNTIME_PROFILE:-}" = local ] && [ "${1:-}" = --execute ]; then
+  exec bash "$go2_test_root/camera_ws/scripts/run_go2_local.sh" "$@"
+fi
 if [ "${1:-}" = --time-diagnostic ]; then
   shift
   exec bash "$go2_test_root/camera_ws/scripts/run_go2_time_diagnostic.sh" "$@"

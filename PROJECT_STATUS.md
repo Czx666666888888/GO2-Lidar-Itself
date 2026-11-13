@@ -1,5 +1,14 @@
 # Project Status
 
+## 2026-11-13 NX本机时间适配
+
+NX实查Ubuntu20.04/Foxy/aarch64，缺Point-LIO/transform/base/perception四包；已有D435与CycloneDDS。
+本机原生DDS实测14.883Hz/249.819Hz；完整定位/TF/MAP没有启动，NOT VERIFIED。
+新增local主机入口与env配置，时间取节点所在主机，每会话重新映射、共享LiDAR/IMU时间、不依赖PC。
+记录漂移；时钟突变停止输出，原新鲜度保护请求停机，重新启动链建立新会话；未实测物理停止。
+NX独立入口已部署并验证缺包阻断。完整NX运动/S1编排仍待迁移，不把PC专用执行器冒充NX可用。
+推荐保留宿主、准备ARM64 Jammy/Humble本机容器；未升级或安装。详见手册与experiments最新节。
+
 ## 2026-11-13 18:13 legacy真实一键验证（源码b3b603a）
 
 原生健康后真正运行legacy60秒，Point-LIO/base883条且流连续；机身TF883/883、相机TF887/887。

@@ -3,6 +3,58 @@
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
+## 2026-11-13 NX本机时间与入口适配（基线3c298c01970b）
+
+实际NX：Ubuntu20.04.5/aarch64、Python3.8.10、ROS Foxy/Noetic，L4T35.3.1。
+现有D435/Foxy与CycloneDDS包可找到；在实际source这两个overlay后仍缺Point-LIO、transform_sensors、
+go2_keyboard_teleop和go2_science_perception四包。不能将PC的Humble/x86二进制复制到NX使用。
+NX实际12秒纯订阅：点云179帧/14.883Hz、IMU2999条/249.819Hz，未启动额外雷达驱动。
+
+### 时间处理及部署边界
+
+转换器一直用运行节点get_clock().now()，此前运行在PC所以参考PC；现在本机入口使传感器和定位
+都在NX运行，自然以NX ROS系统时间为基准，不是再加一个PC↔NX offset。
+每次进程启动重新建立当前会话b，不读写持久offset；LiDAR/IMU共享b，点内时间不变。
+保留legacy/imu选项，不把stamp逐条替换为now。legacy状态新增原始IMU接收差的实际变化量，
+不靠在线修改b掩盖漂移。ROS与monotonic突变超过50ms，或源时间相对monotonic突变超过100ms时
+停止转换输出并锁存故障；现有控制器400ms新鲜度/安全门超时负责请求停止。物理停止未实测。
+恢复需停止控制并重新执行本机入口，新会话重建地图/offset；不在运动中自动重锁时间或地图。
+未改Point-LIO、识别、SEARCH/STOP_CONFIRM、MAP管理、3DOF/停车条件或S1动作链。
+use_sim_time默认false，组合launch明确false；诊断仍拒绝有/clock的异常环境。
+
+新增GO2_RUNTIME_PROFILE=local与go2_test.sh --local-check，ARM64默认本机只读入口；
+不调用PC SSH/校时，不配置PC peer。ROS setup、DDS/camera/导航overlay和网卡移到主机env文件，
+样例config/go2_local.env.example。已有CYCLONEDDS_URI由部署者配置，无网卡配置则DDS自动选择。
+诊断路由/接口采集不再硬编码PC地址/网卡；原PC环境脚本在local模式不再注入PC peer。
+核心时间代码无/home/czx666、enp12s0、PC NTP或PC /clock依赖。
+PC开发入口scripts/go2_full_test.py的SSH相机、对时和S1编排仍保留，不能当作NX完整任务入口。
+NX的--execute明确阻断，避免回落PC路径。**本轮只完成本机只读入口，完整本机运动/S1编排待迁移验收。**
+
+### 最小环境迁移与实际验证
+
+Humble官方二进制目标Ubuntu22.04/Jammy（ARM64也有）：
+https://github.com/ros2/ros2_documentation/blob/humble/source/Installation/Ubuntu-Install-Debs.rst
+优先保留NX宿主20.04与JetPack，在本机ARM64 Jammy/Humble容器内编译缺失包，DDS使用host网络，
+USB只传入已确认相机设备；D435驱动需在同一容器/ROS环境编译，不能复用Foxy二进制。
+容器镜像/USB权限/驱动兼容、SDK Python与ROS解释器隔离、实际构建和运行均待确认，未下载或安装。
+另一条路径是在Foxy下源码构建四包，逐项适配rclpy MessageInfo执行器、launch/static TF参数、
+RealSense profile参数及Python依赖；不改算法，但不能未经构建就宣称兼容。
+不修改NX系统日期/NTP或重装系统；绝对日期与原装主控一致不是前提。
+
+已把独立入口部署到NX的/home/unitree/go2_host_local，实际执行返回exit2并明确列出四个缺包。
+没有启动Point-LIO、D435或TF链，因此持续定位/相机MAP/完整自主运行均NOT VERIFIED。
+本轮只有原生DDS是NX实测，不使用PC以往结果代替NX验收。无全仓构建、批量测试或运动。
+证据camera_ws/analysis/go2_nx_local_20261113/environment.txt；脚本语法/Python编译检查通过。
+
+NX唯一只读入口（从部署目录执行；当前会明确报缺包）：
+
+```bash
+bash go2_test.sh --local-check
+```
+
+PC仅可通过SSH执行同一NX入口。迁移完成后同一入口才会启动本机映射/Point-LIO/base/TF/D435/MAP
+并输出结果；它不依赖PC在线。当前不能提供已验收的NX完整运动启动命令。
+
 ## 2026-11-13 18:13 legacy一键真实验证：流连续，时间/末端目标验收失败
 
 源码基线b3b603a35e9b；执行`bash go2_test.sh --time-diagnostic --legacy-check --duration 60`。
