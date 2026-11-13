@@ -59,5 +59,10 @@
   "runtime_source_hashes": {
     "camera_ws/scripts/sync_go2_clock.py": "48e0ee4a05947baa713585e44dec9e7ba3879ed6ca63c70fff582ec6c65ea6d6",
     "code/autonomy_stack_go2_src/utilities/transform_sensors/transform_sensors/imu_time_mapping.py": "db41870b1c4aaa646945550952cc12a82e223193eaec332568371a919aaeb4cc"
+  },
+  "capture_raw_imu_first_last_elapsed_s": {
+    "ros_ns": 60.003240537,
+    "mono_raw_ns": 59.973146029,
+    "dds_source_ns": 59.985453986
   }
 }
