@@ -3,7 +3,7 @@ import base64
 import hashlib
 from pathlib import Path
 
-COMPAT_VERSION = 'v2_usb01_feedback_1'
+COMPAT_VERSION = 'v2_usb01_feedback_2'
 
 
 def replace_once(text, old, new):
@@ -78,13 +78,18 @@ def compatibility_payload(root, bundle):
                 values['readiness_state'] = ('BUSY' if self._state['busy'] else
                     'ZERO_HOLD' if state == 'ZERO_HOLD' and values['at_zero'] else
                     'FAULT' if state.startswith('FAULT') else values['position_state'])
-                if state == 'ZERO_HOLD' and not values['at_zero']:
-                    values['navigation_allowed'] = False
+                values['navigation_allowed'] = (state == 'ZERO_HOLD'
+                    and not self._state['busy'] and values['at_zero'] and self._fault is None)
                 self._state.update(values)
         except Exception as exc:
             self._update(readiness_state='COMMUNICATION_ERROR' if communication_error(exc)
                          else 'FAULT', error=str(exc), navigation_allowed=False)
         with self._lock:''')
+    previous_integration = replace_once(integration,
+        """                values['navigation_allowed'] = (state == 'ZERO_HOLD'
+                    and not self._state['busy'] and values['at_zero'] and self._fault is None)""",
+        """                if state == 'ZERO_HOLD' and not values['at_zero']:
+                    values['navigation_allowed'] = False""")
     client = replace_once(originals[names[2]].decode(),
                           '        client.connect(socket_path)',
                           '        client.settimeout(3.0)\n        client.connect(socket_path)')
@@ -108,6 +113,8 @@ def compatibility_payload(root, bundle):
         compile(content, name, 'exec')
     return {name: dict(original_sha256=hashlib.sha256(originals[name]).hexdigest()
                        if name in originals else None,
+                       accepted_previous_sha256=([hashlib.sha256(previous_integration.encode()).hexdigest()]
+                           if name == names[1] else []),
                        sha256=hashlib.sha256(content).hexdigest(),
                        content=base64.b64encode(content).decode())
             for name, content in changed.items()}

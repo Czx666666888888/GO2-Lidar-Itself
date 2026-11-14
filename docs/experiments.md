@@ -1,5 +1,19 @@
 # Experiment Record
 
+## 2026-11-14 修复零位恢复后导航许可锁存
+
+来源：用户异常输出、原Socket只读状态和适配源码。J1先为-0.0803009rad（超过0.08rad），
+随后已回到-0.0268944rad，at_zero=true、readiness_state=ZERO_HOLD且通信正常，
+但navigation_allowed仍false。根因为snapshot只在超限时写false，恢复后不重算true。
+修复为每次有效反馈按ZERO_HOLD、busy=false、at_zero及无服务故障重算许可；
+通信异常、忙碌、真实FAULT、仍超限均不放行。原0.08rad容差、轨迹、协议、GO2验收不变。
+兼容层版本v2_usb01_feedback_2，升级只接受原版/已部署上一版/本版精确hash，
+按hash保留升级备份；运行中不改服务文件或创建第二所有者。
+51项针对性离线检查通过，覆盖超限→恢复、忙碌/故障/通信异常阻断及上一版hash升级；
+Python语法、关键lint、diff检查通过。本改动不涉及ROS包构建。
+远端原服务仍运行旧代码，升级后真实状态恢复NOT VERIFIED，需支撑确认后安全重启S1。
+本轮未发送回零、抓取或GO2运动指令。未把软件修复写成硬件部署通过。
+
 ## 2026-11-14 修复S1进程清单误报历史版本
 
 用户full日志在connection_and_inventory阶段拒绝/home/unitree，未进入导航/姿态/抓取。

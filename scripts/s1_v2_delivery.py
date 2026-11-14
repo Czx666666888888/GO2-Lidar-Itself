@@ -23,11 +23,12 @@ import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]);p=root/'S1_V2_COMPAT.json'
 if not p.exists(): print('MISSING');raise SystemExit(0)
 d=json.loads(p.read_text())
-if d['version']!=sys.argv[2]: raise SystemExit('Unknown S1 v2 compatibility version; preserve')
+if d['version'] not in (sys.argv[2], 'v2_usb01_feedback_1'):
+    raise SystemExit('Unknown S1 v2 compatibility version; preserve')
 for name,meta in d['files'].items():
     if hashlib.sha256((root/name).read_bytes()).hexdigest()!=meta['sha256']:
         raise SystemExit('Modified S1 v2 compatibility source; preserve: '+name)
-print('READY')
+print('READY' if d['version']==sys.argv[2] else 'UPGRADE')
 '''
     result = subprocess.run([*ssh,host,shlex.join(['/usr/bin/python3','-c',check,
                              REMOTE_PACKAGE,COMPAT_VERSION])],capture_output=True,
@@ -49,12 +50,15 @@ if active.returncode!=1:raise SystemExit('Existing S1 owner; preserve, no patch'
 for name,meta in files.items():
     p=root/name
     if p.exists() and hashlib.sha256(p.read_bytes()).hexdigest() not in (
-            meta['original_sha256'],meta['sha256']):
+            meta['original_sha256'],meta['sha256'],*meta.get('accepted_previous_sha256',[])):
         raise SystemExit('Unexpected v2 source; preserve: '+name)
 for name,meta in files.items():
     p=root/name;content=base64.b64decode(meta['content'])
     if p.exists() and p.read_bytes()==content:continue
     if p.exists():
+        backup=root/'.v2-compat-backups'/hashlib.sha256(p.read_bytes()).hexdigest()/name
+        backup.parent.mkdir(parents=True,exist_ok=True)
+        if not backup.exists():shutil.copy2(p,backup)
         backup=root/'.v2-compat-upstream'/name
         backup.parent.mkdir(parents=True,exist_ok=True)
         if not backup.exists():shutil.copy2(p,backup)

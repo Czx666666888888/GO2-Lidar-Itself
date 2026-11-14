@@ -76,6 +76,15 @@ def test_live_snapshot_fails_closed_for_serial_errors(payload, monkeypatch):
     assert zero_hold(session.snapshot())
     arm.get_pos = lambda: [.12]*7
     assert not zero_hold(session.snapshot())
+    arm.get_pos = lambda: [.026]*7
+    assert zero_hold(session.snapshot())  # Original failure: permission stayed false forever.
+    session._update(busy=True)
+    assert not zero_hold(session.snapshot())
+    session._update(busy=False)
+    session.mark_fault('hold failure')
+    assert not zero_hold(session.snapshot())
+    session._update(state='FAULT_IO')
+    assert not zero_hold(session.snapshot())
     def io_error():
         raise OSError('Input/output error')
     arm.get_pos = io_error
@@ -95,10 +104,11 @@ def test_running_verified_compat_reuses_without_archive(monkeypatch, tmp_path):
     assert len(calls) == 1
 
 
-def test_running_unpatched_service_never_patched(monkeypatch, tmp_path):
+@pytest.mark.parametrize('state', ['MISSING', 'UPGRADE'])
+def test_running_unpatched_service_never_patched(monkeypatch, tmp_path, state):
     import s1_v2_delivery as delivery
     monkeypatch.setattr(delivery.subprocess, 'run',
-                        lambda *a, **kw: SimpleNamespace(stdout='MISSING\n'))
+                        lambda *a, **kw: SimpleNamespace(stdout=state+'\n'))
     with pytest.raises(RuntimeError, match='running'):
         ensure_v2_compat(tmp_path, ['ssh'], 'host', running=True)
 
@@ -108,3 +118,14 @@ def test_field_light_v2_status_and_no_zero_rpc():
     workflow = Workflow(SimpleNamespace(work_dir=ROOT, mode='dock', grasp_side='right'))
     with pytest.raises(RuntimeError, match='only status/grasp'):
         workflow.arm_command('zero')
+
+
+def test_upgrade_accepts_exact_deployed_previous_adapter():
+    path = os.environ.get('GO2_S1_V2_ARCHIVE')
+    if not path:
+        pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
+    with zipfile.ZipFile(path) as bundle:
+        meta = compatibility_payload(ROOT, bundle)['s1_control/integration.py']
+    assert meta['accepted_previous_sha256'] == [
+        'b98a9881893686af2e998d3cf60874c616c1de6290dd426a0a6822d2bce52d87']
+    assert meta['sha256'] != meta['accepted_previous_sha256'][0]
