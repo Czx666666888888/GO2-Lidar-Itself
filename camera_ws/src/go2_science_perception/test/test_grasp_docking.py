@@ -80,7 +80,7 @@ def test_planar_acceleration_speed_cap_and_braking_include_lateral_axis():
         previous = current
     assert math.hypot(*previous) == pytest.approx(.3)
     # Exercise vector braking without simulating robot physics.
-    c.target = (c.robot[0]-.06, c.robot[1]-.31)
+    c.target = (c.robot[0]-.06, c.robot[1]-.31+.08)
     c.visual_time = 13.2
     tick(c, 13.2, c.robot[:2])
     out = c.step(13.2)
@@ -226,7 +226,8 @@ def test_additional_right_clearance_preserves_grasp_reference():
 ])
 def test_minimum_is_planar_and_preserves_braking(minimum, error):
     c = dock_core(error)
-    c.docking.p = DockSettings(min_linear_speed=minimum)
+    # Isolate the far-approach floor; default fine control is tested separately.
+    c.docking.p = DockSettings(min_linear_speed=minimum, fine_distance=.07)
     c.p.braking_latency = .30  # Actual deployed profile.
     for i in range(20):
         t = 10.6+i*.1
@@ -246,3 +247,125 @@ def test_minimum_is_planar_and_preserves_braking(minimum, error):
         out = c.step(t+.001)
         t += .1
     assert math.hypot(out['vx'], out['vy']) < minimum
+
+
+@pytest.mark.parametrize('error', [(.10, 0), (0, -.10), (.06, .08)])
+def test_fine_control_uses_planar_cap_instead_of_far_speed_floor(error):
+    c = dock_core(error)
+    c.docking.p = DockSettings(min_linear_speed=.20)
+    c.p.kp_linear = 1.5  # Deployed search/docking profile.
+    for i in range(20):
+        t = 10.6+i*.1
+        c.visual_time = t
+        tick(c, t, c.robot[:2])
+        out = c.step(t)
+    assert out['docking_phase'] == 'FINE_CONTROL'
+    assert math.hypot(out['vx'], out['vy']) == pytest.approx(.08)
+
+
+def wait_tick(c, t, error, yaw=0.):
+    goal = docking_goal(c.target, c.docking.heading or 0., c.docking.p)
+    c.visual_time = t
+    tick(c, t, (goal[0]-error, goal[1]), yaw)
+    return c.step(t)
+
+
+def test_stop_wait_holds_zero_across_small_fluctuations_but_requires_four_cm():
+    c = dock_core((.039, 0))
+    c.step(10.5)
+    for i in range(1, 13):
+        out = wait_tick(c, 10.5+i*.1, .045)
+        assert out['docking_phase'] == 'STOP_WAIT'
+        assert out['vx'] == out['vy'] == out['wz'] == 0.
+        assert not out['grasp_docking_complete']
+        assert out['docking_stationary_since'] is None
+    # Once back in the original tolerance, all original stopped checks still apply.
+    for i in range(13, 26):
+        out = wait_tick(c, 10.5+i*.1, .039)
+    assert out['state'] == 'STOP' and out['grasp_docking_complete']
+
+
+@pytest.mark.parametrize('error', [.060, .061])
+def test_wait_exit_has_six_cm_hysteresis(error):
+    c = dock_core((.039, 0))
+    c.step(10.5)
+    out = wait_tick(c, 10.6, error)
+    assert not out['grasp_docking_complete']
+    if error == .060:
+        assert out['docking_phase'] == 'STOP_WAIT' and out['vx'] == out['vy'] == 0.
+    else:
+        assert out['docking_phase'] == 'FINE_CONTROL'
+        assert out['docking_stop_wait_started'] is None
+        assert math.hypot(out['vx'], out['vy']) > 0.
+
+
+def test_wait_timeout_resumes_fine_correction_without_accepting_five_cm():
+    c = dock_core((.039, 0))
+    c.step(10.5)
+    for i in range(1, 23):
+        out = wait_tick(c, 10.5+i*.1, .05)
+        assert not out['grasp_docking_complete']
+    assert out['docking_phase'] == 'FINE_CONTROL'
+    assert math.hypot(out['vx'], out['vy']) > 0.
+
+
+def test_wait_releases_for_heading_error_and_never_completes_while_moving():
+    c = dock_core((.039, 0), math.radians(9.5))
+    c.step(10.5)
+    out = wait_tick(c, 10.6, .039, math.radians(10.1))
+    assert out['docking_stop_wait_started'] is None and out['wz'] < 0.
+    c = dock_core((.039, 0))
+    for i in range(2, 15):
+        t = 10.5+i*.1
+        goal = docking_goal(c.target, 0., c.docking.p)
+        c.visual_time = t
+        tick(c, t, (goal[0]-.039, goal[1]))
+        c.actual_speed = c.camera_speed = .10
+        out = c.step(t)
+        assert out['docking_phase'] == 'STOP_WAIT'
+        assert out['vx'] == out['vy'] == out['wz'] == 0.
+        assert not out['grasp_docking_complete']
+
+
+@pytest.mark.parametrize('fault', ['localization', 'budget', 'manual'])
+def test_stop_wait_keeps_independent_fault_guards(fault):
+    c = dock_core((.039, 0))
+    c.step(10.5)
+    if fault == 'localization':
+        c.last_tick = 11.
+        out = c.step(11.1)
+    else:
+        tick(c, 10.6, c.robot[:2])
+        if fault == 'budget':
+            c.visual_time = 9.
+            c.odom_travel = 5.
+            c.lost_at = 10.
+        else:
+            c.fault('manual emergency stop')
+        out = c.step(10.6)
+    assert out['state'] == 'FAULT' and not out['grasp_docking_complete']
+    assert out['vx'] == out['vy'] == out['wz'] == 0.
+
+
+def test_far_to_fine_transition_still_obeys_vector_deceleration():
+    c = dock_core((1., 0))
+    for i in range(22):
+        out = wait_tick(c, 10.6+i*.1, 1.)
+    previous = (out['vx'], out['vy'])
+    for i in range(22, 87):
+        # Bounded physical samples; do not trip the unrelated localization jump guard.
+        error = max(.10, 1.-.02*(i-21))
+        out = wait_tick(c, 10.6+i*.1, error)
+        command = (out['vx'], out['vy'])
+        assert math.dist(command, previous) <= c.p.max_deceleration*.10001
+        previous = command
+    assert math.hypot(*command) <= .08+1e-12
+
+
+@pytest.mark.parametrize('settings', [
+    dict(settle_exit_tolerance=.04), dict(fine_distance=.06),
+    dict(settle_wait_sec=0.), dict(fine_max_linear_speed=0.),
+])
+def test_invalid_wait_and_fine_parameters_are_rejected(settings):
+    with pytest.raises(ValueError):
+        DockSettings(**settings)

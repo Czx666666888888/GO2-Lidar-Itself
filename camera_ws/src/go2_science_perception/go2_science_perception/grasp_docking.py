@@ -12,6 +12,7 @@ class GraspDocking:
     def reset(self):
         self.heading = None
         self.stationary_since = None
+        self.stop_wait_started = None
         self.velocity_map = (0.0, 0.0)
         self.progress_at = None
         self.best_error = math.inf
@@ -32,6 +33,7 @@ class GraspDocking:
                    camera_distance_xy=math.dist(core.target, core.camera)
                    if core.camera is not None else None)
         if not active:
+            self.stop_wait_started = self.stationary_since = None
             self.velocity_map = (0.0, 0.0)
             core.vx = core.vy = 0.0
             return out
@@ -69,6 +71,7 @@ class GraspDocking:
         out.update(docking_error_metric=error, docking_last_progress_age_s=now-self.progress_at)
         out['docking_progress_timeout_enabled'] = False
         if core.state == 'FAULT':
+            self.stop_wait_started = self.stationary_since = None
             self.velocity_map = (0.0, 0.0)
             core.vx = core.vy = 0.0
             out.update(state=core.state, reason=core.reason, vx=0.0, vy=0.0, wz=0.0)
@@ -79,7 +82,36 @@ class GraspDocking:
         dx, dy = goal[0]-core.robot[0], goal[1]-core.robot[1]
         ex, ey = rotate_xy(-core.robot[2], (dx, dy))
         out['docking_body_error_xy'] = [ex, ey]
+        # Hold a zero request across small position fluctuations while feedback
+        # settles. This latch never widens the final 4cm acceptance condition.
+        if self.stop_wait_started is not None:
+            if (distance > self.p.settle_exit_tolerance+1e-12 or not yaw_ok or
+                    (not position_ok and now-self.stop_wait_started >= self.p.settle_wait_sec)):
+                self.stop_wait_started = self.stationary_since = None
+        if self.stop_wait_started is None and position_ok and yaw_ok:
+            self.stop_wait_started = now
+        if self.stop_wait_started is not None:
+            # The unchanged safety gate applies its own deceleration limit.
+            self.velocity_map = (0.0, 0.0)
+            core.vx = core.vy = 0.0
+            if position_ok and yaw_ok and core._is_stopped(now):
+                if self.stationary_since is None:
+                    self.stationary_since = now
+                elif now-self.stationary_since >= self.p.settled_sec:
+                    core.state, core.reason = 'STOP', 'grasp docking pose reached and stopped'
+            else:
+                self.stationary_since = None
+            out.update(state=core.state, reason=core.reason, docking_phase='STOP_WAIT',
+                       vx=0.0, vy=0.0, wz=0.0,
+                       docking_stop_wait_started=self.stop_wait_started,
+                       docking_wait_age_s=now-self.stop_wait_started,
+                       docking_pose_in_tolerance=position_ok and yaw_ok,
+                       docking_stationary_since=self.stationary_since,
+                       grasp_docking_complete=core.state == 'STOP')
+            return out
+        self.stationary_since = None
         desired = 0.0
+        fine = distance <= self.p.fine_distance
         if not position_ok:
             a, latency = core.p.max_deceleration, core.p.braking_latency
             clearance = max(0.0, distance-self.p.position_tolerance/2)
@@ -88,6 +120,8 @@ class GraspDocking:
             # braking/slew limits; never force it on either axis separately.
             desired = min(core.p.max_linear_speed,
                           max(self.p.min_linear_speed, core.p.kp_linear*distance), safe)
+            if fine:
+                desired = min(desired, core.p.kp_linear*distance, self.p.fine_max_linear_speed)
             if core.actual_speed**2/(2*a)+core.actual_speed*latency >= clearance:
                 desired = min(desired, max(0.0, core.actual_speed-a*dt))
         # Kx=Ky=kp_linear. Map-frame slew limiting also accounts for rotation of
@@ -102,23 +136,11 @@ class GraspDocking:
         vx, vy = rotate_xy(-core.robot[2], self.velocity_map)
         wz = max(-core.p.max_angular_speed,
                  min(core.p.max_angular_speed, core.p.kp_angular*yaw_error)) if not yaw_ok else 0.0
-        phase = 'CONTROL_POSE'
-        if position_ok and yaw_ok:
-            phase = 'SETTLE'
-            if core._is_stopped(now):
-                if self.stationary_since is None:
-                    self.stationary_since = now
-                elif now-self.stationary_since >= self.p.settled_sec:
-                    core.state, core.reason = 'STOP', 'grasp docking pose reached and stopped'
-            else:
-                self.stationary_since = None
-        else:
-            self.stationary_since = None
-        if core.state == 'STOP':
-            self.velocity_map = (0.0, 0.0)
-            vx = vy = wz = 0.0
         core.vx, core.vy = vx, vy
-        out.update(state=core.state, reason=core.reason, docking_phase=phase,
+        out.update(state=core.state, reason=core.reason,
+                   docking_phase='FINE_CONTROL' if fine else 'CONTROL_POSE',
+                   docking_stop_wait_started=None, docking_wait_age_s=0.0,
+                   docking_pose_in_tolerance=position_ok and yaw_ok,
                    vx=vx, vy=vy, wz=wz, docking_stationary_since=self.stationary_since,
                    grasp_docking_complete=core.state == 'STOP')
         return out
