@@ -3,6 +3,10 @@
 # Full 40s clock sampling is explicit: append --clock-diagnostic to --execute.
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Optional ZIP once copied to the PC repository; forward the absolute path to the isolated checkout.
+if [ -z "${GO2_S1_V2_ARCHIVE:-}" ] && [ -f "$go2_test_root/S1_arm_integration_20261114_auto_v2.zip" ]; then
+  export GO2_S1_V2_ARCHIVE="$go2_test_root/S1_arm_integration_20261114_auto_v2.zip"
+fi
 if [ "$(uname -m)" = aarch64 ]; then
   export GO2_RUNTIME_PROFILE="${GO2_RUNTIME_PROFILE:-local}"
 fi
