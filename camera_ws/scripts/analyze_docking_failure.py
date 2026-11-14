@@ -96,7 +96,7 @@ def main():
     a.output.mkdir(parents=True, exist_ok=True)
     (a.output/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     with (a.output/'stop_wait_series.csv').open('w') as f:
-        writer = csv.DictWriter(f, fieldnames=list(series[0]));writer.writeheader();writer.writerows(series)
+        writer = csv.DictWriter(f, fieldnames=list(series[0]), lineterminator='\n');writer.writeheader();writer.writerows(series)
     print(json.dumps({k: summary[k] for k in ('recorded_path_budget_m',
         'recorded_control_polyline_m', 'net_lio_displacement_m', 'temporal_estimate')}, indent=2))
 
