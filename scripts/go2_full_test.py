@@ -303,8 +303,13 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         remote('mkdir -p '+REMOTE)
         arm_log=REMOTE+'/s1_v2_'+side+'_'+self.folder.name+'.log'
         argv=[ARM_PY,'-uB','scripts/'+entry,'--dev',device,'--execute']
-        remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,package,arm_log)]))
-        print('S1_V2_AUTO_ZERO_START '+side+' log='+HOST+':'+arm_log,flush=True)
+        started=remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,package,arm_log)]),
+                       capture_output=True,text=True)
+        marker=next((line.split()[1] for line in started.stdout.splitlines()
+                     if line.startswith('S1_PID ')),None)
+        if not marker or not marker.isdigit():
+            raise RuntimeError('S1 v2启动未报告进程PID: '+started.stdout)
+        print('S1_V2_AUTO_ZERO_START '+side+' pid='+marker+' log='+HOST+':'+arm_log,flush=True)
         deadline=time.monotonic()+75
         last=None
         while time.monotonic()<deadline:
@@ -316,7 +321,14 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
                 if last.get('state') in ('FAULT_HOLD','FAULT_IO','STOPPING','STOPPED'):
                     raise RuntimeError('S1 v2回零失败: '+str(last))
             except (OSError,subprocess.CalledProcessError,ValueError):
-                pass
+                # Initialization has not yet opened the socket. If the process died,
+                # report its log immediately rather than waiting the full timeout.
+                try:
+                    remote('kill -0 '+marker,timeout=5)
+                except subprocess.CalledProcessError:
+                    details=remote('tail -n 18 '+shlex.quote(arm_log),
+                                   capture_output=True,text=True,timeout=8).stdout
+                    raise RuntimeError('S1 v2启动已退出: '+details)
             time.sleep(.5)
         raise RuntimeError('S1 v2初始化或回零超时: '+str(last)+' log='+arm_log)
 
