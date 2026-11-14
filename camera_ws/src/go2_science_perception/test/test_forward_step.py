@@ -92,7 +92,7 @@ def test_response_check_ramps_then_stops_on_actual_pose_without_grasp_success():
         t = 10.6+i*.1
         tick(c, t, origin[:2])
         out = c.step(t)
-        assert 0 <= out['vx'] <= .15
+        assert 0 <= out['vx'] <= .20
         assert out['vx']-previous <= .01501
         assert out['vy'] == out['wz'] == 0.
         previous = out['vx']

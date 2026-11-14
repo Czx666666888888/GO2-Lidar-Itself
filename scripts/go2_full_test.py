@@ -727,7 +727,7 @@ def main():
         return
     if not args.execute and not args.startup_check:
         if args.forward_response_check:
-            print('离线计划：复用现有S1保持和传感器预检；同一控制器/安全门正向缓升至0.15m/s，'
+            print('离线计划：复用现有S1保持和传感器预检；同一控制器/安全门正向缓升至配置参考速度（当前0.20m/s），'
                   'Point-LIO测得2cm前移后请求零速，记录制动位移并确认停稳。'
                   '20cm路径/8秒为故障上限，不是预设脉冲持续时间。无SEARCH/趴下/抓取。')
             return

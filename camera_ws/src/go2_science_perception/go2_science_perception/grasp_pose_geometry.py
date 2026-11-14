@@ -30,6 +30,13 @@ class DockSettings:
     fine_max_linear_speed: float = 0.08
     settle_exit_tolerance: float = 0.06
     settle_wait_sec: float = 2.0
+    motion_window_sec: float = 0.0  # Dock overlay only; ordinary MAP/search unchanged.
+    motion_noise_m: float = 0.02
+    stable_window_sec: float = 0.0
+    settle_exit_confirm_sec: float = 0.0
+    visual_loss_stop_sec: float = 0.0
+    forward_deadzone_guard: bool = False
+    forward_effective_speed: float = 0.20  # Positive vx only, never a global floor.
     forward_step_enabled: bool = False  # Needs a reviewed response measurement first.
     forward_response_check: bool = False  # Explicit diagnostic, never a grasp goal.
     progress_timeout: float = 10.0  # Accepted for old configs; no longer stops docking.
@@ -50,6 +57,10 @@ class DockSettings:
                 and 0 <= self.fine_min_linear_speed <= self.fine_max_linear_speed
                 and self.fine_max_linear_speed > 0 and self.settle_wait_sec > 0):
             raise ValueError('Invalid fine-control or stop-wait settings')
+        if (min(self.motion_window_sec, self.stable_window_sec,
+                self.settle_exit_confirm_sec, self.visual_loss_stop_sec) < 0 or
+                self.motion_noise_m <= 0 or not .14 <= self.forward_effective_speed <= .30):
+            raise ValueError('Invalid dock motion evidence settings')
         # Dock clearance can exceed the original grasp reference region.
         # Keep that region unchanged so reachability diagnostics remain honest.
         if not (self.region_x_min <= self.region_x_max and

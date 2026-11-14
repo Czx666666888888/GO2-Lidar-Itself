@@ -1,5 +1,13 @@
 # 单目标视觉 / MAP 锚点混合闭环
 
+## 2026-11-14 dock模式补充
+
+仅grasp docking配置启用窗口里程、LIO/Sport矛盾停车、STOP_WAIT时间窗稳定性、
+视觉3秒过期停车，以及0.20正向短步有效速度。普通MAP/SEARCH与STOP_CONFIRM逻辑不变。
+原始/窗口里程及证据矛盾写odometry_evidence，停车阻塞和退出原因写原控制JSONL。
+用户新批准位置<=6cm，航向10度和实际停稳0.5秒不变；短步已开启但MOVE需要真实制动profile。
+
+
 以`858f75a`为基线，不启动FAR、WP5、localPlanner、pathFollower。相机、Point-LIO、
 蓝色检测/蓝墙过滤、map变换和visited继续复用。当前成功参数在
 `config/science_target_approach.yaml`：最高命令0.30 m/s、kp_linear=1.0、

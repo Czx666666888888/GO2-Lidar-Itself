@@ -28,7 +28,7 @@ def parser():
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
     p.add_argument('--forward-response-check', action='store_true',
-                   help='one bounded 0.15m/s forward response check; no posture or grasp')
+                   help='one bounded configured-speed forward response check; no posture or grasp')
     p.add_argument('--docking-geometry-verified', action='store_true',
                    help='operator has completed separate physical XY docking validation')
     p.add_argument('--search-distance', type=float, default=5.0)

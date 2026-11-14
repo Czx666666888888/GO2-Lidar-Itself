@@ -50,7 +50,8 @@ class ScienceTargetApproach(Node):
             f.name: self.get_parameter('dock_' + f.name).value for f in fields(DockSettings())
         }), forward_profile=forward_profile) if self.grasp_docking_enabled else None
         if docking and docking.p.forward_step_enabled and forward_profile is None:
-            raise ValueError('Forward short steps require a reviewed response profile')
+            self.get_logger().warning('Forward step enabled; positive-vx fine correction '
+                                      'requires a reviewed response/braking profile')
         self.core = ApproachControl(Settings(**{
             f.name: self.get_parameter(f.name).value for f in fields(defaults)}), docking=docking)
         self.dry_run = self.get_parameter('dry_run').value

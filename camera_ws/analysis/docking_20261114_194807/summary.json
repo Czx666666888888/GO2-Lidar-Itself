@@ -1,0 +1,250 @@
+{
+  "recorded_path_budget_m": 4.99381466607991,
+  "recorded_control_polyline_m": 4.614532627283065,
+  "net_lio_displacement_m": 0.4980578648984567,
+  "temporal_estimate": {
+    "raw_path_m": 4.614532627283065,
+    "windowed_path_m": 2.5414880151700405,
+    "sport_integral_m": 0.5307360056528392,
+    "window_sec": 0.5,
+    "resolution_m": 0.02,
+    "disagreement_windows": 24,
+    "disagreement_distance_m": 2.0107520095172013,
+    "localization_untrusted": true,
+    "unresolved_path_difference_m": 2.0730446121130246,
+    "evidence": "pose estimate and Sport comparison; no independent physical truth"
+  },
+  "first_disagreement_after_loss_sec": 6.200265563000357,
+  "independently_verified_physical_distance_m": null,
+  "independently_verified_jitter_distance_m": null,
+  "limitation": "10Hz transformed vehicle pose is retained; raw Point-LIO Odometry is absent. No independent physical truth. Differences are unresolved, not proven noise.",
+  "stop_wait_exits": [
+    {
+      "group": 1,
+      "start_index": 191,
+      "exit_index": 196,
+      "duration_sec": 0.5000843570014695,
+      "entry_error_m": 0.030193868823907875,
+      "exit_error_m": 0.06363001525479753,
+      "exit_yaw_deg": 7.438246617691636,
+      "vehicle_delta_xy": [
+        -0.02318826752715797,
+        -0.02490886134601722
+      ],
+      "target_delta_xy": [
+        0.0,
+        0.0
+      ],
+      "exit_reason": "distance_over_6cm",
+      "max_stationary_run_sec": 0.0
+    },
+    {
+      "group": 2,
+      "start_index": 240,
+      "exit_index": 244,
+      "duration_sec": 0.3998810359989875,
+      "entry_error_m": 0.0381561308430818,
+      "exit_error_m": 0.06859254129410539,
+      "exit_yaw_deg": 7.1285750118725595,
+      "vehicle_delta_xy": [
+        -0.02765678269319949,
+        -0.013369110910731119
+      ],
+      "target_delta_xy": [
+        0.0,
+        0.0
+      ],
+      "exit_reason": "distance_over_6cm",
+      "max_stationary_run_sec": 0.0
+    },
+    {
+      "group": 3,
+      "start_index": 345,
+      "exit_index": 350,
+      "duration_sec": 0.4999194370011537,
+      "entry_error_m": 0.039057221243168516,
+      "exit_error_m": 0.06324682391485134,
+      "exit_yaw_deg": 7.092135156530051,
+      "vehicle_delta_xy": [
+        -0.012210822031282209,
+        -0.02138366580769535
+      ],
+      "target_delta_xy": [
+        0.0,
+        0.0
+      ],
+      "exit_reason": "distance_over_6cm",
+      "max_stationary_run_sec": 0.0
+    },
+    {
+      "group": 4,
+      "start_index": 424,
+      "exit_index": 428,
+      "duration_sec": 0.40010835499924724,
+      "entry_error_m": 0.038378486151168276,
+      "exit_error_m": 0.06557117807061573,
+      "exit_yaw_deg": 6.984151305597375,
+      "vehicle_delta_xy": [
+        -0.02546331272062563,
+        -0.01446332510960896
+      ],
+      "target_delta_xy": [
+        0.0,
+        0.0
+      ],
+      "exit_reason": "distance_over_6cm",
+      "max_stationary_run_sec": 0.0
+    },
+    {
+      "group": 5,
+      "start_index": 576,
+      "exit_index": 582,
+      "duration_sec": 0.6001159200004622,
+      "entry_error_m": 0.03885095506218721,
+      "exit_error_m": 0.06987344351258222,
+      "exit_yaw_deg": 7.368008394504492,
+      "vehicle_delta_xy": [
+        -0.021502004316616308,
+        -0.02277318317131999
+      ],
+      "target_delta_xy": [
+        0.0,
+        0.0
+      ],
+      "exit_reason": "distance_over_6cm",
+      "max_stationary_run_sec": 0.0
+    },
+    {
+      "group": 6,
+      "start_index": 666,
+      "exit_index": 670,
+      "duration_sec": 0.40011446500102466,
+      "entry_error_m": 0.037326981417057134,
+      "exit_error_m": 0.07202295244084658,
+      "exit_yaw_deg": 7.16125292565422,
+      "vehicle_delta_xy": [
+        -0.028276557394711688,
+        -0.02164790738493033
+      ],
+      "target_delta_xy": [
+        0.0,
+        0.0
+      ],
+      "exit_reason": "distance_over_6cm",
+      "max_stationary_run_sec": 0.0
+    }
+  ],
+  "fine_samples": 483,
+  "positive_vx_below_015": 479,
+  "positive_vx_below_020": 481,
+  "fine_sport_below_001": 443,
+  "last_valid_visual_detection": {
+    "color_stamp_ns": 1794656834492360840,
+    "depth_stamp_ns": 1794656834492360840,
+    "received_ns": 1794656834618781625,
+    "reason": "",
+    "targets": [
+      {
+        "accepted": true,
+        "center": [
+          621.8449564134496,
+          452.2851805728518
+        ],
+        "area": 1606,
+        "valid_depth_points": 1461,
+        "depth_m": 0.3890000283718109,
+        "camera_xyz": [
+          0.1923419261322588,
+          0.1332613932296314,
+          0.3890000283718109
+        ],
+        "reason": "accepted",
+        "contours": [
+          [
+            [
+              602,
+              438
+            ],
+            [
+              600,
+              449
+            ],
+            [
+              596,
+              454
+            ],
+            [
+              596,
+              462
+            ],
+            [
+              601,
+              462
+            ],
+            [
+              611,
+              467
+            ],
+            [
+              614,
+              471
+            ],
+            [
+              619,
+              470
+            ],
+            [
+              623,
+              472
+            ],
+            [
+              624,
+              478
+            ],
+            [
+              639,
+              478
+            ],
+            [
+              639,
+              428
+            ],
+            [
+              635,
+              430
+            ],
+            [
+              626,
+              428
+            ],
+            [
+              615,
+              435
+            ],
+            [
+              610,
+              434
+            ]
+          ]
+        ]
+      }
+    ],
+    "raw_mask_pixels": 1615,
+    "wall_detected": false
+  },
+  "later_detection_count": 442,
+  "later_detection_reasons": {
+    "no blue candidates": 343,
+    "no valid targets after wall rejection and clustering": 99
+  },
+  "first_budget_fault": {
+    "monotonic": 11322.194086104,
+    "ros_stamp_ns": 1794656887712625108,
+    "visual_age_sec": 53.22029205800027,
+    "position_error_m": 0.05881883180830385
+  },
+  "evidence_sha256": {
+    "camera_ws/records/run_1794656817517152442.json": "87d984a402dc699d4dc407f8d5bcb0d8500d1f1599f99728377663c29545d083",
+    "camera_ws/records/approach_20261114_194658_518135.jsonl": "6d0ecd34df81dcdc8e793fd3b7177a60605bd83d77acecf3455a2c0d8434d081"
+  }
+}

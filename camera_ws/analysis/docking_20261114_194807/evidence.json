@@ -1,0 +1,42 @@
+{
+  "camera_ws/records/run_1794656817517152442.json": {
+    "sha256": "87d984a402dc699d4dc407f8d5bcb0d8500d1f1599f99728377663c29545d083",
+    "bytes": 4071629
+  },
+  "camera_ws/records/science_approach_1794656818403641273.jsonl": {
+    "sha256": "8764a84fc71bf548676909d8ff123325517ff0bfd0a193f57a4d085edb71bd3c",
+    "bytes": 3099854
+  },
+  "camera_ws/records/1794656817517152442_gate.log": {
+    "sha256": "dcd0eb02fb01544f7b17fd8df4e0b60c5c9d6b5db19125ba305c9986b1ccf59d",
+    "bytes": 12105
+  },
+  "camera_ws/records/1794656817517152442_control.log": {
+    "sha256": "7d9fb3a57641c9b47fdb5e411c4fa4c6fd53cfcaa50008b786ea1ea0b56a2c26",
+    "bytes": 22598
+  },
+  "camera_ws/records/1794656817517152442_recorder.log": {
+    "sha256": "aebf4f7da647426bfc2fda9f8e9a49328129316014eb070984d110a2413d3180",
+    "bytes": 535
+  },
+  "camera_ws/records/handoff_1794656817517152442.jsonl": {
+    "sha256": "77f362b8432e4ce7f7b4b2b08c2b57e5c442e9a4d3c2deff67d8cd1ff7e6ba5e",
+    "bytes": 5225
+  },
+  "camera_ws/records/full_1794656799004878859/slam.log": {
+    "sha256": "5fea05a1faacc87761fc8d22e77fd3e7f5e85342a47e04ab3a17ead55da7d126",
+    "bytes": 131307
+  },
+  "camera_ws/records/full_1794656799004878859/camera.log": {
+    "sha256": "3be82c9820b7aad9d3ad8645f64b802dc9bff7a853c74f154b2b7d2bccfaedb5",
+    "bytes": 3015
+  },
+  "camera_ws/records/full_1794656799004878859/manifest.json": {
+    "sha256": "d2859fc4e86edb8ee95891fdc513a74474ddccf0c7d001601c0d597362919183",
+    "bytes": 236
+  },
+  "camera_ws/records/approach_20261114_194658_518135.jsonl": {
+    "sha256": "6d0ecd34df81dcdc8e793fd3b7177a60605bd83d77acecf3455a2c0d8434d081",
+    "bytes": 8193603
+  }
+}

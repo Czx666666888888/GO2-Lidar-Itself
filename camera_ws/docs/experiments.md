@@ -1,5 +1,14 @@
 # D435 Experiment Record
 
+## 2026-11-14 19:48:07失败精调复核
+
+完整记录见[根实验记录](../../docs/experiments.md)与
+[统计](../analysis/docking_20261114_194807/summary.json)、
+[六次STOP_WAIT完整CSV](../analysis/docking_20261114_194807/stop_wait_series.csv)。
+4.994m不能定量拆成真实/噪声；窗口估计2.541m、Sport积分0.531m均不是真值。
+用户要求短步开启、确认0.20有效、终验<=6cm；已更新控制和配置，实测制动profile仍缺失。
+
+
 ## 2026-11-14 S1 v2 真机部署与零位保持
 
 详细配置、授权、实测结果、失败与验证边界见[根实验记录](../../docs/experiments.md)。

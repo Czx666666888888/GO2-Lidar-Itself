@@ -10,11 +10,18 @@ science_target_approach:
     dock_fine_distance: 0.15
     dock_fine_min_linear_speed: 0.18  # Braking/measured-speed/slew limits still take priority.
     dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
-    dock_settle_exit_tolerance: 0.06  # Resume correction; completion still requires 0.04m.
-    dock_settle_wait_sec: 2.0  # Resume fine correction if still outside 0.04m after waiting.
-    dock_forward_step_enabled: false  # Enable only after new bounded response validation.
-    forward_step_profile_file: ''
-    dock_position_tolerance: 0.04  # Navigation tolerance, not guaranteed arm reachability.
+    dock_settle_exit_tolerance: 0.08  # Zero hold outer band; success remains <=0.06m.
+    dock_settle_wait_sec: 2.0  # Replan only after persistent failure to enter <=0.06m.
+    dock_forward_step_enabled: true  # Enabled; MOVE still requires measured/reviewed braking profile.
+    forward_step_profile_file: ''  # Supply the real measured profile; never guessed pulse times.
+    dock_forward_deadzone_guard: true
+    dock_forward_effective_speed: 0.20  # User confirmed .15 ineffective, .20 stable.
+    dock_motion_window_sec: 0.5
+    dock_motion_noise_m: 0.02
+    dock_stable_window_sec: 0.5
+    dock_settle_exit_confirm_sec: 0.3
+    dock_visual_loss_stop_sec: 3.0
+    dock_position_tolerance: 0.06  # User-approved 2026-11-14: accept 4-6cm, not arm reachability.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_settled_sec: 0.5
     dock_progress_timeout: 10.0  # Compatibility only; progress no longer triggers a stop.

@@ -15,7 +15,7 @@ def load_forward_profile(path):
         raise ValueError('Forward response profile needs physical review')
     if not all(math.isfinite(data[k]) and data[k] > 0 for k in required):
         raise ValueError('Forward response measurements must be finite and positive')
-    if not (.14 <= data['speed_mps'] <= .16 and
+    if not (.14 <= data['speed_mps'] <= .30 and
             data['min_step_m'] <= data['max_step_m'] < .15):
         raise ValueError('Invalid measured forward step envelope')
     source = Path(data['source_log'])
@@ -59,7 +59,7 @@ class ForwardStep:
     def observe(self, core, now):
         if self.phase != 'SETTLE':
             return
-        if core._is_stopped(now) and math.hypot(core.vx, core.vy) < 1e-6:
+        if core.docking_stopped(now) and math.hypot(core.vx, core.vy) < 1e-6:
             moved = self.travel(core)
             self.last_result = dict(measured_travel_m=moved,
                                     moving_sec=self.stopping-self.started,
@@ -75,7 +75,17 @@ class ForwardStep:
         """Return vx reference or None. Lateral/turn control has no compensation."""
         p = self.profile
         if p is None:
+            if (core.docking.p.forward_deadzone_guard and yaw_ok and
+                    ex > core.docking.p.position_tolerance and
+                    abs(ey) < core.docking.p.position_tolerance and
+                    0 < vx < core.docking.p.forward_effective_speed):
+                core.fault('forward step enabled but response/braking calibration required')
+                return 0.
             return None
+        if (core.docking.p.forward_deadzone_guard and
+                abs(p['speed_mps']-core.docking.p.forward_effective_speed) > 1e-9):
+            core.fault('forward profile does not match confirmed effective positive-vx speed')
+            return 0.
         if any(abs(getattr(core.p, k)-p[k]) > 1e-9 for k in
                ('max_acceleration', 'max_deceleration', 'braking_latency')):
             core.fault('forward profile does not match current braking/slew limits')
@@ -94,7 +104,7 @@ class ForwardStep:
         if not (ex > tolerance and abs(ey) < tolerance and yaw_ok and
                 0 < vx < p['speed_mps']):
             return None
-        if not core._is_stopped(now) or math.hypot(core.vx, core.vy) >= 1e-6:
+        if not core.docking_stopped(now) or math.hypot(core.vx, core.vy) >= 1e-6:
             # First settle the previous segment before planning another step.
             return 0.
         # Include measured braking travel and uncertainty in the geometric envelope.

@@ -3,6 +3,7 @@ import math
 
 from .grasp_pose_geometry import DockSettings, geometry_report, rotate_xy
 from .forward_step import ForwardStep
+from .docking_motion import window_stats
 
 
 class GraspDocking:
@@ -16,6 +17,7 @@ class GraspDocking:
         self.heading = None
         self.stationary_since = None
         self.stop_wait_started = None
+        self.exit_candidate_since = None
         self.velocity_map = (0.0, 0.0)
         self.progress_at = None
         self.best_error = math.inf
@@ -26,21 +28,35 @@ class GraspDocking:
 
     def begin_response_check(self, core, now):
         self.probe_origin, self.probe_started = core.robot, now
+        if self.p.stable_window_sec > 0:
+            baseline = core.docking_stop_evidence(now)
+            if not baseline['stopped']:
+                core.fault('forward response check requires stable trusted pose baseline')
+                return
+            xy = baseline['body']['position']
+            self.probe_origin = (xy[0], xy[1], core.robot[2])
         core.state = 'APPROACH_TO_GRASP_POSE'
         # This is measured travel from a real pose, not a fabricated visual anchor.
         core.target = core.anchor_initial = None
 
     def response_check(self, core, now, out, dt):
-        """One 2cm measured trigger, 20cm/8s watchdog; no assumed pulse duration."""
+        """One measured response check; no assumed pulse duration or inferred displacement."""
         if self.probe_origin is None or core.state in ('IDLE', 'STOP', 'FAULT'):
             out.update(state=core.state, reason=core.reason, vx=0., vy=0., wz=0.,
                        grasp_docking_complete=False, response_check=self.probe_result,
                        control_reference='FORWARD_RESPONSE_CHECK')
             return out
         x, y, yaw = self.probe_origin
-        travel, cross = rotate_xy(-yaw, (core.robot[0]-x, core.robot[1]-y))
+        measured_xy = core.robot[:2]
+        if self.p.stable_window_sec > 0:
+            window = window_stats(core.pose_history, self.p.stable_window_sec,
+                                  self.p.motion_noise_m)
+            if window['ready']:
+                measured_xy = window['position']
+        travel, cross = rotate_xy(-yaw, (measured_xy[0]-x, measured_xy[1]-y))
         yaw_delta = math.atan2(math.sin(core.robot[2]-yaw), math.cos(core.robot[2]-yaw))
-        if abs(cross) > .03 or abs(yaw_delta) > math.radians(3) or travel > .20:
+        if (abs(cross) > .03 or abs(yaw_delta) > math.radians(3) or
+                math.dist(core.robot[:2], self.probe_origin[:2]) > .20):
             core.fault('forward response check path/heading boundary')
         if now-self.probe_started > 8.:
             core.fault('forward response check watchdog')
@@ -48,7 +64,7 @@ class GraspDocking:
             self.probe_zero, self.probe_zero_travel = now, travel
         if self.probe_zero is not None:
             core.vx = 0.
-            if core._is_stopped(now) and core.state != 'FAULT':
+            if core.docking_stopped(now) and core.state != 'FAULT':
                 if self.probe_stopped is None:
                     self.probe_stopped = now
                 elif now-self.probe_stopped >= self.p.settled_sec:
@@ -56,7 +72,7 @@ class GraspDocking:
             else:
                 self.probe_stopped = None
         else:
-            core.vx = min(.15, core.vx+core.p.max_acceleration*dt)
+            core.vx = min(self.p.forward_effective_speed, core.vx+core.p.max_acceleration*dt)
         if core.state == 'FAULT':
             core.vx = 0.
         self.probe_result = dict(started=self.probe_started, zero_requested=self.probe_zero,
@@ -103,6 +119,9 @@ class GraspDocking:
                 core.visual_loss_count += 1
             if not core.p.allow_odom:
                 core.fault('visual target lost')
+            elif (self.p.visual_loss_stop_sec > 0 and
+                  now-core.visual_time >= self.p.visual_loss_stop_sec):
+                core.fault('visual observation expired: stop and reconfirm target')
             elif core.odom_travel >= core.p.odom_max_distance:
                 core.fault('odometry continuation limit')
             elif max(0.0, distance-self.p.position_tolerance) > (
@@ -141,19 +160,44 @@ class GraspDocking:
         ex, ey = rotate_xy(-core.robot[2], (dx, dy))
         out['docking_body_error_xy'] = [ex, ey]
         # Hold a zero request across small position fluctuations while feedback
-        # settles. This latch never widens the final 4cm acceptance condition.
+        # settles. The final position/yaw tolerance is still checked continuously.
+        exit_reason = None
         if self.stop_wait_started is not None:
             self.forward.stop(core, now, 'entered final stop wait')
-            if (distance > self.p.settle_exit_tolerance+1e-12 or not yaw_ok or
-                    (not position_ok and now-self.stop_wait_started >= self.p.settle_wait_sec)):
+            evidence = core.docking_stop_evidence(now)
+            body = evidence.get('body', {})
+            window_distance = (math.dist(body['position'], goal[:2])
+                               if body.get('ready') else distance)
+            outside = (distance > self.p.settle_exit_tolerance+1e-12 and
+                       window_distance > self.p.settle_exit_tolerance+1e-12)
+            self.exit_candidate_since = ((now if self.exit_candidate_since is None else
+                                          self.exit_candidate_since) if outside else None)
+            if (outside and now-self.exit_candidate_since >= self.p.settle_exit_confirm_sec):
+                exit_reason = 'position_outside_exit_band_persisted'
+            elif not yaw_ok:
+                exit_reason = 'heading_outside_tolerance'
+            elif (not position_ok and window_distance > self.p.position_tolerance and
+                  now-self.stop_wait_started >= self.p.settle_wait_sec):
+                exit_reason = 'outside_position_tolerance_after_wait'
+            if exit_reason:
                 self.stop_wait_started = self.stationary_since = None
+                self.exit_candidate_since = None
+        out['docking_stop_wait_exit_reason'] = exit_reason
         if self.stop_wait_started is None and position_ok and yaw_ok:
             self.stop_wait_started = now
         if self.stop_wait_started is not None:
             # The unchanged safety gate applies its own deceleration limit.
             self.velocity_map = (0.0, 0.0)
             core.vx = core.vy = 0.0
-            if position_ok and yaw_ok and core._is_stopped(now):
+            evidence = core.docking_stop_evidence(now)
+            blockers = list(evidence['blockers'])
+            if not position_ok:
+                blockers.append('position_outside_tolerance')
+            if not yaw_ok:
+                blockers.append('heading_outside_tolerance')
+            out['docking_stop_evidence'] = evidence
+            out['docking_stationary_reset_reasons'] = blockers
+            if position_ok and yaw_ok and evidence['stopped']:
                 if self.stationary_since is None:
                     self.stationary_since = now
                 elif now-self.stationary_since >= self.p.settled_sec:
@@ -188,6 +232,19 @@ class GraspDocking:
         # the body axes between ticks; both acceleration and braking are vector bounds.
         target_map = (desired*dx/distance, desired*dy/distance) if distance else (0.0, 0.0)
         forward_override = None
+        if fine and self.p.forward_deadzone_guard:
+            body_vx, body_vy = rotate_xy(-core.robot[2], target_map)
+            if 0 < body_vx < self.p.forward_effective_speed:
+                if ex > self.p.position_tolerance and yaw_ok and abs(ey) < self.p.position_tolerance:
+                    if not self.p.forward_step_enabled:
+                        core.fault('positive-vx correction requires enabled measured forward step')
+                    elif self.forward.profile is None:
+                        core.fault('forward step enabled but response/braking calibration required')
+                else:
+                    # No necessary positive-forward step yet: retain the original
+                    # lateral/yaw calculation instead of requesting ineffective vx.
+                    target_map = rotate_xy(core.robot[2], (0., body_vy))
+                    out['forward_deadzone_action'] = 'zero_unnecessary_positive_vx'
         if (fine or self.forward.phase != 'IDLE') and self.p.forward_step_enabled:
             body_vx, body_vy = rotate_xy(-core.robot[2], target_map)
             forward_override = self.forward.request(

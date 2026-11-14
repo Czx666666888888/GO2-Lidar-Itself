@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import math
 from statistics import median
 
+from .docking_motion import WindowedTravel, window_stats
+
 
 @dataclass
 class Settings:
@@ -112,6 +114,10 @@ class ApproachControl:
         self.odom_time = self.feedback_time = self.visual_time = -math.inf
         self.last_tick = self.started = self.lost_at = None
         self.odom_travel = 0.0
+        self.loss_motion = (WindowedTravel(self.docking.p.motion_window_sec,
+                                          self.docking.p.motion_noise_m)
+                            if self.docking and self.docking.p.motion_window_sec > 0 else None)
+        self.loss_motion_epoch = None
         self.actual_speed = self.closing_speed = self.vx = 0.0
         self.vy = 0.0
         self.pose_history = deque()
@@ -168,7 +174,20 @@ class ApproachControl:
                 self.fault('localization jump or time regression')
                 return
             if self.lost_at is not None:
-                self.odom_travel += delta
+                if self.loss_motion is None:
+                    self.odom_travel += delta
+                else:
+                    sport = (self.feedback_speed if now-self.feedback_time <=
+                             self.p.feedback_timeout and math.isfinite(self.feedback_speed)
+                             else None)
+                    if self.loss_motion_epoch != self.lost_at:
+                        self.loss_motion.reset()
+                        self.loss_motion.add(self.odom_time, *self.robot[:2], sport)
+                        self.loss_motion_epoch = self.lost_at
+                    self.loss_motion.add(now, x, y, sport)
+                    self.odom_travel = self.loss_motion.distance
+                    if self.loss_motion.conflict:
+                        self.fault('localization untrusted: sustained LIO/Sport motion disagreement')
         self.pose_history.append((now, x, y))
         while (len(self.pose_history) > 2 and
                self.pose_history[1][0] <= now - self.p.speed_window_sec):
@@ -302,6 +321,9 @@ class ApproachControl:
         self.anchor_updates += 1
         self.lost_at = None
         self.odom_travel = 0.0
+        if self.loss_motion is not None:
+            self.loss_motion.reset()
+            self.loss_motion_epoch = None
 
     def _near_detections(self, now):
         """Use source-matched camera ranges, never infer range from a smoothed MAP track."""
@@ -318,6 +340,33 @@ class ApproachControl:
                 self.p.stop_confirm_speed_mps and
                 max(self.pose_yaw_rate, abs(self.feedback_yaw_rate)) <=
                 self.p.stop_confirm_yaw_rate)
+
+    def docking_stop_evidence(self, now):
+        """Dock-only temporal check; STOP_CONFIRM retains its original logic."""
+        if self.docking is None or self.docking.p.stable_window_sec <= 0:
+            return dict(stopped=self._is_stopped(now), blockers=[])
+        p = self.docking.p
+        body = window_stats(self.pose_history, p.stable_window_sec, p.motion_noise_m)
+        camera = window_stats(self.camera_history, p.stable_window_sec, p.motion_noise_m)
+        blockers = []
+        if (now-self.odom_time > self.p.odom_timeout or
+                now-self.camera_time > self.p.odom_timeout or
+                now-self.feedback_time > self.p.feedback_timeout):
+            blockers.append('feedback_or_pose_stale')
+        for name, values in (('body', body), ('camera', camera)):
+            if not values['ready']:
+                blockers.append(name+'_window_incomplete')
+            elif (values['speed_mps'] > self.p.stop_confirm_speed_mps or
+                  not values['bounded'] or values['max_gap_sec'] > self.p.odom_timeout):
+                blockers.append(name+'_motion_or_unstable_pose')
+        if self.feedback_speed > self.p.stop_confirm_speed_mps:
+            blockers.append('sport_still_moving')
+        if max(self.pose_yaw_rate, abs(self.feedback_yaw_rate)) > self.p.stop_confirm_yaw_rate:
+            blockers.append('yaw_still_moving')
+        return dict(stopped=not blockers, blockers=blockers, body=body, camera=camera)
+
+    def docking_stopped(self, now):
+        return self.docking_stop_evidence(now)['stopped']
 
     def _clear_stationary(self):
         self.stationary_since = self.settled_at = None
@@ -597,6 +646,8 @@ class ApproachControl:
                'elapsed': now - self.started if self.started is not None else 0.0,
                'visual_lost_at': self.lost_at,
                'candidate': self.candidate(now) if self.state in ('IDLE', 'SEARCH') else None}
+        if self.loss_motion is not None:
+            out['odometry_evidence'] = self.loss_motion.report()
         out.update(search_origin=self.search_origin, search_started=self.search_started,
                    search_observations=[{
                        'id': t['id'], 'map': t.get('latest_observation', t['position']),
