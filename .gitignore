@@ -72,3 +72,6 @@ secrets*
 
 # Local approach experiment videos and synchronized motion records
 camera_ws/records/
+
+# Isolated color-block vision overlay
+/.color_block/

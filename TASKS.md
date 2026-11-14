@@ -319,3 +319,13 @@
 - [ ] 补独立真实compact及更多小目标/多目标训练场景；B所有后续帧继续留验证，下一轮选图同时排除独立V2池161张reviewed，避免重复送标。
 - [ ] 后续满足真实验证条件后再准备类别/框/三维点/时间戳/相机frame一致的视觉接口，并实际验收D435 RGB-D。最终test与三维定位仍NOT VERIFIED。
 - 证据：vision_training/reports/science_targets_mixed_v2/README.md；不混入既有机器人未提交改动。
+
+
+## YOLO方块接近接口（2026-11-14）
+
+- [x] 核对最新视觉/实际运行集成分支；完成单类别V2→ROI深度→精确时间MAP→最近单方块锁定→原Manager/Approach接口。
+- [x] 集成go2_test.sh --mode approach与PC时间包装器，preview不启动gate/arm，execute不调用S1/full；HSV二选一、保留0.10m基线和原控制参数。
+- [x] 12项针对性检查、单包build、指定venv ROS/YOLO导入、launch参数/互斥和语法检查；保留既有机器人未提交改动。
+- [ ] 后续按用户新授权先做D435静态预览、时间/frame连续性、ROI实际定位误差；本轮仅代码，NOT VERIFIED。
+- [ ] 单方块真机到位/停止原因和物理距离验收后，再测试间隔充分的多方块最近目标；不得自动运动或抓取。
+- 说明：camera_ws/docs/color_block_map_approach.md；失检/深度无效沿用原0.5s视觉超时→有界ODOM，不是立即停车。

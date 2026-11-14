@@ -30,9 +30,17 @@ def reliable_box_depth(depth, box, min_depth=0.15, max_depth=5.0, roi_fraction=0
     if spread > max_spread:
         return dict(out, reason='mixed_or_noisy_depth', spread_m=spread)
     v, u = np.nonzero(mask)
+    median_depth = float(np.median(values))
+    candidates = np.abs(values-median_depth) <= max_spread/2
+    distance = (u-np.median(u))**2+(v-np.median(v))**2
+    distance = np.where(candidates, distance, np.inf)
+    if not np.isfinite(distance).any():
+        return dict(out, reason='no_median_depth_layer_pixel')
+    selected = int(np.argmin(distance))
     return dict(out, valid=True, reason='accepted_central_roi', spread_m=spread,
-                depth_m=float(np.median(values)), u=float(np.median(u)+left),
-                v=float(np.median(v)+top))
+                depth_m=median_depth, u=float(u[selected]+left), v=float(v[selected]+top),
+                sampled_pixel_depth_m=float(values[selected]),
+                pixel_selection='valid_pixel_in_median_depth_layer')
 
 
 def back_project(u, v, z, k, distortion=(), model='plumb_bob'):

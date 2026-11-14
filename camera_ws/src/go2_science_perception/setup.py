@@ -33,6 +33,7 @@ setup(
             "approach_video_recorder = go2_science_perception.approach_video_recorder:main",
             "science_target_approach = go2_science_perception.science_target_approach:main",
             "science_goal_bridge = go2_science_perception.science_goal_bridge:main",
+            "color_block_target_adapter = go2_science_perception.color_block_target_adapter:main",
             "yolo_detector = go2_science_perception.yolo_detector:main",
             "rgbd_capture = go2_science_perception.rgbd_capture:main",
         ],

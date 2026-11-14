@@ -524,3 +524,13 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 - B验证V2 640 P/R/AP50：block .8666/.6958/.8178，compact 0/0/.0189，spiky .2810/.3333/.2318。conf.25逐类TP/FP/FN为139/21/85、0/17/33、14/27/46；目标未达标。
 - 同一640权重960推理AP50为.8294/.1215/.3039，spiky Recall .50；conf.25 compact仍0TP，总FP65→82。未做960训练，不继续盲调；真实compact训练0框、新122个spiky仅1个小目标，优先补独立真实训练场景。
 - 保留HSV，不改Point-LIO/MAP/导航/抓取；D435实时RGB-D/三维关联、最终独立test仍NOT VERIFIED。完整报告/证据：vision_training/reports/science_targets_mixed_v2/README.md；本地best在vision_training/runs/science_targets_mixed_v2/baseline/weights/best.pt。
+
+
+## YOLO单方块MAP接近接口（2026-11-14，仅代码）
+
+- 核对远端视觉abb83f5、实际集成caf6ab6及对应源码；新增approach集成入口，YOLO仅color_block/V2固定hash，HSV互斥回退。
+- 继承原camera_target_to_map精确时间转换；完整YOLO帧选最近可测方块并锁定，仅其单点进入原Manager/Approach。深度无效/歧义不更新，两个方块≤0.40m保守拒绝。
+- 原ROI中位深度改选实际有效像素，补RGB/Depth/CameraInfo时间/frame检查；不把框中心当几何中心。原控制器/Manager/转换器/0.10m配置hash未改，未进入S1/抓取流程。
+- 主仓库入口转发实际集成模式，补齐PC校时包装器参数；原full/dock路径不改。12项针对性检查、单包构建、指定venv导入、launch参数及互斥检查通过。
+- 用户最新要求先完成代码；本轮无设备连接/实时预览/运动。D435定位误差、实时画面、到位距离/停止原因、单/多方块真实运行全部NOT VERIFIED。
+- 入口与限制：camera_ws/docs/color_block_map_approach.md；预览命令bash go2_test.sh --mode approach --preview --view。后续先静态误差核验，再另授权运动。

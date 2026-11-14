@@ -137,3 +137,13 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 49项离线检查、静态编译/dry-run、GPU训练/评估通过；未整仓ROS build、未运动。首次未约束CPU的比较进程PIL/enum导入报错，限定线程/亲和性后重跑成功，原因未知，未改环境。
 - 报告与Git证据：vision_training/reports/science_targets_mixed_v2/；完整本地训练/逐图对照：vision_training/runs/science_targets_mixed_v2/；best SHA256 e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1。
 - 证据等级：文件/标签检查、用户审核确认、离线GPU训练与B开发验证；B非最终test。D435实时RGB-D、类别/框/三维点/时间戳/frame关联、导航和抓取均NOT VERIFIED；未替换HSV。
+
+
+## 2026-11-14：YOLO单类别方块MAP接口（仅代码与软件检查）
+
+- 来源：远端abb83f5/caf6ab6、两分支实际源码、12项针对性检查、集成感知单包构建30.3秒、venv ROS/YOLO导入与launch参数/互斥检查。
+- 固定V2 best e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1；仅class0，完整帧结合Aligned Depth/CameraInfo，ROI实际有效像素投影，精确源时间MAP转换。
+- 新适配器一次选最近可测方块并空间锁定，缺深度/歧义不更新，仅单目标兼容PointStamped进入原Manager/Approach；近邻≤0.40m拒绝。HSV/YOLO互斥。
+- 原控制器、Manager、转换器实现及camera_origin/0.10m配置未改，hash证据见camera_ws/docs/evidence/color_block_interface/unchanged_integration_controls.json。新增集成approach分支，不启动S1/抓取，不改full/dock功能。
+- 用户改为先完成代码，本轮不连接设备/预览/运动；没有相机/MAP实测坐标、停车距离或物理停止结论。上述真机项均NOT VERIFIED；后续先静态误差检查再另授权单方块、多方块。
+- 完整命令、数据路径和失检ODOM行为：camera_ws/docs/color_block_map_approach.md。早于build的参数检查及默认只读ROS日志目录检查失败，build完成并指定/tmp日志后解析通过。

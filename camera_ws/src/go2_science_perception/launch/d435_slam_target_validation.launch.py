@@ -6,7 +6,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -56,6 +56,7 @@ def generate_launch_description():
         package="go2_science_perception",
         executable="coarse_target_locator",
         name="coarse_target_locator",
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("detector"), "' == 'hsv'"])),
         parameters=[os.path.join(
             package_share, "config", "coarse_target_locator.yaml"
         )],
@@ -65,6 +66,7 @@ def generate_launch_description():
         package="go2_science_perception",
         executable="camera_target_to_map",
         name="camera_target_to_map",
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("detector"), "' == 'hsv'"])),
         parameters=[os.path.join(
             package_share, "config", "camera_target_to_map.yaml"
         )],
@@ -98,6 +100,9 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument("detector", default_value="hsv", choices=["hsv", "yolo"]),
+        DeclareLaunchArgument("yolo_python", default_value="/usr/bin/python3"),
+        DeclareLaunchArgument("yolo_model", default_value=""),
         DeclareLaunchArgument("remote_camera", default_value="false"),
         DeclareLaunchArgument("use_rviz", default_value="true"),
         GroupAction(actions=[slam], scoped=True),
@@ -107,6 +112,18 @@ def generate_launch_description():
         static_tf("sensor_to_vehicle", "sensor", "vehicle", (-0.3, 0, 0)),
         coarse,
         target_to_map,
+        Node(package="go2_science_perception", executable="yolo_detector", name="yolo_detector",
+             condition=IfCondition(PythonExpression(["'", LaunchConfiguration("detector"), "' == 'yolo'"])),
+             prefix=[LaunchConfiguration("yolo_python")],
+             parameters=[{"model_path": LaunchConfiguration("yolo_model"),
+                          "class_names": "color_block", "imgsz": 640, "confidence": .25,
+                          "max_image_age_sec": .3, "max_rgb_depth_delta_sec": .05,
+                          "max_rgb_info_delta_sec": .1, "publish_legacy_debug": True}], output="screen"),
+        Node(package="go2_science_perception", executable="color_block_target_adapter",
+             name="camera_target_to_map",
+             condition=IfCondition(PythonExpression(["'", LaunchConfiguration("detector"), "' == 'yolo'"])),
+             parameters=[os.path.join(package_share, "config", "camera_target_to_map.yaml"),
+                         {"input_topic": "/science/yolo/unused_point"}], output="screen"),
         base_odom,
         target_manager,
         rviz,

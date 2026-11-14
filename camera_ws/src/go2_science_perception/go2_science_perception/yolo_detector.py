@@ -45,9 +45,10 @@ class YoloDetector(Node):
             depth_topic='/camera/camera/aligned_depth_to_color/image_raw',
             camera_info_topic='/camera/camera/color/camera_info',
             max_rgb_depth_delta_sec=0.10, max_image_age_sec=1.0,
+            max_rgb_info_delta_sec=0.10,
             min_depth_m=0.15, max_depth_m=5.0, depth_roi_fraction=0.5,
             min_depth_pixels=20, min_valid_depth_ratio=0.6, max_depth_spread_m=0.08,
-            publish_debug_image=True, log_path='')
+            publish_debug_image=True, publish_legacy_debug=False, log_path='')
         for key, value in defaults.items():
             self.declare_parameter(key, value)
         self.cfg = {key: self.get_parameter(key).value for key in defaults}
@@ -85,6 +86,8 @@ class YoloDetector(Node):
             log = Path(self.cfg['log_path']).expanduser()
             log.parent.mkdir(parents=True, exist_ok=True)
             self.log_stream = log.open('a', buffering=1)
+        self.compat_debug = (self.create_publisher(String, '/science/detection_debug', 10)
+                             if self.cfg['publish_legacy_debug'] else None)
         self.pub2d = self.create_publisher(String, '/science/yolo/detections', 10)
         self.pubpoint = self.create_publisher(PointStamped, '/science/yolo_target_point', 10)
         self.pubdebug = self.create_publisher(Image, '/science/yolo/debug_image', 2)
@@ -108,7 +111,7 @@ class YoloDetector(Node):
             raise ValueError('Invalid depth ROI/ratio')
         if not (0 < c['min_depth_m'] < c['max_depth_m'] and c['min_depth_pixels'] > 0
                 and c['max_rgb_depth_delta_sec'] >= 0 and c['max_depth_spread_m'] > 0
-                and c['max_image_age_sec'] > 0):
+                and c['max_image_age_sec'] > 0 and c['max_rgb_info_delta_sec'] >= 0):
             raise ValueError('Invalid depth/timestamp limits')
 
     def _validate_metadata(self, path):
@@ -147,6 +150,10 @@ class YoloDetector(Node):
             return None, msg, 'rgb_depth_time_mismatch'
         if self.info is None:
             return None, msg, 'no_camera_info'
+        if abs(stamp_ns(rgb.header)-stamp_ns(self.info.header))*1e-9 > self.cfg['max_rgb_info_delta_sec']:
+            return None, msg, 'rgb_camera_info_time_mismatch'
+        if stamp_ns(msg.header) <= 0:
+            return None, msg, 'zero_depth_stamp'
         if (not rgb.header.frame_id or rgb.header.frame_id != msg.header.frame_id or
                 rgb.header.frame_id != self.info.header.frame_id):
             return None, msg, 'optical_frame_mismatch'
@@ -171,7 +178,9 @@ class YoloDetector(Node):
                       frame_id=rgb.header.frame_id, width=rgb.width, height=rgb.height,
                       model_sha256=self.model_sha256, names=self.names, detections=[],
                       rgb_age_sec=age, inference_ms=None, rgb_depth_delta_sec=None,
-                      depth_stamp_ns=None, status='OK')
+                      depth_stamp_ns=None, status='OK',
+                      camera_info_stamp_ns=stamp_ns(self.info.header) if self.info else None,
+                      camera_info_frame_id=self.info.header.frame_id if self.info else None)
         try:
             if self.last_stamp <= 0 or age > self.cfg['max_image_age_sec'] or age < -0.1:
                 report['status'] = 'stale_or_future_rgb'
@@ -190,6 +199,7 @@ class YoloDetector(Node):
             except Exception as exc:
                 depth, depth_msg, reason = None, None, f'depth_conversion_error: {exc}'
             if depth_msg is not None:
+                report['depth_frame_id'] = depth_msg.header.frame_id
                 report['depth_stamp_ns'] = stamp_ns(depth_msg.header)
                 report['rgb_depth_delta_sec'] = (self.last_stamp-report['depth_stamp_ns'])*1e-9
             for index, box in enumerate(result.boxes):
@@ -205,6 +215,10 @@ class YoloDetector(Node):
                         c['depth_roi_fraction'], c['min_depth_pixels'],
                         c['min_valid_depth_ratio'], c['max_depth_spread_m'])
                 if quality['valid']:
+                    completed_age = (self.get_clock().now().nanoseconds-self.last_stamp)*1e-9
+                    if completed_age > self.cfg['max_image_age_sec']:
+                        quality = dict(quality, valid=False, reason='inference_result_too_old')
+                if quality['valid']:
                     try:
                         xyz = back_project(quality['u'], quality['v'], quality['depth_m'],
                                            self.info.k, self.info.d, self.info.distortion_model)
@@ -218,7 +232,15 @@ class YoloDetector(Node):
                 detection['depth'] = quality
                 report['detections'].append(detection)
             if self.cfg['publish_debug_image']:
-                debug = self.bridge.cv2_to_imgmsg(result.plot(), encoding='bgr8')
+                canvas = result.plot()
+                for d in report['detections']:
+                    q = d['depth']; xy = d.get('xyz_m')
+                    label = ('camera XYZ ' + ','.join(f'{v:.3f}' for v in xy)
+                             if xy else 'depth: '+q.get('reason', 'invalid'))
+                    u, v = int(d['bbox_xyxy'][0]), int(d['bbox_xyxy'][3])
+                    cv2.putText(canvas, label, (max(0,u), min(canvas.shape[0]-8,v+16)),
+                                cv2.FONT_HERSHEY_SIMPLEX,.4,(0,255,255),1)
+                debug = self.bridge.cv2_to_imgmsg(canvas, encoding='bgr8')
                 debug.header = rgb.header
                 self.pubdebug.publish(debug)
         except Exception as exc:
@@ -228,6 +250,16 @@ class YoloDetector(Node):
             report['processing_ms'] = (time.perf_counter()-start)*1000
             encoded = json.dumps(report, allow_nan=False)
             self.pub2d.publish(String(data=encoded))
+            if self.compat_debug is not None:
+                targets = []
+                for d in report['detections']:
+                    x1,y1,x2,y2 = d['bbox_xyxy']; q=d['depth']
+                    targets.append(dict(accepted=q['valid'], area=(x2-x1)*(y2-y1),
+                        center=[q.get('u',(x1+x2)/2),q.get('v',(y1+y2)/2)],
+                        contours=[[[x1,y1],[x2,y1],[x2,y2],[x1,y2]]],
+                        class_id=d['class_id'],confidence=d['confidence'], depth=q))
+                self.compat_debug.publish(String(data=json.dumps(dict(
+                    color_stamp_ns=self.last_stamp, detector='yolo_color_block', targets=targets))))
             if self.log_stream:
                 self.log_stream.write(encoded+'\n')
 

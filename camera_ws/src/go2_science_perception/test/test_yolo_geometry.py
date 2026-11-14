@@ -30,3 +30,11 @@ def test_edge_box_and_invalid_box_do_not_index_outside_image():
     out = reliable_box_depth(depth, [-5, -5, 15, 15])
     assert out['valid'] and out['roi_xyxy'][0] >= 0
     assert not reliable_box_depth(depth, [15, 15, 5, 5])['valid']
+
+
+def test_depth_projection_uses_a_measured_pixel_when_box_center_is_a_hole():
+    depth = np.ones((40,40),dtype=np.float32)
+    depth[18:23,18:23] = 0
+    result = reliable_box_depth(depth,[0,0,40,40])
+    assert result['valid']
+    assert depth[int(result['v']),int(result['u'])] > 0
