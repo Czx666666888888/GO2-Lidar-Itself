@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import threading
 from go2_build_fingerprint import fingerprint
+from s1_v2_delivery import ensure_v2_package
 import fcntl
 import json
 import os
@@ -23,7 +24,8 @@ BRANCH = 'feature/map-approach-s1-grasp-integration'
 HOST = 'unitree@192.168.123.18'
 KEY = '/home/czx666/.ssh/id_ed25519_go2'
 REMOTE = '/home/unitree/go2_map_s1'
-ARM = '/home/unitree/s1-arm-control'
+ARM = '/home/unitree/s1-arm-control'  # legacy
+ARM_V2 = '/home/unitree/s1-arm-control-v2'
 ARM_PY = '/home/unitree/s1-arm-py310/bin/python'
 ARM_DEVICES = ('/dev/ttyUSB0', '/dev/ttyUSB1')
 SSH = ['ssh', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
@@ -222,7 +224,9 @@ class Workflow:
                     (self.folder/'startup_timing.json').write_text(json.dumps(self.stages, indent=2)+'\n')
 
     def arm_command(self, command='status'):
-        result = remote(shlex.join(['/usr/bin/python3', ARM+'/scripts/arm_task_client.py',
+        if command not in ('status','grasp'):
+            raise RuntimeError('S1 v2 supports only status/grasp; startup handles zero')
+        result = remote(shlex.join(['/usr/bin/python3', ARM_V2+'/scripts/arm_task_client.py',
                                     command]), capture_output=True, text=True)
         return json.loads(result.stdout)
 
@@ -279,44 +283,42 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         remote(shlex.join(['/usr/bin/python3','-c',script,ARM]),
                input=json.dumps(files),text=True)
 
-    def ensure_s1(self, running, device='/dev/ttyUSB0'):
-        status_file=None
+    def ensure_s1(self, running, device='/dev/ttyUSB0', running_modes=None):
+        """S1 v2 itself reads feedback and performs controlled startup zero return."""
+        side=self.args.grasp_side
+        running_modes=running_modes or []
+        entry='run_go2_left_grasp.py' if side=='left' else 'run_arm_integration.py'
         if running:
-            state = self.status()
+            if len(running_modes)!=1 or running_modes[0]!=side:
+                raise RuntimeError('S1抓取侧别与请求不一致；空闲ZERO_HOLD后手动切换服务: '+
+                                   str(running_modes)+' requested='+side)
+            state=self.status()
             if zero_hold(state):
-                if not state.get('joint_positions_rad'):
-                    raise RuntimeError('已有旧S1服务无实测关节接口；保留服务，不重复连接串口。升级需先停止旧服务。')
-                print('REUSE S1 ZERO_HOLD: '+json.dumps(state),flush=True)
+                print('REUSE S1 v2 '+side+' ZERO_HOLD',flush=True)
                 return
-            if state.get('busy') or state.get('state') in ('GRASPING','RETURNING_ZERO','QUEUED'):
-                raise RuntimeError('S1 BUSY，不重复回零: '+str(state))
-            if state.get('readiness_state') in ('COMMUNICATION_ERROR','FAULT'):
-                raise RuntimeError('S1 '+str(state))
-            if state.get('position_state') in ('AT_ZERO','NOT_AT_ZERO'):
-                if state.get('return_zero_allowed') is False:
-                    raise RuntimeError('S1 NOT_AT_ZERO，原回零路径未验证: '+str(state))
-                reply = self.arm_command('zero')
-                if reply.get('accepted') is not True:
-                    raise RuntimeError('S1回零被唯一服务拒绝: '+str(reply))
-            else:
-                raise RuntimeError('S1状态不可确认，保留现场: '+str(state))
-        else:
-            self.deploy_s1()
-            arm_log=REMOTE+'/s1_hold_'+self.folder.name+'.log'
-            status_file=REMOTE+'/s1_startup_'+self.folder.name+'.json'
-            argv=[ARM_PY,'-uB','scripts/run_arm_integration.py','--dev','auto',
-                  '--status-file',status_file,'--execute']
-            remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,ARM,arm_log)]))
-            print('S1_LOG '+HOST+':'+arm_log,flush=True)
-        command=['/usr/bin/python3',ARM+'/scripts/arm_task_client.py','status',
-                 '--wait-ready','--timeout','45']
-        if status_file:
-            command += ['--status-file',status_file]
-        # One SSH client polls the existing Unix socket locally; it never opens serial.
-        result=remote(shlex.join(command),capture_output=True,text=True,timeout=50)
-        state=json.loads(result.stdout)
-        if not (zero_hold(state) and state.get('joint_positions_rad')):
-            raise RuntimeError('S1未就绪，保留具体错误: '+str(state))
+            if state.get('busy') or state.get('state') in ('STARTING','QUEUED','GRASPING','RETURNING_ZERO'):
+                raise RuntimeError('S1正在初始化、回零或执行抓取，保留唯一串口所有者: '+str(state))
+            raise RuntimeError('S1真实状态异常，禁止创建第二串口所有者: '+str(state))
+        package=ensure_v2_package(ROOT,SSH,HOST,running=False)
+        remote('mkdir -p '+REMOTE)
+        arm_log=REMOTE+'/s1_v2_'+side+'_'+self.folder.name+'.log'
+        argv=[ARM_PY,'-uB','scripts/'+entry,'--dev',device,'--execute']
+        remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,package,arm_log)]))
+        print('S1_V2_AUTO_ZERO_START '+side+' log='+HOST+':'+arm_log,flush=True)
+        deadline=time.monotonic()+75
+        last=None
+        while time.monotonic()<deadline:
+            try:
+                last=self.status()
+                if zero_hold(last):
+                    print('S1_V2_ZERO_HOLD_READY '+side,flush=True)
+                    return
+                if last.get('state') in ('FAULT_HOLD','FAULT_IO','STOPPING','STOPPED'):
+                    raise RuntimeError('S1 v2回零失败: '+str(last))
+            except (OSError,subprocess.CalledProcessError,ValueError):
+                pass
+            time.sleep(.5)
+        raise RuntimeError('S1 v2初始化或回零超时: '+str(last)+' log='+arm_log)
 
     def spawn(self, argv, label, **kwargs):
         stream = (self.folder / (label+'.log')).open('x')
@@ -498,8 +500,9 @@ import pyrealsense2 as r
 def pids(pattern):
     out=subprocess.run(['pgrep','-f',pattern],capture_output=True,text=True)
     return [int(x) for x in out.stdout.split()]
-arm=pids('[r]un_arm_integration.py')
+arm=pids('[r]un_arm_integration.py') + pids('[r]un_go2_left_grasp.py')
 arm_devices=[]
+arm_modes=[]
 for pid in arm:
     argv=(Path('/proc')/str(pid)/'cmdline').read_bytes().decode().split('\0')
     device='/dev/ttyUSB0'  # Original service parser default.
@@ -514,7 +517,8 @@ for pid in arm:
         except OSError: pass
     if len(opened)==1: device=next(iter(opened))
     arm_devices.append(device)
-print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_host.py'),
+    arm_modes.append('left' if any('run_go2_left_grasp.py' in a for a in argv) else 'right')
+print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, task=pids('[s]1_task_host.py'),
     camera=pids('[r]ealsense2_camera_node'),
     serial_devices=[device for device in ('/dev/ttyUSB0','/dev/ttyUSB1') if Path(device).exists()],
     cameras=[d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()],
@@ -550,7 +554,7 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_hos
                     if not inventory['arm'] or not zero_hold(self.status()):
                         raise RuntimeError('Response check requires an existing S1 ZERO_HOLD')
                 else:
-                    self.ensure_s1(bool(inventory['arm']), arm_device)
+                    self.ensure_s1(bool(inventory['arm']), arm_device, inventory['arm_modes'])
             existing=pending.result()
         if not existing['native_ok']:
             raise RuntimeError('原生雷达不健康，不启动定位/运动: '+str(existing))
@@ -608,7 +612,7 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_hos
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
-                   '--search-distance', '5', '--search-timeout', '60']
+                   '--grasp-side', self.args.grasp_side, '--search-distance', '5', '--search-timeout', '60']
         if getattr(self.args, 'forward_response_check', False):
             command.append('--forward-response-check')
         if not (os.environ.get('DISPLAY') and shutil.which('gnome-terminal')):
@@ -660,12 +664,17 @@ def main():
     parser.add_argument('--execute', action='store_true',
                         help='确认路线空旷、急停在手、S1初始位和支撑已核对；执行真实运动')
     parser.add_argument('--mode', choices=['full', 'dock'], default='full')
+    parser.add_argument('--grasp-side', choices=['right','left'], default='right')
     parser.add_argument('--forward-response-check', action='store_true')
     parser.add_argument('--work-dir', type=Path, default=Path('/tmp/go2_onekey_s1'))
     parser.add_argument('--probe', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--left-geometry-verified', action='store_true',
+                        help='operator has physically checked left docking offsets')
     parser.add_argument('--startup-check', action='store_true',
                         help='read-only stage timing/status; never zero/enable/move')
     args = parser.parse_args()
+    if args.grasp_side=='left' and args.execute and not args.left_geometry_verified:
+        raise RuntimeError('左侧停靠外参尚未实机验证；需显式 --left-geometry-verified')
     if args.forward_response_check and args.mode != 'dock':
         parser.error('--forward-response-check requires --mode dock, never full')
     if args.probe:
