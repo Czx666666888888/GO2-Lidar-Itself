@@ -1,5 +1,49 @@
 # Experiment Record
 
+## 2026-11-14 S1 v2 独立部署、兼容层及真实零位保持
+
+- 基线：fetch后本地/远端ce20ba909dbecc99a6858ede143e9c79b8cf4c73。
+- 用户原ZIP：S1_arm_integration_20261114_auto_v2.zip，14,098,177 bytes；
+  SHA256 `892c7be031fd52bceaf335caeb189567de364afecaa20d21de1a2f047afee3d9`。
+  CRC、路径、BUILD_INFO和原SHA256SUMS通过；不提交ZIP或大日志。
+- 实际安装：GO2伴随主机.18 `/home/unitree/s1-arm-control-v2`；
+  保留旧目录，部署前后旧版scripts/s1_control/config/calibration共111文件哈希一致。
+  原先没有S1服务/串口所有者，故没有停止旧保持服务或抢占。
+- v2专用适配`v2_usb01_feedback_1`：默认auto兼容唯一USB0/1，全服务锁+原设备锁；
+  设备inode/rdev改变即通信异常。原v2文件备份`.v2-compat-upstream/`，
+  `S1_V2_COMPAT.json`核对适配哈希，其余使用原清单；不修改抓取算法、轨迹或协议。
+- 用户本轮明确授权右侧启动及原startup_zero，排除GO2运动/趴下/抓取。
+  只读反馈有效：q约[-0.037194,-0.023460,0.000572,-0.005150,0.026894,0.049020]rad，
+  温度17～20°C；原0.08rad零位容差内。服务日志正确输出
+  `STARTUP_ZERO_SKIPPED_ALREADY_AT_ZERO`，随后ZERO_HOLD。PID3690、USB0唯一所有者。
+  8次连续Socket采样以及只读定位检查后均busy=false、navigation_allowed=true、at_zero=true、
+  communication_state=OK。最后最大绝对关节角约0.0132rad。保留该服务，不为清理而撤保持。
+- Python3.10复用已有环境及SDK，没有重装依赖。右侧服务真实启动；
+  左右`verify_handoff.py`离线预检和包完整性通过，仅右侧访问机械臂。
+  D455序列231622302209，15次彩色/深度frameset返回，启动初期有重复帧/编号重置，
+  随后双流递增；这是短时接口证据，不代表抓取识别验收。D435序列213622070598。
+- 原生LiDAR只读5秒：74云/1250 IMU样本、25个LidarState，健康检查PASS。
+  伴随时钟原为2022年，操作者通过原sync_go2_clock.py终端完成对时；
+  未改时间映射算法。短时链检查首次因动态导入缺少scripts路径失败，修复后重跑。
+  8秒有效采集：D435、Point-LIO、连续输入、时间映射、时间戳限制、精确base/camera TF全通过；
+  119个track快照，0个coarse/map_point/selected，没有CONFIRMED目标；
+  整体为`NOT VERIFIED: exact_target_map, confirmed_selected_target, fresh_confirmed_target`。
+  无数据不足以判断目标未检出的原因，未改感知算法。检查自有相机/定位进程已正常收尾。
+- 软件交接核对：只用status/grasp，没有zero RPC；同侧健康服务复用，不重新初始化；
+  STOP释放导航→新鲜停稳反馈→StandDown反馈确认→原抓取→新结果ZERO_HOLD→StandUp逻辑保留。
+  41项针对性离线检查通过（实际ZIP适配分支、串口/状态接口、原姿态序列）；
+  Python/Bash语法、diff检查通过；按内容缓存仅构建变化单包成功，非全仓测试。
+- NOT VERIFIED：非零位startup_zero实物运动、USB1换号、导航运动中ZERO_HOLD、真实dock、
+  StandDown/抓取/StandUp。SDK未提供独立电机包时间戳；关节反馈不等于独立物理测量。
+  本轮无dock/full运动授权，未运行。右侧Y=0.41m与v2建议约0.31m仍需实际位置和支撑验收。
+- full目前只具备S1服务和软件交接条件，未具备本场景完整验收：仍需有效MAP目标、
+  新授权独立dock通过、机械臂路径/机身支撑/抓取位置确认，再由用户执行full。
+- 原始记录本机`camera_ws/records/s1_v2_deploy_20261114/`；其中right_startup.log、
+  zero_hold_samples.json、readonly_hardware.log、final_remote_verify.log。
+  定位证据`camera_ws/records/time_20261114_191821_s1_v2_readiness_retry/report.json`，
+  SHA256 `e82f6ef5852108726b33a2ac2e2985e2fb69329734049aae8fa8c3bbb35b4541`。本轮失败首次报告及重试日志均保留。
+
+
 The entries below are a structured transcription of the root `README.md`. No rosbag was replayed and no metric was recalculated during creation of this document.
 
 ## Evidence Rules

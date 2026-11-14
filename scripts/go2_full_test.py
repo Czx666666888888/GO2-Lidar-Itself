@@ -302,7 +302,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         package=ensure_v2_package(ROOT,SSH,HOST,running=False)
         remote('mkdir -p '+REMOTE)
         arm_log=REMOTE+'/s1_v2_'+side+'_'+self.folder.name+'.log'
-        argv=[ARM_PY,'-uB','scripts/'+entry,'--dev',device,'--execute']
+        argv=[ARM_PY,'-uB','scripts/'+entry,'--dev','auto','--execute']
         started=remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,package,arm_log)]),
                        capture_output=True,text=True)
         marker=next((line.split()[1] for line in started.stdout.splitlines()

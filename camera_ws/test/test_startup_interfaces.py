@@ -63,12 +63,12 @@ def test_unverified_zero_path_is_rejected():
 
 
 def test_workflow_reuses_s1_without_zero_or_deploy():
-    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock'))
+    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock',grasp_side='right'))
     workflow.status=lambda:dict(state='ZERO_HOLD',busy=False,navigation_allowed=True,
         joint_positions_rad=[0.]*6,at_zero=True,communication_state='OK',readiness_state='ZERO_HOLD')
     workflow.deploy_s1=lambda:pytest.fail('must not deploy/reconnect a ready service')
     workflow.arm_command=lambda *args:pytest.fail('must not command zero again')
-    workflow.ensure_s1(True)
+    workflow.ensure_s1(True, running_modes=['right'])
 
 
 def test_build_hash_changes_only_with_build_inputs(tmp_path):
@@ -139,18 +139,18 @@ def test_missing_ambiguous_or_old_serial_owner_is_blocked(devices, running):
 
 def test_cold_start_uses_service_auto_selection(tmp_path, monkeypatch):
     import go2_full_test as launcher
-    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock'))
+    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock',grasp_side='right'))
     workflow.folder=tmp_path/'cold'
-    workflow.deploy_s1=lambda:None
+    monkeypatch.setattr(launcher,'ensure_v2_package',lambda *a,**kw:launcher.ARM_V2)
     commands=[]
     state=dict(state='ZERO_HOLD',busy=False,navigation_allowed=True,joint_positions_rad=[0.]*6)
     def remote(command,**kwargs):
         commands.append(command)
-        return SimpleNamespace(stdout=__import__('json').dumps(state))
+        return SimpleNamespace(stdout='S1_PID 123\n' if 'start_new_session' in command else __import__('json').dumps(state))
     monkeypatch.setattr(launcher,'remote',remote)
     workflow.ensure_s1(False, '/dev/ttyUSB1')
-    assert 'auto' in commands[0] and '/dev/ttyUSB0' not in commands[0]
-    assert len(commands)==2  # One original owner, then original socket wait.
+    assert 'auto' in commands[1] and '/dev/ttyUSB0' not in commands[1]
+    assert len(commands)==3  # One original owner, then original socket wait.
 
 
 @pytest.mark.parametrize('device', ['/dev/ttyUSB0', '/dev/ttyUSB1'])
@@ -187,7 +187,7 @@ def test_service_upgrade_accepts_only_recorded_previous_hash_and_backs_it_up(tmp
     def remote(command,**kwargs):
         captured['script']=shlex.split(command)[2]
     monkeypatch.setattr(launcher,'remote',remote)
-    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock'))
+    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock',grasp_side='right'))
     workflow.deploy_s1()
     target=tmp_path/'scripts/service.py';target.parent.mkdir();target.write_bytes(b'old')
     old_hash=hashlib.sha256(b'old').hexdigest()

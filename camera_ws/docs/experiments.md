@@ -1,5 +1,11 @@
 # D435 Experiment Record
 
+## 2026-11-14 S1 v2 真机部署与零位保持
+
+详细配置、授权、实测结果、失败与验证边界见[根实验记录](../../docs/experiments.md)。
+v2和0/1兼容层已部署；右侧真实ZERO_HOLD通过，非零位回零与dock/full未实测。
+只读D435/Point-LIO/TF通过，MAP目标缺失，不能认定完整full就绪。
+
 ## 2026-09-28 — Environment and USB Enumeration
 
 - **Scope:** Read-only host/package/device inspection; no camera streaming and no robot nodes.

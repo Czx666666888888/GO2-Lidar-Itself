@@ -11,6 +11,7 @@ import re
 import shlex
 import signal
 import subprocess
+import sys
 import time
 import traceback
 
@@ -474,6 +475,7 @@ class ReadonlyChain:
             raise RuntimeError('--reuse-only 未发现已有定位节点')
         if not self.node.count_publishers('/camera/camera/color/image_raw') and args.camera_host != 'existing':
             if args.camera_host != 'local':
+                sys.path.insert(0, str(REPO/'scripts'))
                 spec = importlib.util.spec_from_file_location('go2_existing_helper', REPO/'scripts/go2_full_test.py')
                 helper = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(helper)

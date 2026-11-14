@@ -4,11 +4,12 @@
 
 源包：用户交付的 `S1_arm_integration_20261114_auto_v2.zip`，
 `BUILD_INFO.json.version=v2_auto_integration`。按包内 `docs/TEAM_INTEGRATION.md`
-接入。GitHub 此分支只提交启动器/导航适配；**14 MB 原包没有写入 GitHub，也没有在
-GO2 .18 上实际安装/执行。** 宿主安装与实机回零、左右抓取均待现场验证。
+接入。GitHub 此分支提交启动器/导航适配和v2专用兼容层；14 MB 原包未写入 GitHub。
+**2026-11-14已真实部署到GO2 .18并启动右侧服务**，已在零位的启动/保持通过；
+非零位回零运动和左右真实抓取仍为NOT VERIFIED。
 
 该包 `run_arm_integration.py` 启动时通过 `wait_for_valid_feedback()`
-读取六关节实际角度，然后调用已有 `arm.move(q[:6], ZERO_Q, 'startup_zero')`，
+读取六关节实际角度；兼容层在原0.08rad容差内直接保持，否则调用已有 `arm.move(q[:6], ZERO_Q, 'startup_zero')`，
 完成后 `session.ready()` 发布 `ZERO_HOLD`。不会修改编码器零点；
 不需要键盘 e/d/s 确认。仅当服务启动并且串口反馈有效时能够执行自动回零。
 
@@ -36,8 +37,8 @@ export GO2_S1_V2_ARCHIVE=/absolute/path/S1_arm_integration_20261114_auto_v2.zip
 退出旧版本，之后重新启动v2。
 
 部署后使用GO2现有Python3.10环境 `/home/unitree/s1-arm-py310/bin/python`
-启动S1。宿主SDK、RealSense运行环境与归档所需依赖的兼容性尚未经此版本
-完整实机验收。运行期间复用健康的同侧 `ZERO_HOLD` 服务；异常时保留
+启动S1。本轮复用了宿主SDK和RealSense依赖，未重新安装；串口、ZERO_HOLD及D455帧通过，
+完整抓取仍未实机验收。运行期间复用健康的同侧 `ZERO_HOLD` 服务；异常时保留
 具体状态，不把串口通信故障当作零位偏差，也不自动重启占用中的服务。
 
 ## 一键模式
@@ -79,3 +80,19 @@ bash go2_test.sh --execute --mode full --grasp-side left --left-geometry-verifie
 **本轮没有实机运动或硬件回零。** 使用真实硬件前先检查
 当前串口所有者、已装SDK、六关节反馈、零位回程路径以及侧别对应的
 GO2物理支撑状态。先单独验右侧v2启动/抓取，再验左侧停靠和完整抓取。
+
+## 已部署的0/1兼容层与证据
+
+`S1_V2_COMPAT.json`记录版本`v2_usb01_feedback_1`及适配文件哈希；原始v2文件保存在
+`.v2-compat-upstream/`。未修改原抓取算法、轨迹、左右配置、串口协议。
+服务默认`--dev auto`，唯一USB0或USB1均可，历史显式0/1也解析当前唯一设备；
+缺失/双设备阻断。全服务锁与原设备锁防止双所有者；USB真实断连不做透明热切换。
+状态从原Arm读六关节反馈，真实I/O异常单独报COMMUNICATION_ERROR并禁止导航；
+SDK未暴露独立电机包时间戳，因此不声称包级新鲜度已验收。
+健康同侧服务直接复用，不再回零或上传。已安装且哈希一致时不需要本地ZIP。
+包完整性检查同时核对原SHA256SUMS与兼容清单，未知改动不覆盖。
+
+本轮右侧真实服务PID3690、串口USB0；ZERO_HOLD且busy=false/navigation_allowed=true。
+初始已经在原容差内，日志为STARTUP_ZERO_SKIPPED_ALREADY_AT_ZERO；
+不能将此结果写成非零位startup_zero路径实测通过。完整full及导航中机械臂保持仍待实测。
+原始记录在本机`camera_ws/records/s1_v2_deploy_20261114/`，未上传大日志/ZIP。

@@ -1,14 +1,17 @@
 # GO2 实机测试命令手册（中文，从接线到关闭）
 
-## 2026-11-14 S1 v2 自动回零与左右抓取（已集成源码，未实机部署）
+## 2026-11-14 S1 v2 自动回零与左右抓取（已真实部署，右侧ZERO_HOLD通过）
 
-最新整合方案与限制见 [S1 v2 双侧集成说明](camera_ws/docs/s1_v2_auto_zero_dual_side.md)。
+本机新版与USB0/1兼容层已部署，健康右侧服务直接复用，不再上传、回零或改端口配置。
+旧版目录保留。只读D435/Point-LIO/TF通过，但本场景MAP目标未验收；
+先布置有效目标并授权独立dock验收，再确认支撑/抓取位置后由操作者运行full。
+本轮未发送GO2运动、趴下或抓取。详细整合方案与限制见 [S1 v2 双侧集成说明](camera_ws/docs/s1_v2_auto_zero_dual_side.md)。
 用户压缩包 `S1_arm_integration_20261114_auto_v2.zip` 未提交进GitHub；请放在PC集成分支仓库根目录，
-或设置 `GO2_S1_V2_ARCHIVE` 为其绝对路径。启动器首次（仅在**没有任何旧S1串口所有者**时）
+或设置 `GO2_S1_V2_ARCHIVE` 为其绝对路径（仅新主机首次部署需要）。启动器首次（仅在**没有任何旧S1串口所有者**时）
 校验后一次性部署到 `/home/unitree/s1-arm-control-v2`，绝不覆盖旧版或抢占旧进程。
 
 新版 `run_arm_integration.py` 与 `run_go2_left_grasp.py` 均会在启动时读取六关节反馈，
-执行原服务内置的 `startup_zero` 回到 `ZERO_Q`，进入 `ZERO_HOLD`；
+已在原零位容差内时直接进入保持，否则执行原服务内置的 `startup_zero` 回到 `ZERO_Q`；
 旧版 `zero` socket RPC 已禁用。实际串口掉线仍会报错，不允许盲目回零。
 左右侧共用一个Socket和串口，只能择一运行；在运行中不能自动切换。
 
@@ -18,7 +21,7 @@
   `bash go2_test.sh --execute --mode full --grasp-side left --left-geometry-verified`。
 
 左侧停靠参数暂为S1 Y=-0.41m镜像候选，不是已验收稳定抓取点；原v2说明强调
-约±0.40m处的机身侧翻风险。**此更新没有在真实S1上回零、停靠或抓取。**
+约±0.40m处的机身侧翻风险。**本轮右侧零位启动/保持通过；非零位回零、停靠和抓取尚未实测。**
 
 
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
