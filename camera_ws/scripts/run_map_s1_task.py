@@ -24,6 +24,9 @@ def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--execute', action='store_true')
     p.add_argument('--full', action='store_true', help='after docking: StandDown/grasp/StandUp')
+    p.add_argument('--grasp-side', choices=('right','left'), default='right')
+    p.add_argument('--left-geometry-verified', action='store_true',
+                   help='left physical docking and support geometry checked by operator')
     p.add_argument('--forward-response-check', action='store_true',
                    help='one bounded 0.15m/s forward response check; no posture or grasp')
     p.add_argument('--docking-geometry-verified', action='store_true',
@@ -57,6 +60,8 @@ def parser():
 def main():
     p = parser()
     args = p.parse_args()
+    if args.full and args.grasp_side == 'left' and not args.left_geometry_verified:
+        p.error('Left full grasp requires a verified left dock/support geometry; test dock first')
     if args.forward_response_check and args.full:
         p.error('Forward response check forbids full posture/grasp')
     if args.posture_profile is not None:
@@ -74,10 +79,11 @@ def main():
         p.error('Full execution requires measured down/up height boundaries and '
                 'feedback modes; do not guess them')
     plan = dict(base_commit='e15c66ce2beb998ef9c73464b0bff72cbd4e2266',
-                mode='full' if args.full else 'dock_only',
+                mode='full' if args.full else 'dock_only', grasp_side=args.grasp_side,
                 stages=['SEARCH', 'STOP_CONFIRM', 'APPROACH_TO_GRASP_POSE', 'STOP'] +
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
-                s1_base_vehicle_xy_m=[-.06, 0], desired_target_s1_xy_m=[0, .41],
+                s1_base_vehicle_xy_m=[-.06, 0],
+                desired_target_s1_xy_m=[0, .41 if args.grasp_side=='right' else -.41],
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),
                 posture_profile=str(args.posture_profile) if args.posture_profile else None,
