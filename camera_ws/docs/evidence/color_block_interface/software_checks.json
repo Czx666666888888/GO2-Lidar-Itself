@@ -1,0 +1,15 @@
+{
+  "vision_parent": "abb83f585b63a87294df6bac917f734d5df55f7c",
+  "integration_parent": "caf6ab649db09d23099eab5c9d2b358507c37a4a",
+  "targeted_tests": 12,
+  "integrated_build": "1 package finished 30.3s",
+  "venv_imports": "rclpy cv_bridge ultralytics8.3.40",
+  "launch_arguments": "PASS",
+  "exclusive_hsv_yolo_composition": "PASS",
+  "python_shell_syntax": "PASS",
+  "hardware_preview": "NOT VERIFIED",
+  "motion": "NOT VERIFIED; latest user requested code only",
+  "d435_position_error": "NOT VERIFIED",
+  "stop_reference": "camera_origin",
+  "stop_xy_tolerance": 0.1
+}

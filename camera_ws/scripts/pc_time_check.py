@@ -28,7 +28,7 @@ def probe(seconds):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', help='run real motion; full also performs posture/grasp')
-    parser.add_argument('--mode', choices=('dock', 'full'), default='full')
+    parser.add_argument('--mode', choices=('dock', 'full', 'approach'), default='full')
     parser.add_argument('--grasp-side', choices=('right','left'), default='right')
     parser.add_argument('--left-geometry-verified', action='store_true')
     parser.add_argument('--clock-diagnostic', action='store_true',
@@ -36,7 +36,15 @@ def main():
     parser.add_argument('--forward-response-check', action='store_true')
     parser.add_argument('--response-distance-limit', type=float, default=.20)
     parser.add_argument('--work-dir', type=Path, help='forward existing integration checkout option')
+    parser.add_argument('--detector', choices=('yolo','hsv'), default='yolo')
+    parser.add_argument('--view', action='store_true')
+    parser.add_argument('--local-camera', action='store_true')
+    parser.add_argument('--timeout', type=float, default=45.)
+    parser.add_argument('--model-path', type=Path)
+    parser.add_argument('--python-executable', type=Path)
     args = parser.parse_args()
+    if args.mode == 'approach' and (args.work_dir or args.left_geometry_verified):
+        parser.error('approach mode does not use S1 geometry or work-dir')
     if not .10 <= args.response_distance_limit <= .50:
         parser.error('response distance limit must be 0.10 to 0.50m')
     if args.response_distance_limit != .20 and not args.forward_response_check:
@@ -88,6 +96,13 @@ def main():
                             str(args.response_distance_limit)]
             if args.work_dir is not None:
                 command += ['--work-dir',str(args.work_dir)]
+            if args.mode == 'approach':
+                command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode','approach',
+                           '--detector',args.detector,'--timeout',str(args.timeout)]
+                if args.view: command.append('--view')
+                if args.local_camera: command.append('--local-camera')
+                if args.model_path: command += ['--model-path',str(args.model_path)]
+                if args.python_executable: command += ['--python-executable',str(args.python_executable)]
         else:
             run(['/usr/bin/python3', ROOT/'camera_ws/scripts/sync_go2_clock.py'])
             command = ['bash',str(ENTRY),'--time-mode','imu','--restart-localization',

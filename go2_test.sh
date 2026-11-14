@@ -3,6 +3,24 @@
 # Full 40s clock sampling is explicit: append --clock-diagnostic to --execute.
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Explicit vision-only mode bypasses full/dock/S1 entry paths, including preview.
+go2_test_previous=''
+for go2_test_argument in "$@"; do
+  if [ "$go2_test_argument" = --mode=approach ] || { [ "$go2_test_previous" = --mode ] && [ "$go2_test_argument" = approach ]; }; then
+    if [ "${GO2_RUNTIME_PROFILE:-}" = local ] || [ "$(uname -m)" = aarch64 ]; then
+      echo '方块接近入口当前支持PC + 现有远端D435；不转入本机S1流程。' >&2
+      exit 1
+    fi
+    export GO2_TIME_MAPPING_MODE="${GO2_TIME_MAPPING_MODE:-imu}"
+    for go2_approach_flag in "$@"; do
+      if [ "$go2_approach_flag" = --execute ] && [ "${GO2_PC_TIME_HELD:-}" != 1 ]; then
+        exec /usr/bin/python3 -u "$go2_test_root/camera_ws/scripts/pc_time_check.py" "$@"
+      fi
+    done
+    exec /usr/bin/python3 "$go2_test_root/scripts/go2_color_block_test.py" "$@"
+  fi
+  go2_test_previous="$go2_test_argument"
+done
 # Optional ZIP once copied to the PC repository; forward the absolute path to the isolated checkout.
 if [ -z "${GO2_S1_V2_ARCHIVE:-}" ] && [ -f "$go2_test_root/S1_arm_integration_20261114_auto_v2.zip" ]; then
   export GO2_S1_V2_ARCHIVE="$go2_test_root/S1_arm_integration_20261114_auto_v2.zip"

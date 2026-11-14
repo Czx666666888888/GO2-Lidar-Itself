@@ -806,3 +806,13 @@ SEARCH仍5m/60秒，停稳确认/唯一控制出口/定位异常停车不变；�
 2026-11-13 实机启动拒绝修复：0.35m/s SEARCH下安全门已配0.35，但审计仍以接近0.30判定导致gate not verified；仅审计上限取已启用SEARCH与接近上限的最大值，普通MAP仍0.30，保留其余唯一出口/租约/制动校验。此前启动被拒绝，未运动。
 
 2026-11-13 用户要求恢复SEARCH速度：实际集成profile search_speed恢复0.25m/s，安全门max_speed恢复0.30m/s；微调最低0.10、停靠无25s时间上限及横向额外10cm保留。S1最近串口I/O错误，本轮重试仍保留硬件阻断。
+
+
+## YOLO单方块MAP接近接口（2026-11-14，仅代码）
+
+- 核对远端视觉abb83f5、实际集成caf6ab6及对应源码；新增approach集成入口，YOLO仅color_block/V2固定hash，HSV互斥回退。
+- 继承原camera_target_to_map精确时间转换；完整YOLO帧选最近可测方块并锁定，仅其单点进入原Manager/Approach。深度无效/歧义不更新，两个方块≤0.40m保守拒绝。
+- 原ROI中位深度改选实际有效像素，补RGB/Depth/CameraInfo时间/frame检查；不把框中心当几何中心。原控制器/Manager/转换器/0.10m配置hash未改，未进入S1/抓取流程。
+- 主仓库入口转发实际集成模式，补齐PC校时包装器参数；原full/dock路径不改。12项针对性检查、单包构建、指定venv导入、launch参数及互斥检查通过。
+- 用户最新要求先完成代码；本轮无设备连接/实时预览/运动。D435定位误差、实时画面、到位距离/停止原因、单/多方块真实运行全部NOT VERIFIED。
+- 入口与限制：camera_ws/docs/color_block_map_approach.md；预览命令bash go2_test.sh --mode approach --preview --view。后续先静态误差核验，再另授权运动。

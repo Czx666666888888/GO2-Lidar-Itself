@@ -24,6 +24,9 @@ class ApproachVideoRecorder(Node):
         super().__init__('approach_video_recorder')
         self.declare_parameter('output_directory', 'camera_ws/records')
         self.declare_parameter('video_fps', 15.0)
+        self.declare_parameter('publish_debug_image', False)
+        self.preview = (self.create_publisher(Image, '/science/approach/debug_image', 2)
+                        if self.get_parameter('publish_debug_image').value else None)
         self.declare_parameter('post_stop_seconds', 3.0)
         folder = os.path.abspath(self.get_parameter('output_directory').value)
         os.makedirs(folder, exist_ok=True)
@@ -129,6 +132,8 @@ class ApproachVideoRecorder(Node):
             map_point = c['search_observations'][0]['map']
         if map_point is None and c.get('stop_candidate'):
             map_point = c['stop_candidate']['map']
+        if map_point is None and c.get('candidate'):
+            map_point = c['candidate']['position']
         lines = [f"ID={identity} DETECT={'VISIBLE' if visible else 'LOST'} {state}",
                  f"{'observed' if state == 'SEARCH' else 'anchor'} MAP "
                  f"{self._point(map_point)}",
@@ -156,6 +161,10 @@ class ApproachVideoRecorder(Node):
                                      font=self.font, fill=(255, 190, 0),
                                      stroke_width=1, stroke_fill=(0, 0, 0))
             frame = cv2.cvtColor(np.asarray(rgb), cv2.COLOR_RGB2BGR)
+        if self.preview is not None:
+            preview = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+            preview.header = msg.header
+            self.preview.publish(preview)
         self.writer.write(frame)
         self._write('frame', {'frame_index': self.frames, 'rgb_stamp_ns': stamp,
                               'detector_age_sec': age, 'visible': visible,

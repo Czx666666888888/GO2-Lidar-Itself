@@ -180,7 +180,8 @@ class Experiment:
                str(getattr(self.args, 'response_distance_limit', .20))]
               if getattr(self.args, 'forward_response_check', False) else [])], 'control')
         self.launch('go2_science_perception', 'approach_video_recorder', [
-            '-p', f'output_directory:={self.folder}'], 'recorder')
+            '-p', f'output_directory:={self.folder}',
+            '-p', 'publish_debug_image:='+str(getattr(self.args,'preview_image',False)).lower()], 'recorder')
         self.spin(2)
         if self.control.get('state') == 'FAULT':
             # Only startup TF discovery can be retried, never a motion fault.
@@ -309,6 +310,7 @@ class Experiment:
 def main():
     """Require an explicit execution command as the operator's start action."""
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--preview-image', action='store_true')
     parser.add_argument('--execute', action='store_true', help='authorize one actual recorded run')
     parser.add_argument('--timeout', type=float, default=15.0)
     parser.add_argument('--target-xy', nargs=2, type=float,

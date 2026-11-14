@@ -23,6 +23,8 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
+            "yolo_detector = go2_science_perception.yolo_detector:main",
+            "color_block_target_adapter = go2_science_perception.color_block_target_adapter:main",
             "camera_diagnostics = go2_science_perception.camera_diagnostics:main",
             "camera_info_inspector = go2_science_perception.camera_info_inspector:main",
             "depth_viewer = go2_science_perception.depth_viewer:main",
