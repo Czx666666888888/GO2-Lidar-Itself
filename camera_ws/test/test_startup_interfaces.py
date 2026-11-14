@@ -11,7 +11,7 @@ sys.path.insert(0,str(ROOT/'camera_ws/s1_service'))
 sys.path.insert(0,str(ROOT/'scripts'))
 from s1_control.startup_status import feedback_status, communication_error
 from s1_control.integration import ArmIntegrationSession
-from go2_full_test import Workflow
+from go2_full_test import Workflow, select_arm_device
 from go2_build_fingerprint import fingerprint
 
 class Arm:
@@ -108,7 +108,7 @@ def test_readonly_startup_never_enables_or_starts_devices(tmp_path,monkeypatch):
     workflow.probe=lambda *a,**kw:dict(ready=False,reason='no hardware in test')
     workflow.ensure_s1=lambda *a:pytest.fail('read-only must not initialize arm')
     workflow.spawn=lambda *a,**kw:pytest.fail('read-only must not start devices')
-    inventory=dict(arm=[],task=[],camera=[],serial=True,
+    inventory=dict(arm=[],arm_devices=[],task=[],camera=[],serial_devices=['/dev/ttyUSB0'],
                    cameras=['213622070598','231622302209'],router=False)
     monkeypatch.setattr(launcher,'run',lambda *a,**kw:None)
     monkeypatch.setattr(launcher,'remote',lambda *a,**kw:SimpleNamespace(stdout=__import__('json').dumps(inventory)))
@@ -116,3 +116,36 @@ def test_readonly_startup_never_enables_or_starts_devices(tmp_path,monkeypatch):
     monkeypatch.setattr(launcher.subprocess,'run',lambda *a,**kw:SimpleNamespace(returncode=1,stdout=''))
     workflow.execute()
     assert (workflow.folder/'startup_timing.json').exists()
+
+
+@pytest.mark.parametrize('device', ['/dev/ttyUSB0', '/dev/ttyUSB1'])
+def test_unique_serial_is_selected_and_same_service_can_be_reused(device):
+    assert select_arm_device([device], []) == device
+    assert select_arm_device([device], [device]) == device
+
+
+@pytest.mark.parametrize('devices,running', [
+    ([], []), (['/dev/ttyUSB0', '/dev/ttyUSB1'], []),
+    (['/dev/ttyUSB1'], ['/dev/ttyUSB0']),
+    (['/dev/ttyUSB0'], [None]),
+    (['/dev/ttyUSB1'], ['/dev/ttyUSB1', '/dev/ttyUSB1']),
+])
+def test_missing_ambiguous_or_old_serial_owner_is_blocked(devices, running):
+    with pytest.raises(RuntimeError):
+        select_arm_device(devices, running)
+
+
+def test_cold_start_passes_selected_usb1_to_original_service(tmp_path, monkeypatch):
+    import go2_full_test as launcher
+    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock'))
+    workflow.folder=tmp_path/'cold'
+    workflow.deploy_s1=lambda:None
+    commands=[]
+    state=dict(state='ZERO_HOLD',busy=False,navigation_allowed=True,joint_positions_rad=[0.]*6)
+    def remote(command,**kwargs):
+        commands.append(command)
+        return SimpleNamespace(stdout=__import__('json').dumps(state))
+    monkeypatch.setattr(launcher,'remote',remote)
+    workflow.ensure_s1(False, '/dev/ttyUSB1')
+    assert '/dev/ttyUSB1' in commands[0] and '/dev/ttyUSB0' not in commands[0]
+    assert len(commands)==2  # One original owner, then original socket wait.

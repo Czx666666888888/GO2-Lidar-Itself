@@ -25,6 +25,7 @@ KEY = '/home/czx666/.ssh/id_ed25519_go2'
 REMOTE = '/home/unitree/go2_map_s1'
 ARM = '/home/unitree/s1-arm-control'
 ARM_PY = '/home/unitree/s1-arm-py310/bin/python'
+ARM_DEVICES = ('/dev/ttyUSB0', '/dev/ttyUSB1')
 SSH = ['ssh', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
        '-o', 'ServerAliveInterval=3', '-o', 'ServerAliveCountMax=3',
        '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60',
@@ -63,6 +64,17 @@ def run(argv, **kwargs):
 
 def remote(command, **kwargs):
     return run([*SSH, HOST, command], timeout=kwargs.pop('timeout',20), **kwargs)
+
+
+def select_arm_device(devices, running_devices):
+    candidates = [device for device in ARM_DEVICES if device in devices]
+    if len(candidates) != 1:
+        raise RuntimeError('S1串口必须唯一（ttyUSB0/ttyUSB1），保留现场: '+str(candidates))
+    device = candidates[0]
+    if running_devices and running_devices != [device]:
+        raise RuntimeError('已有S1服务仍绑定其他/未知串口，保留服务，禁止重复连接: '+
+                           str(running_devices)+'; 当前设备='+device)
+    return device
 
 
 def zero_hold(state):
@@ -263,7 +275,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         remote(shlex.join(['/usr/bin/python3','-c',script,ARM]),
                input=json.dumps(files),text=True)
 
-    def ensure_s1(self, running):
+    def ensure_s1(self, running, device='/dev/ttyUSB0'):
         status_file=None
         if running:
             state = self.status()
@@ -288,7 +300,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
             self.deploy_s1()
             arm_log=REMOTE+'/s1_hold_'+self.folder.name+'.log'
             status_file=REMOTE+'/s1_startup_'+self.folder.name+'.json'
-            argv=[ARM_PY,'-uB','scripts/run_arm_integration.py','--dev','/dev/ttyUSB0',
+            argv=[ARM_PY,'-uB','scripts/run_arm_integration.py','--dev',device,
                   '--status-file',status_file,'--execute']
             remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,ARM,arm_log)]))
             print('S1_LOG '+HOST+':'+arm_log,flush=True)
@@ -482,8 +494,18 @@ import pyrealsense2 as r
 def pids(pattern):
     out=subprocess.run(['pgrep','-f',pattern],capture_output=True,text=True)
     return [int(x) for x in out.stdout.split()]
-print(json.dumps(dict(arm=pids('[r]un_arm_integration.py'), task=pids('[s]1_task_host.py'),
-    camera=pids('[r]ealsense2_camera_node'), serial=Path('/dev/ttyUSB0').exists(),
+arm=pids('[r]un_arm_integration.py')
+arm_devices=[]
+for pid in arm:
+    argv=(Path('/proc')/str(pid)/'cmdline').read_bytes().decode().split('\0')
+    device='/dev/ttyUSB0'  # Original service parser default.
+    for index, value in enumerate(argv):
+        if value=='--dev': device=argv[index+1]
+        elif value.startswith('--dev='): device=value.split('=',1)[1]
+    arm_devices.append(device)
+print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_host.py'),
+    camera=pids('[r]ealsense2_camera_node'),
+    serial_devices=[device for device in ('/dev/ttyUSB0','/dev/ttyUSB1') if Path(device).exists()],
     cameras=[d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()],
     router=subprocess.run(['systemctl','is-active','--quiet','go2-remote-router.service']).returncode==0)))
 """
@@ -491,8 +513,8 @@ print(json.dumps(dict(arm=pids('[r]un_arm_integration.py'), task=pids('[s]1_task
                                         capture_output=True,text=True).stdout)
             if inventory['task']:
                 raise RuntimeError('远端抓取任务仍在运行')
-            if not inventory['serial']:
-                raise RuntimeError('COMMUNICATION_ERROR: /dev/ttyUSB0 missing')
+            arm_device=select_arm_device(inventory['serial_devices'], inventory['arm_devices'])
+            print('S1_SERIAL '+arm_device, flush=True)
             if not {'213622070598','231622302209'} <= set(inventory['cameras']):
                 raise RuntimeError('相机设备不匹配: '+str(inventory['cameras']))
         # --startup-check is deliberately read-only: no hold enable, zero, camera or SLAM start.
@@ -511,7 +533,7 @@ print(json.dumps(dict(arm=pids('[r]un_arm_integration.py'), task=pids('[s]1_task
             with self.stage('s1_reuse_or_controlled_zero'):
                 if inventory['router']:
                     run(['ssh','-t','-i',KEY,HOST,'sudo systemctl stop go2-remote-router.service'])
-                self.ensure_s1(bool(inventory['arm']))
+                self.ensure_s1(bool(inventory['arm']), arm_device)
             existing=pending.result()
         if not existing['native_ok']:
             raise RuntimeError('原生雷达不健康，不启动定位/运动: '+str(existing))
