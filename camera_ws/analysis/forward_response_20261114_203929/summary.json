@@ -1,0 +1,37 @@
+{
+  "run": "run_1794659964588482850.json",
+  "software_commit": "af89596",
+  "physical_motion_runs_this_authorization": 1,
+  "reference_output_reached_mps": 0.2,
+  "terminal_reason": "forward response check boundary: heading",
+  "lio_yaw_delta_deg": -3.209184015538877,
+  "sport_integrated_yaw_deg": -3.98985723691714,
+  "controller_zero_requested": 14403.944696005,
+  "outlet_zero_observed": 14404.046034735,
+  "request_to_observed_outlet_zero_sec": 0.1013387299990427,
+  "recorded_raw_travel_at_zero_m": 0.12230744252240704,
+  "recorded_raw_travel_at_fault_m": 0.1290052216867511,
+  "user_observation": {
+    "stopped": true,
+    "obvious_turn_seen": false,
+    "physical_distance_m": null
+  },
+  "final_speed_inputs": {
+    "body_speed": 0.00776976650811005,
+    "camera_speed": 0.007679415305240756,
+    "sport_speed": 8.633115248026657e-08,
+    "pose_yaw_rate": 0.0027255830224822315,
+    "sport_yaw_rate": -0.0010652643395587802,
+    "odom_age": 0.07240824966720538,
+    "camera_age": 0.07240824966720538,
+    "sport_age": 0.025720444000398857
+  },
+  "calibration_accepted": false,
+  "normal_braking_profile_generated": false,
+  "reason_not_accepted": "heading boundary interrupted normal stopping; independent physical distance unavailable",
+  "sources_sha256": {
+    "camera_ws/records/run_1794659964588482850.json": "0a673ee0a252f5c9030d1cbffa1c92812ab5cc096082b25cc2111ab55c3d7f02",
+    "camera_ws/records/science_approach_1794659965358268320.jsonl": "49ce919a26ded33080c228eb5169546c1a26978419d56e596dfb8b27010db324",
+    "camera_ws/records/1794659964588482850_gate.log": "457b5730f871908c187cda62ea9279a0380b986d3f9f20ef406cf7a71fa9562f"
+  }
+}
