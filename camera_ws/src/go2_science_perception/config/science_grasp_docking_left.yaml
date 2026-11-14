@@ -27,6 +27,7 @@ science_target_approach:
     dock_visual_loss_stop_sec: 0.0  # Locked MAP docking: retain 5m budget, no visual-age fault.
     dock_position_tolerance: 0.08  # User-approved 8cm final planar error; still requires actual stop.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
+    dock_stationary_reset_sec: 1.0  # Pause glitches; reset only after 1s continuously invalid.
     dock_settled_sec: 0.5
     dock_progress_timeout: 10.0  # Compatibility only; progress no longer triggers a stop.
     dock_region_x_min: -0.05

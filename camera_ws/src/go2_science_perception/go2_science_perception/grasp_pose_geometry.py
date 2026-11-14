@@ -24,6 +24,7 @@ class DockSettings:
     position_tolerance: float = 0.04
     yaw_tolerance: float = math.radians(10)
     settled_sec: float = 0.5
+    stationary_reset_sec: float = 0.0  # Zero preserves immediate-reset compatibility.
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     fine_distance: float = 0.15
     fine_forward_correction_enabled: bool = True
@@ -62,7 +63,8 @@ class DockSettings:
                 and self.fine_max_linear_speed > 0 and self.settle_wait_sec > 0):
             raise ValueError('Invalid fine-control or stop-wait settings')
         if (min(self.motion_window_sec, self.stable_window_sec,
-                self.settle_exit_confirm_sec, self.visual_loss_stop_sec) < 0 or
+                self.settle_exit_confirm_sec, self.visual_loss_stop_sec,
+                self.stationary_reset_sec) < 0 or
                 self.motion_noise_m <= 0 or not .14 <= self.forward_effective_speed <= .30):
             raise ValueError('Invalid dock motion evidence settings')
         if not .10 <= self.forward_response_max_distance <= .50:

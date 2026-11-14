@@ -253,3 +253,49 @@ def test_eight_cm_acceptance_still_requires_quiet_and_rejects_outside():
     out = c.step(10.5)
     assert out['state'] != 'STOP'
     assert out['vx'] == pytest.approx(0., abs=1e-12)
+
+
+def test_one_second_reset_pauses_invalid_time_and_resumes_only_qualified_time():
+    d = GraspDocking(DockSettings(stationary_reset_sec=1.))
+    assert not d.settle_clock(10., True)
+    assert not d.settle_clock(10.3, True)
+    assert not d.settle_clock(10.4, False)
+    assert not d.settle_clock(11.2, False)
+    assert d.stationary_since == 10.
+    assert d.stationary_good_sec == pytest.approx(.3)
+    assert not d.settle_clock(11.3, True)  # Gap is never added to good time.
+    assert not d.settle_clock(11.4, True)
+    assert d.settle_clock(11.5, True)
+
+
+def test_persistent_invalid_feedback_resets_after_one_second():
+    d = GraspDocking(DockSettings(stationary_reset_sec=1.))
+    d.settle_clock(10., True)
+    d.settle_clock(10.3, True)
+    d.settle_clock(10.4, False)
+    d.settle_clock(11.3, False)
+    assert d.stationary_since == 10.
+    assert not d.settle_clock(11.401, False)
+    assert d.stationary_since is None
+    assert d.stationary_good_sec == 0.
+    assert not d.settle_clock(11.5, True)
+    assert not d.settle_clock(11.9, True)
+    assert d.settle_clock(12., True)
+
+
+def test_eight_cm_outlier_pauses_without_claiming_success_or_resetting_immediately():
+    c = dock_core((.075, 0.))
+    c.docking = GraspDocking(DockSettings(position_tolerance=.08,
+        settle_exit_tolerance=.10, stationary_reset_sec=1.))
+    for t in [10.501, 10.601, 10.701]:
+        tick(c, t, c.robot[:2])
+        c.step(t)
+    initial = c.docking.stationary_since
+    x, y, _ = c.robot
+    tick(c, 10.801, (x-.01, y))
+    out = c.step(10.801)
+    assert out['state'] != 'STOP'
+    assert out['docking_stationary_paused']
+    assert out['docking_stationary_since'] == initial
+    assert out['docking_stationary_good_sec'] == pytest.approx(.2)
+    assert out['vx'] == out['vy'] == out['wz'] == 0.

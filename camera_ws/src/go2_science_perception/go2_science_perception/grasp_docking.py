@@ -16,6 +16,9 @@ class GraspDocking:
         self.forward.reset()
         self.heading = None
         self.stationary_since = None
+        self.stationary_good_sec = 0.0
+        self.stationary_last_good = None
+        self.stationary_bad_since = None
         self.stop_wait_started = None
         self.exit_candidate_since = None
         self.visual_settle_started = None
@@ -30,6 +33,28 @@ class GraspDocking:
         self.probe_speed_at = self.probe_speed_origin = None
         self.probe_gate_zero = None
         self.probe_peak_request = self.probe_peak_outlet = 0.
+
+    def reset_stationary(self):
+        self.stationary_since = self.stationary_last_good = self.stationary_bad_since = None
+        self.stationary_good_sec = 0.0
+
+    def settle_clock(self, now, qualified):
+        """Count qualified intervals only; pause glitches and reset persistent failures."""
+        if qualified:
+            self.stationary_bad_since = None
+            if self.stationary_since is None:
+                self.stationary_since = now
+            if self.stationary_last_good is not None:
+                self.stationary_good_sec += now-self.stationary_last_good
+            self.stationary_last_good = now
+            return self.stationary_good_sec+1e-12 >= self.p.settled_sec
+        self.stationary_last_good = None
+        if self.stationary_bad_since is None:
+            self.stationary_bad_since = now
+        if now-self.stationary_bad_since >= self.p.stationary_reset_sec:
+            self.stationary_since = None
+            self.stationary_good_sec = 0.0
+        return False
 
     def begin_response_check(self, core, now):
         self.probe_origin, self.probe_started = core.robot, now
@@ -137,6 +162,7 @@ class GraspDocking:
         if not active:
             self.forward.reset()
             self.stop_wait_started = self.stationary_since = None
+            self.reset_stationary()
             self.velocity_map = (0.0, 0.0)
             core.vx = core.vy = 0.0
             return out
@@ -198,6 +224,7 @@ class GraspDocking:
         self.forward.observe(core, now)
         if core.state == 'FAULT':
             self.stop_wait_started = self.stationary_since = None
+            self.reset_stationary()
             self.velocity_map = (0.0, 0.0)
             core.vx = core.vy = 0.0
             out.update(state=core.state, reason=core.reason, vx=0.0, vy=0.0, wz=0.0)
@@ -222,12 +249,16 @@ class GraspDocking:
                        window_distance > self.p.settle_exit_tolerance+1e-12)
             self.exit_candidate_since = ((now if self.exit_candidate_since is None else
                                           self.exit_candidate_since) if outside else None)
-            if (outside and now-self.exit_candidate_since >= self.p.settle_exit_confirm_sec):
+            reset_ready = (self.p.stationary_reset_sec <= 0 or
+                           (self.stationary_bad_since is not None and
+                            now-self.stationary_bad_since >= self.p.stationary_reset_sec))
+            exit_confirm = max(self.p.settle_exit_confirm_sec, self.p.stationary_reset_sec)
+            if (outside and now-self.exit_candidate_since >= exit_confirm):
                 exit_reason = 'position_outside_exit_band_persisted'
-            elif not yaw_ok:
+            elif not yaw_ok and reset_ready:
                 exit_reason = 'heading_outside_tolerance'
             elif (not position_ok and window_distance > self.p.position_tolerance and
-                  now-self.stop_wait_started >= self.p.settle_wait_sec):
+                  now-self.stop_wait_started >= self.p.settle_wait_sec and reset_ready):
                 exit_reason = 'outside_position_tolerance_after_wait'
             if exit_reason:
                 if self.visual_settle_started is not None:
@@ -239,6 +270,7 @@ class GraspDocking:
                                docking_stop_wait_exit_reason=exit_reason)
                     return out
                 self.stop_wait_started = self.stationary_since = None
+                self.reset_stationary()
                 self.exit_candidate_since = None
         out['docking_stop_wait_exit_reason'] = exit_reason
         if self.stop_wait_started is None and position_ok and yaw_ok:
@@ -254,24 +286,28 @@ class GraspDocking:
             if not yaw_ok:
                 blockers.append('heading_outside_tolerance')
             out['docking_stop_evidence'] = evidence
-            out['docking_stationary_reset_reasons'] = blockers
-            if position_ok and yaw_ok and evidence['stopped']:
-                if self.stationary_since is None:
-                    self.stationary_since = now
-                elif now-self.stationary_since >= self.p.settled_sec:
-                    core.state, core.reason = 'STOP', 'grasp docking pose reached and stopped'
-            else:
-                self.stationary_since = None
+            out['docking_stationary_blockers'] = blockers
+            qualified = position_ok and yaw_ok and evidence['stopped']
+            had_timer = self.stationary_since is not None
+            if self.settle_clock(now, qualified):
+                core.state, core.reason = 'STOP', 'grasp docking pose reached and stopped'
+            out['docking_stationary_reset_reasons'] = (
+                blockers if had_timer and self.stationary_since is None else [])
             out.update(state=core.state, reason=core.reason, docking_phase='STOP_WAIT',
                        vx=0.0, vy=0.0, wz=0.0,
                        docking_stop_wait_started=self.stop_wait_started,
                        docking_wait_age_s=now-self.stop_wait_started,
                        docking_pose_in_tolerance=position_ok and yaw_ok,
                        docking_stationary_since=self.stationary_since,
+                       docking_stationary_good_sec=self.stationary_good_sec,
+                       docking_stationary_paused=not qualified,
+                       docking_stationary_bad_age_s=(now-self.stationary_bad_since
+                           if self.stationary_bad_since is not None else 0.0),
+                       docking_stationary_reset_sec=self.p.stationary_reset_sec,
                        grasp_docking_complete=core.state == 'STOP')
             out['forward_step'] = self.forward.report(core)
             return out
-        self.stationary_since = None
+        self.reset_stationary()
         desired = 0.0
         fine = distance <= self.p.fine_distance
         # Latch until the task resets: pose noise must not restart fore/aft
