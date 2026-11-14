@@ -18,6 +18,7 @@ class GraspDocking:
         self.stationary_since = None
         self.stop_wait_started = None
         self.exit_candidate_since = None
+        self.visual_settle_started = None
         self.velocity_map = (0.0, 0.0)
         self.progress_at = None
         self.best_error = math.inf
@@ -150,12 +151,29 @@ class GraspDocking:
                 core.fault('visual target lost')
             elif (self.p.visual_loss_stop_sec > 0 and
                   now-core.visual_time >= self.p.visual_loss_stop_sec):
-                core.fault('visual observation expired: stop and reconfirm target')
-            elif core.odom_travel >= core.p.odom_max_distance:
+                # A confirmed MAP goal may leave the camera at final arrival.
+                # Permit only bounded zero-command settling, never further
+                # correction against an expired observation.
+                if self.visual_settle_started is None:
+                    if position_ok and yaw_ok:
+                        self.visual_settle_started = now
+                        if self.stop_wait_started is None:
+                            self.stop_wait_started = now
+                    else:
+                        core.fault('visual observation expired: stop and reconfirm target')
+            if core.odom_travel >= core.p.odom_max_distance:
                 core.fault('odometry continuation limit')
             elif max(0.0, distance-self.p.position_tolerance) > (
                     core.p.odom_max_distance-core.odom_travel):
                 core.fault('remaining docking distance exceeds odometry budget')
+        if self.visual_settle_started is not None:
+            age = now-self.visual_settle_started
+            limit = self.p.settle_wait_sec+self.p.settled_sec+self.p.stable_window_sec
+            out.update(docking_visual_policy='arrival_zero_settle',
+                       docking_visual_settle_age_s=age,
+                       docking_visual_settle_limit_s=limit)
+            if age >= limit:
+                core.fault('visual arrival settling timed out: reconfirm target')
         if distance > core.p.max_target_range:
             core.fault('docking goal out of range')
         out['odom_remaining_distance_m'] = core.p.odom_max_distance-core.odom_travel
@@ -209,6 +227,14 @@ class GraspDocking:
                   now-self.stop_wait_started >= self.p.settle_wait_sec):
                 exit_reason = 'outside_position_tolerance_after_wait'
             if exit_reason:
+                if self.visual_settle_started is not None:
+                    core.fault('visual arrival settling lost pose: '+exit_reason)
+                    self.velocity_map = (0.0, 0.0)
+                    core.vx = core.vy = 0.0
+                    out.update(state=core.state, reason=core.reason,
+                               vx=0.0, vy=0.0, wz=0.0,
+                               docking_stop_wait_exit_reason=exit_reason)
+                    return out
                 self.stop_wait_started = self.stationary_since = None
                 self.exit_candidate_since = None
         out['docking_stop_wait_exit_reason'] = exit_reason

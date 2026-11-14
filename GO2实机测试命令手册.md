@@ -1464,3 +1464,19 @@ SEARCH仍5m/60秒，停稳确认/唯一控制出口/定位异常停车不变；�
 本轮仅软件修改，不启动运动，新速度真实行走与停止表现NOT VERIFIED。
 
 2026-11-13 用户要求恢复SEARCH速度：实际集成profile search_speed恢复0.25m/s，安全门max_speed恢复0.30m/s；微调最低0.10、停靠无25s时间上限及横向额外10cm保留。S1最近串口I/O错误，本轮重试仍保留硬件阻断。
+
+## 2026-11-14 到位后的视觉超时改为有界零速停稳
+
+来源：21:45 full_1794663918545257953及science_approach_1794663940261429147.jsonl。
+21:46:03.669误差5.804cm、航向4.97度，视觉年龄3.038秒先触发FAULT；
+Point-LIO速度0.154、Sport速度0.056m/s，尚未满足停稳。未进入STOP/StandDown。
+修改：3秒失视觉时，只有已满足当前位置/航向容差才进入arrival_zero_settle；
+仅发零速，复用原STOP_WAIT/实际停稳证据，不再用新视觉作为成功必要条件。
+其他位置仍失视觉FAULT；失视觉末端不再恢复修正，持续越界/航向超限要求重新确认。
+有界期限=原settle_wait_sec+settled_sec+stable_window_sec（当前2+0.5+0.5=3秒），
+未能停稳则FAULT；原5m预算、定位/TF/反馈新鲜度及异常检查保持。
+成功仍<=6cm/10度且实际停稳持续0.5秒；不改速度、短步、S1轨迹或Point-LIO。
+68项针对性离线检查通过，未发送任何硬件命令；本次末端交接实机NOT VERIFIED。
+
+测试仍使用原入口：`bash go2_test.sh --execute --mode dock`；
+完整流程使用`bash go2_test.sh --execute --mode full --view`。本轮没有代用户执行。

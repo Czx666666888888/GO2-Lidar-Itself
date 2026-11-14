@@ -104,3 +104,67 @@ def test_response_start_has_no_extra_pose_baseline_gate():
     assert out['state'] == 'APPROACH_TO_GRASP_POSE'
     assert 0 < out['vx'] <= .20
     assert out['vy'] == out['wz'] == 0.
+
+
+def arrival_core():
+    c = dock_core((.058, 0.))
+    c.docking = GraspDocking(DockSettings(position_tolerance=.06,
+        settle_exit_tolerance=.08, settled_sec=.5, stable_window_sec=.5,
+        visual_loss_stop_sec=3.))
+    c.visual_time = 7.
+    return c
+
+
+def test_expired_visual_at_arrival_allows_only_zero_then_confirmed_stop():
+    c = arrival_core()
+    for i in range(8):
+        t = 10.501+i*.1
+        tick(c, t, c.robot[:2])
+        out = c.step(t)
+        assert out['vx'] == out['vy'] == out['wz'] == 0.
+        assert out['state'] != 'FAULT'
+    assert out['state'] == 'STOP'
+    assert out['grasp_docking_complete']
+
+
+def test_expired_arrival_still_requires_actual_stop():
+    c = arrival_core()
+    for i in range(32):
+        t = 10.501+i*.1
+        tick(c, t, c.robot[:2])
+        c.feedback_speed = .1
+        out = c.step(t)
+        assert out['state'] != 'STOP'
+        assert out['vx'] == out['vy'] == out['wz'] == 0.
+    assert out['state'] == 'FAULT'
+    assert 'settling timed out' in out['reason']
+
+
+def test_expired_arrival_drift_cannot_restart_correction():
+    c = arrival_core()
+    c.step(10.5)
+    x, y, _ = c.robot
+    for i in range(7):
+        t = 10.6+i*.1
+        tick(c, t, (x-.05, y))
+        out = c.step(t)
+    assert out['state'] == 'FAULT'
+    assert 'lost pose' in out['reason']
+    assert out['vx'] == out['vy'] == out['wz'] == 0.
+
+
+def test_expired_visual_wrong_heading_does_not_enter_arrival_settle():
+    c = arrival_core()
+    tick(c, 10.5, c.robot[:2], yaw=.3)
+    out = c.step(10.5)
+    assert out['state'] == 'FAULT'
+    assert c.docking.visual_settle_started is None
+
+
+def test_arrival_exception_does_not_bypass_odometry_budget():
+    c = arrival_core()
+    c.lost_at = 9.
+    c.odom_travel = 5.
+    out = c.step(10.5)
+    assert out['state'] == 'FAULT'
+    assert 'odometry continuation limit' in out['reason']
