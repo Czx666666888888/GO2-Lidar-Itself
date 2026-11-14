@@ -175,6 +175,7 @@ class Experiment:
                 getattr(self.args, 'grasp_side', 'right') == 'left' else 'config/science_grasp_docking.yaml'))]
               if getattr(self.args, 'grasp_pose', False) else []),
             *(['-p', 'dock_forward_response_check:=true',
+               '-p', f'response_gate_log_file:={gate_log}',
                '-p', 'dock_forward_response_max_distance:='+
                str(getattr(self.args, 'response_distance_limit', .20))]
               if getattr(self.args, 'forward_response_check', False) else [])], 'control')

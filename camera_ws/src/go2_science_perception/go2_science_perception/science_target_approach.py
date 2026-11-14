@@ -5,6 +5,8 @@ from dataclasses import fields
 import json
 import math
 import os
+from pathlib import Path
+import re
 import time
 
 from geometry_msgs.msg import TwistStamped
@@ -41,6 +43,7 @@ class ScienceTargetApproach(Node):
             self.declare_parameter(name, value)
         self.declare_parameter('grasp_docking_enabled', False)
         self.declare_parameter('forward_step_profile_file', '')
+        self.declare_parameter('response_gate_log_file', '')
         for field in fields(DockSettings()):
             self.declare_parameter('dock_' + field.name, getattr(DockSettings(), field.name))
         self.grasp_docking_enabled = self.get_parameter('grasp_docking_enabled').value
@@ -62,6 +65,8 @@ class ScienceTargetApproach(Node):
         self.recording_at = -math.inf
         self.recording_info = {}
         self.sport_velocity = None
+        self.response_gate_log_file = self.get_parameter('response_gate_log_file').value
+        self.gate_output_lease_id = None
         self.map_measurements = deque(maxlen=128)
         self.sport_state_info = {}
         log_dir = self.get_parameter('log_directory').value
@@ -250,9 +255,21 @@ class ScienceTargetApproach(Node):
     def _sport_output(self, msg):
         """Observe final requests with this Humble's message-only callback."""
         from .forward_step import sport_output_sample
-        endpoints = self.get_publishers_info_by_topic('/api/sport/request')
+        endpoints = [e for e in self.get_publishers_info_by_topic('/api/sport/request')
+                     if e.node_name != '_CREATED_BY_BARE_DDS_APP_']
+        if not endpoints:
+            return  # Discovery can precede the gate; original gate audit remains authoritative.
         if len(endpoints) != 1 or endpoints[0].node_name != 'go2_safety_gate':
-            self.core.fault('response output attribution ambiguous: expected sole safety gate')
+            self.core.fault('response output attribution ambiguous: competing local Sport publisher')
+            return
+        lease_id = int(msg.header.lease.id)
+        if self.gate_output_lease_id != lease_id:
+            try:
+                values = re.findall(r'已取得 id=(\d+)', Path(self.response_gate_log_file).read_text())
+                self.gate_output_lease_id = int(values[-1]) if values else None
+            except (OSError, ValueError):
+                return
+        if not lease_id or lease_id != self.gate_output_lease_id:
             return
         try:
             sample = sport_output_sample(msg.header.identity.api_id, msg.parameter,
@@ -261,7 +278,8 @@ class ScienceTargetApproach(Node):
             return
         if sample is not None:
             sample['request_id'] = int(msg.header.identity.id)
-            sample['source_attribution'] = 'sole gate publisher in ROS graph; no per-packet GID in Humble'
+            sample['source_attribution'] = 'unique local safety gate plus run-owned lease ID; no per-packet GID'
+            sample['lease_id'] = lease_id
             self.core.sport_output = sample
             self.log_file.write(json.dumps(dict(event='SPORT_OUTPUT_OBSERVED', **sample))+'\n')
 

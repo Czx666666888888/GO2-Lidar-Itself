@@ -203,9 +203,11 @@ def test_response_observer_uses_humble_message_only_callback():
     from go2_science_perception.science_target_approach import ScienceTargetApproach
     errors = []
     fake = SimpleNamespace(core=SimpleNamespace(sport_output=None, fault=errors.append),
+        gate_output_lease_id=7, response_gate_log_file='',
         log_file=io.StringIO(), get_publishers_info_by_topic=lambda _: [
-            SimpleNamespace(node_name='go2_safety_gate')])
-    msg = Request();msg.header.identity.api_id = 1008
+            SimpleNamespace(node_name='go2_safety_gate'),
+            SimpleNamespace(node_name='_CREATED_BY_BARE_DDS_APP_')])
+    msg = Request();msg.header.identity.api_id = 1008;msg.header.lease.id=7
     msg.parameter = '{"x":0.2,"y":0,"z":0}'
     ScienceTargetApproach._sport_output(fake, msg)
     assert fake.core.sport_output['vx'] == .2
