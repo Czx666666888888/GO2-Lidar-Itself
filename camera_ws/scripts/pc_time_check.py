@@ -29,6 +29,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', help='run real motion; full also performs posture/grasp')
     parser.add_argument('--mode', choices=('dock', 'full'), default='full')
+    parser.add_argument('--grasp-side', choices=('right','left'), default='right')
+    parser.add_argument('--left-geometry-verified', action='store_true')
     parser.add_argument('--clock-diagnostic', action='store_true',
                         help='explicit full 20s online + 20s paused clock sampling')
     parser.add_argument('--forward-response-check', action='store_true')
@@ -72,7 +74,10 @@ def main():
             raise RuntimeError('PC校时服务意外重启，阻止启动任务')
         env = dict(os.environ, GO2_TIME_MAPPING_MODE='imu', GO2_PC_TIME_HELD='1')
         if args.execute:
-            command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode',args.mode]
+            command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode',args.mode,
+                       '--grasp-side',args.grasp_side]
+            if args.left_geometry_verified:
+                command.append('--left-geometry-verified')
             if args.forward_response_check:
                 command.append('--forward-response-check')
             if args.work_dir is not None:
