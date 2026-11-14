@@ -27,7 +27,8 @@ class ArmIntegrationSession:
     def snapshot(self):
         try:
             values = feedback_status(self.arm, getattr(self, 'device', None),
-                                     getattr(self, 'zero_windows', None))
+                                     getattr(self, 'zero_windows', None),
+                                     getattr(self, 'device_identity', None))
             with self._lock:
                 state = self._state['state']
                 values['readiness_state'] = ('BUSY' if self._state['busy'] else

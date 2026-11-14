@@ -17,7 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 for path in (ROOT, ROOT / "scripts", Path.home()/"thirdparty/S1_SDK_V2-official/src"):
     sys.path.insert(0, str(path))
 from s1_control.integration import ArmIntegrationSession, ZERO_Q
-from s1_control.startup_status import feedback_status, communication_error
+from s1_control.startup_status import (
+    feedback_status, communication_error, resolve_serial_device, serial_identity,
+)
 
 DEFAULT_SOCKET = "/tmp/s1-arm-integration.sock"
 
@@ -33,7 +35,7 @@ def flow_arguments(args, *, execute):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dev", default="/dev/ttyUSB0")
+    parser.add_argument("--dev", default="auto", help="auto-select the unique ttyUSB0 or ttyUSB1")
     parser.add_argument("--socket", default=DEFAULT_SOCKET)
     parser.add_argument("--config", default="config/go2_dual_white_light_full_flow_size_adaptive_v1.json")
     parser.add_argument("--speed", type=float, default=1.5)
@@ -41,6 +43,8 @@ def main(argv=None):
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--status-file", default="/tmp/s1-arm-startup-status.json")
     args = parser.parse_args(argv)
+    if args.execute:
+        args.dev = resolve_serial_device(args.dev)
     def startup_report(**values):
         values["host_time_ns"] = time.time_ns()
         target = Path(args.status_file)
@@ -61,6 +65,8 @@ def main(argv=None):
     _, config = flow.load_alignment_config(args.config)
     plan = json.loads(flow.resolve_project_path(config["deployment_plan"]).read_text())
     # One service owns the device across idle hold and every grasp.
+    service_lock = open('/tmp/s1-arm-service.lock', 'a')
+    fcntl.flock(service_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     device_lock = open("/tmp/s1-arm-" + Path(args.dev).resolve().name + ".lock", "a")
     fcntl.flock(device_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     socket_path = Path(args.socket)
@@ -68,16 +74,20 @@ def main(argv=None):
         socket_path.unlink()
     startup_report(state='STARTING', busy=True)
     try:
+        expected_identity = serial_identity(args.dev)
         arm = Arm(dev=args.dev, end_effector="gripper", check_collision=False,
                   limits=SafetyLimits(v_max_rad_s=args.speed, j6_v_max_rad_s=args.speed,
                                       max_speed_rad_s=1.2*args.speed, motion_profile="s_curve",
                                       pause_on_tracking_lag=True, elapsed_cycle_progress=True))
+        if serial_identity(args.dev) != expected_identity:
+            raise OSError('serial device re-enumerated while opening: '+args.dev)
     except Exception as exc:
         startup_report(state='COMMUNICATION_ERROR' if communication_error(exc) else 'FAULT',
                        busy=False, error=str(exc))
         raise
     session = ArmIntegrationSession(arm)
     session.device = args.dev
+    session.device_identity = expected_identity
     session.zero_windows = plan["start_safe_windows_rad"]
     stop = threading.Event()
     server = None
@@ -107,7 +117,7 @@ def main(argv=None):
     try:
         def ensure_zero():
             q, _, _ = wait_for_valid_feedback(arm, arm.limits.max_temp_c)
-            status = feedback_status(arm, args.dev, session.zero_windows)
+            status = feedback_status(arm, args.dev, session.zero_windows, session.device_identity)
             violations = start_window_violations(q, plan['start_safe_windows_rad'])
             session._update(**status, navigation_allowed=False)
             startup_report(state=status['position_state'], busy=False, **status)
@@ -126,7 +136,7 @@ def main(argv=None):
                     raise RuntimeError(fault)
             # Verify the real endpoint before commanding the existing zero hold.
             q, _, _ = wait_for_valid_feedback(arm, arm.limits.max_temp_c)
-            status = feedback_status(arm, args.dev, session.zero_windows)
+            status = feedback_status(arm, args.dev, session.zero_windows, session.device_identity)
             if not status['at_zero']:
                 raise RuntimeError('controlled zero finished outside original zero tolerance: '+str(q))
             session.start_hold()

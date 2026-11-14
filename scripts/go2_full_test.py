@@ -249,6 +249,7 @@ class Workflow:
         source = self.work/'camera_ws/s1_service'
         manifest = json.loads((source/'source_manifest.json').read_text())
         files = {name: dict(original=meta['original_sha256'],
+                           previous=meta.get('accepted_previous_sha256', []),
                            content=base64.b64encode((source/name).read_bytes()).decode())
                  for name, meta in manifest['files'].items()}
         script = r"""
@@ -259,12 +260,15 @@ if subprocess.run(['pgrep','-f','[r]un_arm_integration.py'],stdout=subprocess.DE
 for name, item in files.items():
     p=root/name; new=base64.b64decode(item['content'])
     if p.exists() and hashlib.sha256(p.read_bytes()).hexdigest() not in (
-            item['original'], hashlib.sha256(new).hexdigest()):
+            item['original'], *item.get('previous', []), hashlib.sha256(new).hexdigest()):
         raise SystemExit('S1 source differs from delivery; preserve and stop: '+name)
 for name,item in files.items():
     p=root/name; new=base64.b64decode(item['content'])
     if p.exists() and p.read_bytes()==new: continue
     if p.exists():
+        versioned=root/'.go2-startup-backups'/hashlib.sha256(p.read_bytes()).hexdigest()/name
+        versioned.parent.mkdir(parents=True,exist_ok=True)
+        if not versioned.exists(): shutil.copy2(p,versioned)
         backup=root/'.go2-startup-original'/name
         backup.parent.mkdir(parents=True,exist_ok=True)
         if not backup.exists(): shutil.copy2(p,backup)
@@ -300,7 +304,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
             self.deploy_s1()
             arm_log=REMOTE+'/s1_hold_'+self.folder.name+'.log'
             status_file=REMOTE+'/s1_startup_'+self.folder.name+'.json'
-            argv=[ARM_PY,'-uB','scripts/run_arm_integration.py','--dev',device,
+            argv=[ARM_PY,'-uB','scripts/run_arm_integration.py','--dev','auto',
                   '--status-file',status_file,'--execute']
             remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,ARM,arm_log)]))
             print('S1_LOG '+HOST+':'+arm_log,flush=True)
@@ -488,7 +492,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             if active.returncode != 1:
                 raise RuntimeError('已有控制任务，拒绝并行启动: '+active.stdout)
             inventory_script = r"""
-import json, subprocess
+import json, os, subprocess
 from pathlib import Path
 import pyrealsense2 as r
 def pids(pattern):
@@ -502,6 +506,13 @@ for pid in arm:
     for index, value in enumerate(argv):
         if value=='--dev': device=argv[index+1]
         elif value.startswith('--dev='): device=value.split('=',1)[1]
+    opened=set()
+    for fd in (Path('/proc')/str(pid)/'fd').iterdir():
+        try:
+            target=os.readlink(fd).removesuffix(' (deleted)')
+            if target in ('/dev/ttyUSB0','/dev/ttyUSB1'): opened.add(target)
+        except OSError: pass
+    if len(opened)==1: device=next(iter(opened))
     arm_devices.append(device)
 print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_host.py'),
     camera=pids('[r]ealsense2_camera_node'),

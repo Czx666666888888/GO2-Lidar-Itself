@@ -7,6 +7,24 @@ import os
 import time
 
 
+def resolve_serial_device(requested='auto'):
+    """Read-only 0/1 selection at service startup; never reopen a live SDK."""
+    candidates = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    if requested not in ('auto', *candidates):
+        if not os.path.exists(requested):
+            raise OSError('serial device missing: '+requested)
+        return requested
+    found = [name for name in candidates if os.path.exists(name)]
+    if len(found) != 1:
+        raise OSError('serial device must be unique ttyUSB0/ttyUSB1: '+str(found))
+    return found[0]
+
+
+def serial_identity(device):
+    value = os.stat(device)
+    return value.st_rdev, value.st_ino
+
+
 def communication_error(exc):
     text = str(exc)
     # Preserve the actual SDK / OS error, never classify pose-window errors as I/O.
@@ -15,9 +33,11 @@ def communication_error(exc):
         'no such file', 'serial', 'device disconnected')) or isinstance(exc, OSError)
 
 
-def feedback_status(arm, device=None, zero_windows=None):
+def feedback_status(arm, device=None, zero_windows=None, device_identity=None):
     if device and not os.path.exists(device):
         raise OSError('serial device missing: '+device)
+    if device and device_identity is not None and serial_identity(device) != device_identity:
+        raise OSError('serial device re-enumerated; existing SDK connection is invalid: '+device)
     q = [float(x) for x in arm.get_pos()[:6]]
     velocity = [float(x) for x in arm.get_vel()[:6]]
     temperature = [float(x) for x in arm.get_temp()]
@@ -32,7 +52,7 @@ def feedback_status(arm, device=None, zero_windows=None):
     at_zero = all(abs(x) <= tolerance for x in q)
     if zero_windows is not None:
         at_zero = at_zero and all(lo <= x <= hi for x, (lo, hi) in zip(q, zero_windows))
-    return dict(joint_positions_rad=q, joint_velocities_rad_s=velocity,
+    return dict(serial_device=device, joint_positions_rad=q, joint_velocities_rad_s=velocity,
                 feedback_read_monotonic=time.monotonic(), zero_tolerance_rad=tolerance,
                 at_zero=at_zero, position_state='AT_ZERO' if at_zero else 'NOT_AT_ZERO',
                 communication_state='OK', feedback_source='existing Arm.get_pos/get_vel/get_temp',

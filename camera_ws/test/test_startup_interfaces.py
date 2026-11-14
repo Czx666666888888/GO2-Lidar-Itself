@@ -9,7 +9,9 @@ import pytest
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'camera_ws/s1_service'))
 sys.path.insert(0,str(ROOT/'scripts'))
-from s1_control.startup_status import feedback_status, communication_error
+from s1_control.startup_status import (
+    feedback_status, communication_error, resolve_serial_device,
+)
 from s1_control.integration import ArmIntegrationSession
 from go2_full_test import Workflow, select_arm_device
 from go2_build_fingerprint import fingerprint
@@ -135,7 +137,7 @@ def test_missing_ambiguous_or_old_serial_owner_is_blocked(devices, running):
         select_arm_device(devices, running)
 
 
-def test_cold_start_passes_selected_usb1_to_original_service(tmp_path, monkeypatch):
+def test_cold_start_uses_service_auto_selection(tmp_path, monkeypatch):
     import go2_full_test as launcher
     workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock'))
     workflow.folder=tmp_path/'cold'
@@ -147,5 +149,57 @@ def test_cold_start_passes_selected_usb1_to_original_service(tmp_path, monkeypat
         return SimpleNamespace(stdout=__import__('json').dumps(state))
     monkeypatch.setattr(launcher,'remote',remote)
     workflow.ensure_s1(False, '/dev/ttyUSB1')
-    assert '/dev/ttyUSB1' in commands[0] and '/dev/ttyUSB0' not in commands[0]
+    assert 'auto' in commands[0] and '/dev/ttyUSB0' not in commands[0]
     assert len(commands)==2  # One original owner, then original socket wait.
+
+
+@pytest.mark.parametrize('device', ['/dev/ttyUSB0', '/dev/ttyUSB1'])
+@pytest.mark.parametrize('requested', ['auto', '/dev/ttyUSB0', '/dev/ttyUSB1'])
+def test_service_selects_zero_or_one_without_editing_config(monkeypatch, device, requested):
+    import s1_control.startup_status as status
+    monkeypatch.setattr(status.os.path, 'exists', lambda value: value==device)
+    assert resolve_serial_device(requested)==device
+
+
+@pytest.mark.parametrize('devices', [[], ['/dev/ttyUSB0','/dev/ttyUSB1']])
+def test_service_rejects_missing_or_ambiguous_ports(monkeypatch, devices):
+    import s1_control.startup_status as status
+    monkeypatch.setattr(status.os.path, 'exists', lambda value: value in devices)
+    with pytest.raises(OSError): resolve_serial_device()
+
+
+def test_recreated_device_does_not_validate_stale_sdk_feedback(monkeypatch):
+    import s1_control.startup_status as status
+    monkeypatch.setattr(status.os.path,'exists',lambda _:True)
+    monkeypatch.setattr(status,'serial_identity',lambda _:(188,222))
+    with pytest.raises(OSError, match='re-enumerated'):
+        feedback_status(Arm(), '/dev/ttyUSB0', device_identity=(188,111))
+
+
+def test_service_upgrade_accepts_only_recorded_previous_hash_and_backs_it_up(tmp_path, monkeypatch):
+    import base64
+    import hashlib
+    import io
+    import json
+    import shlex
+    import go2_full_test as launcher
+    captured={}
+    def remote(command,**kwargs):
+        captured['script']=shlex.split(command)[2]
+    monkeypatch.setattr(launcher,'remote',remote)
+    workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock'))
+    workflow.deploy_s1()
+    target=tmp_path/'scripts/service.py';target.parent.mkdir();target.write_bytes(b'old')
+    old_hash=hashlib.sha256(b'old').hexdigest()
+    payload={'scripts/service.py':dict(original=None,previous=[],
+        content=base64.b64encode(b'new').decode())}
+    monkeypatch.setattr(sys,'argv',['remote',str(tmp_path)])
+    monkeypatch.setattr(launcher.subprocess,'run',lambda *a,**kw:SimpleNamespace(returncode=1))
+    monkeypatch.setattr(sys,'stdin',io.StringIO(json.dumps(payload)))
+    with pytest.raises(SystemExit):exec(captured['script'],{})
+    assert target.read_bytes()==b'old'
+    payload['scripts/service.py']['previous']=[old_hash]
+    monkeypatch.setattr(sys,'stdin',io.StringIO(json.dumps(payload)))
+    exec(captured['script'],{})
+    assert target.read_bytes()==b'new'
+    assert (tmp_path/'.go2-startup-backups'/old_hash/'scripts/service.py').read_bytes()==b'old'

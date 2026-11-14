@@ -2,16 +2,25 @@
   "source_zip_sha256": "a7e08d875366dc777e2a41e19401f537fa929584c9c89ae6a0ceaea5aab6596e",
   "files": {
     "scripts/run_arm_integration.py": {
-      "original_sha256": "f428f3734300bd8a56e5cecf749697b5f6a8620d438c006a7c702e45f92522d3"
+      "original_sha256": "f428f3734300bd8a56e5cecf749697b5f6a8620d438c006a7c702e45f92522d3",
+      "accepted_previous_sha256": [
+        "1bd9e35fe01ab0989e05c5176a87d2dd719a046811c2e753d2ff061528e68b16"
+      ]
     },
     "scripts/arm_task_client.py": {
       "original_sha256": "7febfb8745228fdaae6145239c7caac7d63aefd0bc67134432b0ea4ba355c12b"
     },
     "s1_control/integration.py": {
-      "original_sha256": "b680f28751223dbf5b0de461b9f3dab4cd9726e563e5b5529962ca9345330021"
+      "original_sha256": "b680f28751223dbf5b0de461b9f3dab4cd9726e563e5b5529962ca9345330021",
+      "accepted_previous_sha256": [
+        "fbd7fc349cada4065c2bb19bbef16af1f6ee4d24600e79c9bbdc856f7bb2e5be"
+      ]
     },
     "s1_control/startup_status.py": {
-      "original_sha256": null
+      "original_sha256": null,
+      "accepted_previous_sha256": [
+        "1da05e25e8ece8e23456fd129ff68e255c628f44e51a6defc426ddb4994f1b13"
+      ]
     }
   }
 }
