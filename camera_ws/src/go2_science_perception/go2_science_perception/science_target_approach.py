@@ -62,7 +62,6 @@ class ScienceTargetApproach(Node):
         self.recording_at = -math.inf
         self.recording_info = {}
         self.sport_velocity = None
-        self.gate_output_gid = None
         self.map_measurements = deque(maxlen=128)
         self.sport_state_info = {}
         log_dir = self.get_parameter('log_directory').value
@@ -248,17 +247,12 @@ class ScienceTargetApproach(Node):
         except (ValueError, TransformException) as exc:
             self.core.fault(f'localization/TF: {exc}')
 
-    def _sport_output(self, msg, info):
-        """Observe/log final requests without adding any velocity publisher."""
+    def _sport_output(self, msg):
+        """Observe final requests with this Humble's message-only callback."""
         from .forward_step import sport_output_sample
-        if self.gate_output_gid is None:
-            endpoints = self.get_publishers_info_by_topic('/api/sport/request')
-            matches = [bytes(e.endpoint_gid) for e in endpoints
-                       if e.node_name == 'go2_safety_gate']
-            if len(matches) != 1:
-                return
-            self.gate_output_gid = matches[0]
-        if bytes(info.publisher_gid) != self.gate_output_gid:
+        endpoints = self.get_publishers_info_by_topic('/api/sport/request')
+        if len(endpoints) != 1 or endpoints[0].node_name != 'go2_safety_gate':
+            self.core.fault('response output attribution ambiguous: expected sole safety gate')
             return
         try:
             sample = sport_output_sample(msg.header.identity.api_id, msg.parameter,
@@ -267,6 +261,7 @@ class ScienceTargetApproach(Node):
             return
         if sample is not None:
             sample['request_id'] = int(msg.header.identity.id)
+            sample['source_attribution'] = 'sole gate publisher in ROS graph; no per-packet GID in Humble'
             self.core.sport_output = sample
             self.log_file.write(json.dumps(dict(event='SPORT_OUTPUT_OBSERVED', **sample))+'\n')
 

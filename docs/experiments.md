@@ -1,5 +1,18 @@
 # Experiment Record
 
+## 2026-11-14 实测前Humble出口回调兼容修正
+
+本轮授权的一次测量尚未发前进指令。先后记录：外层PC时间入口未透传35cm参数（已修复）；
+本机密码需交互；远端重启导致S1/Socket消失（用户另授权恢复，已恢复ZERO_HOLD并原对时）。
+随后run_1794659502828542193仍在IDLE、仅StopMove时节点退出：
+TypeError: ScienceTargetApproach._sport_output() missing required positional argument info。
+当前安装的Humble executor只传消息正文，take_message元信息仅含source/received时间，没有GID。
+修正为单参数回调，以当前graph唯一go2_safety_gate发布者归属记录；有其他发布者即明确停止。
+不伪称逐包GID验证，不改ROS执行器，不加起步基线门槛。32项针对性检查及新增单参数回归，
+独立本机ROS域87/localhost真实Move和StopMove回调测试通过；该域未连接GO2。
+单包构建与安装一致性通过，随后才继续尚未执行的同一轮授权测量；未增加物理测量次数。
+
+
 ## 2026-11-14 前向标定测量修正（第1步，未运动）
 
 最新Push基线7e9c865。复核20:15:13的run_1794658509091411854：最高控制请求约0.1800m/s，

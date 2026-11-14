@@ -194,3 +194,22 @@ def test_initial_missing_feedback_is_logged_as_null_not_invalid_json():
     data = json.loads(encoded[-1])
     assert data['stop_inputs']['sport_speed'] is None
     assert data['stop_inputs']['odom_age'] is None
+
+
+def test_response_observer_uses_humble_message_only_callback():
+    import io
+    from types import SimpleNamespace
+    from unitree_api.msg import Request
+    from go2_science_perception.science_target_approach import ScienceTargetApproach
+    errors = []
+    fake = SimpleNamespace(core=SimpleNamespace(sport_output=None, fault=errors.append),
+        log_file=io.StringIO(), get_publishers_info_by_topic=lambda _: [
+            SimpleNamespace(node_name='go2_safety_gate')])
+    msg = Request();msg.header.identity.api_id = 1008
+    msg.parameter = '{"x":0.2,"y":0,"z":0}'
+    ScienceTargetApproach._sport_output(fake, msg)
+    assert fake.core.sport_output['vx'] == .2
+    assert not errors
+    fake.get_publishers_info_by_topic = lambda _: [SimpleNamespace(node_name='other')]
+    ScienceTargetApproach._sport_output(fake, msg)
+    assert errors and 'attribution ambiguous' in errors[-1]
