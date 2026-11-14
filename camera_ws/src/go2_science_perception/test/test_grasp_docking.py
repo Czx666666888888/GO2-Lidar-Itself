@@ -369,3 +369,40 @@ def test_far_to_fine_transition_still_obeys_vector_deceleration():
 def test_invalid_wait_and_fine_parameters_are_rejected(settings):
     with pytest.raises(ValueError):
         DockSettings(**settings)
+
+
+@pytest.mark.parametrize('error', [(.13, 0), (0, -.13), (.05, .12)])
+def test_eighteen_cm_fine_floor_is_planar_with_braking_priority(error):
+    c = dock_core(error)
+    c.p.kp_linear = 1.0  # Proportional request is below the configured floor.
+    c.p.braking_latency = .30
+    c.docking.p = DockSettings(min_linear_speed=.20, fine_min_linear_speed=.18,
+                              fine_max_linear_speed=.30)
+    for i in range(20):
+        t = 10.6+i*.1
+        c.visual_time = t
+        tick(c, t, c.robot[:2])
+        out = c.step(t)
+    assert out['docking_phase'] == 'FINE_CONTROL'
+    assert math.hypot(out['vx'], out['vy']) == pytest.approx(.18)
+
+
+def test_eighteen_cm_fine_floor_still_brakes_and_zero_wait_has_priority():
+    c = dock_core((.06, 0))
+    c.p.kp_linear = 1.5
+    c.p.braking_latency = .30
+    c.docking.p = DockSettings(min_linear_speed=.20, fine_min_linear_speed=.18,
+                              fine_max_linear_speed=.30)
+    for i in range(20):
+        out = wait_tick(c, 10.6+i*.1, .06)
+    assert 0 < math.hypot(out['vx'], out['vy']) < .18
+    out = wait_tick(c, 12.6, .039)
+    assert out['docking_phase'] == 'STOP_WAIT'
+    assert out['vx'] == out['vy'] == out['wz'] == 0.
+    assert not out['grasp_docking_complete']
+
+
+@pytest.mark.parametrize('minimum,maximum', [(-.01, .30), (.18, .08)])
+def test_fine_floor_must_fit_its_cap(minimum, maximum):
+    with pytest.raises(ValueError):
+        DockSettings(fine_min_linear_speed=minimum, fine_max_linear_speed=maximum)

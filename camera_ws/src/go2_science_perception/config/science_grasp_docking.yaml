@@ -8,7 +8,8 @@ science_target_approach:
     dock_target_s1_y: 0.41  # Additional 0.10m clearance from right-side target.
     dock_min_linear_speed: 0.20  # Far approach only; fine control/braking take priority.
     dock_fine_distance: 0.15
-    dock_fine_max_linear_speed: 0.08
+    dock_fine_min_linear_speed: 0.18  # Braking/measured-speed/slew limits still take priority.
+    dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
     dock_settle_exit_tolerance: 0.06  # Resume correction; completion still requires 0.04m.
     dock_settle_wait_sec: 2.0  # Resume fine correction if still outside 0.04m after waiting.
     dock_position_tolerance: 0.04  # Navigation tolerance, not guaranteed arm reachability.

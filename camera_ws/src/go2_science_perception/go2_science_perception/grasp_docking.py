@@ -118,10 +118,10 @@ class GraspDocking:
             safe = math.sqrt((a*latency)**2+2*a*clearance)-a*latency
             # Minimum applies to the requested planar magnitude, before all
             # braking/slew limits; never force it on either axis separately.
-            desired = min(core.p.max_linear_speed,
-                          max(self.p.min_linear_speed, core.p.kp_linear*distance), safe)
-            if fine:
-                desired = min(desired, core.p.kp_linear*distance, self.p.fine_max_linear_speed)
+            minimum = self.p.fine_min_linear_speed if fine else self.p.min_linear_speed
+            maximum = self.p.fine_max_linear_speed if fine else core.p.max_linear_speed
+            desired = min(core.p.max_linear_speed, maximum,
+                          max(minimum, core.p.kp_linear*distance), safe)
             if core.actual_speed**2/(2*a)+core.actual_speed*latency >= clearance:
                 desired = min(desired, max(0.0, core.actual_speed-a*dt))
         # Kx=Ky=kp_linear. Map-frame slew limiting also accounts for rotation of

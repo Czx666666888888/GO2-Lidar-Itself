@@ -26,6 +26,7 @@ class DockSettings:
     settled_sec: float = 0.5
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     fine_distance: float = 0.15
+    fine_min_linear_speed: float = 0.0
     fine_max_linear_speed: float = 0.08
     settle_exit_tolerance: float = 0.06
     settle_wait_sec: float = 2.0
@@ -44,6 +45,7 @@ class DockSettings:
         if self.min_linear_speed < 0:
             raise ValueError('Dock minimum speed must be nonnegative')
         if not (self.position_tolerance < self.settle_exit_tolerance < self.fine_distance
+                and 0 <= self.fine_min_linear_speed <= self.fine_max_linear_speed
                 and self.fine_max_linear_speed > 0 and self.settle_wait_sec > 0):
             raise ValueError('Invalid fine-control or stop-wait settings')
         # Dock clearance can exceed the original grasp reference region.
