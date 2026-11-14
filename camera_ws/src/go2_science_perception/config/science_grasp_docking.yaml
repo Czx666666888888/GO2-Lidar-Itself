@@ -12,8 +12,9 @@ science_target_approach:
     dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
     dock_settle_exit_tolerance: 0.08  # Zero hold outer band; success remains <=0.06m.
     dock_settle_wait_sec: 2.0  # Replan only after persistent failure to enter <=0.06m.
-    dock_forward_step_enabled: true  # Enabled; MOVE still requires measured/reviewed braking profile.
-    forward_step_profile_file: ''  # Supply the real measured profile; never guessed pulse times.
+    dock_forward_step_enabled: true  # User-approved estimated trial; real stop checks remain.
+    forward_step_profile_file: 'forward_step_estimated_trial.json'
+    dock_allow_estimated_forward_profile: true  # Explicit user request; not measured calibration.
     dock_forward_deadzone_guard: true
     dock_forward_effective_speed: 0.20  # User confirmed .15 ineffective, .20 stable.
     dock_motion_window_sec: 0.5

@@ -163,3 +163,39 @@ def test_response_final_output_decoder_is_readonly_and_rejects_bad_values():
     assert sport_output_sample(101, '', 2.) is None
     with pytest.raises(ValueError):
         sport_output_sample(1008, '{"x":NaN,"y":0,"z":0}', 1.)
+
+
+def test_estimated_trial_requires_opt_in_and_cannot_claim_calibration(tmp_path):
+    from pathlib import Path
+    source = Path(__file__).parents[1]/'config/forward_step_estimated_trial.json'
+    with pytest.raises(ValueError):
+        load_forward_profile(source)
+    data = load_forward_profile(source, allow_estimated=True)
+    assert not data['reviewed'] and not data['physical_motion_confirmed']
+    c = dock_core()
+    c.p.braking_latency = .30
+    f = ForwardStep(data)
+    state = f.report(c)
+    assert state['profile_available'] and not state['calibration_ready']
+    data['stop_distance_m'] = .01
+    path = tmp_path/'unsafe_estimate.json';path.write_text(json.dumps(data))
+    with pytest.raises(ValueError):
+        load_forward_profile(path, allow_estimated=True)
+
+
+def test_estimated_trial_can_request_step_without_weakening_braking_envelope():
+    from pathlib import Path
+    source = Path(__file__).parents[1]/'config/forward_step_estimated_trial.json'
+    data = load_forward_profile(source, allow_estimated=True)
+    c = dock_core();c.p.braking_latency=.30
+    c.docking = GraspDocking(DockSettings(position_tolerance=.06, settle_exit_tolerance=.08,
+        forward_step_enabled=True, forward_deadzone_guard=True, forward_effective_speed=.20),
+        forward_profile=data)
+    assert c.docking.forward.request(c,10.5,.13,0.,.10,0.,True)==.20
+    assert .01 <= c.docking.forward.planned <= .02
+    c = dock_core();c.p.braking_latency=.30
+    c.docking = GraspDocking(DockSettings(position_tolerance=.06, settle_exit_tolerance=.08,
+        forward_step_enabled=True, forward_deadzone_guard=True, forward_effective_speed=.20),
+        forward_profile=data)
+    assert c.docking.forward.request(c,10.5,.07,0.,.10,0.,True)==0.
+    assert c.state=='FAULT' and 'outside measured step envelope' in c.reason

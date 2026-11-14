@@ -35,6 +35,7 @@ class DockSettings:
     stable_window_sec: float = 0.0
     settle_exit_confirm_sec: float = 0.0
     visual_loss_stop_sec: float = 0.0
+    allow_estimated_forward_profile: bool = False
     forward_deadzone_guard: bool = False
     forward_effective_speed: float = 0.20  # Positive vx only, never a global floor.
     forward_step_enabled: bool = False  # Needs a reviewed response measurement first.

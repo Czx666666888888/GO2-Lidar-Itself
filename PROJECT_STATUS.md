@@ -1,5 +1,33 @@
 # Project Status
 
+## 2026-11-14 用户要求估算短步直接接入full（取消继续独立标定）
+
+用户明确表示不追求精细标定、以微调后趴下为主要目标，随后要求“不测试了直接接入完整流程”。
+按最新要求，不再以完整实测profile作为软件启动前提；不再安排本轮额外运动或标定试验。
+已生成并安装config/forward_step_estimated_trial.json，类型estimated_trial，
+reviewed=false、physical_motion_confirmed=false；不是已完成标定，不伪造审核/实测标志。
+
+估算参数：正向参考0.20m/s（已观察实际出口达到），原模型减速度0.30m/s²、延迟0.30s，
+模型停车距离0.20²/(2*0.30)+0.20*0.30≈0.1267m，文件向上取0.127m；
+测得位移触发步长1～2cm，保留2cm不确定余量，MOVE/SETTLE各3秒为安全看门狗，
+不是按速度乘时间确定运动量，不是持续0.20达3秒的固定脉冲。
+该模型不是制动距离的实测保证。很近的误差如果原制动包络容纳不下，仍会明确停止，
+没有为了实现趴下而删除包络、扩大6cm终验或强行制造成功。
+
+左右dock配置均显式dock_allow_estimated_forward_profile=true并指定估算文件，
+普通full已使用同一dock overlay，无需新脚本或额外CLI选择。估算加载须显式opt-in，
+测量profile仍保留原物理审核/证据hash检查；日志区分profile_available=true、
+calibration_ready=false、profile_kind=estimated_trial。
+复用原ForwardStep MOVE/SETTLE、真实位置增量、唯一速度出口与加减速限制。
+仍需<=6cm、<=10度、实际停稳0.5秒及控制权交接，随后执行原StandDown/S1/StandUp。
+SEARCH、vy/wz计算、底层定位/识别/时间映射、S1轨迹/协议不改。
+
+用户停止测试指令前已完成35项针对性检查与单包构建；之后仅核对安装配置/源码字节一致、
+估算文件可由full的实际参数加载、更新构建指纹及文档，没有新增实机动作。
+本轮接入已完成；估算参数下的独立dock/full物理效果NOT VERIFIED，用户选择直接用原full入口。
+唯一完整入口仍为bash go2_test.sh --execute --mode full，未由助手执行。
+
+
 ## 2026-11-14 第2步一次受控测量结果（20:39:29）
 
 本轮实际前向运动仅一次：run_1794659964588482850、full_1794659950602237662，代码af89596。

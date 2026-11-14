@@ -1,26 +1,35 @@
-"""Measured positive-vx steps; no device access or assumed speed*time displacement."""
+"""Positive-vx steps with explicit measured/estimated evidence; no device access."""
 import hashlib
 import json
 import math
 from pathlib import Path
 
 
-def load_forward_profile(path):
-    """Only accept an explicitly reviewed response measurement, never a guess."""
+def load_forward_profile(path, *, allow_estimated=False):
+    """Keep operator-enabled estimates distinct from physically reviewed measurements."""
     data = json.loads(Path(path).read_text())
     required = ('speed_mps', 'stop_distance_m', 'min_step_m', 'max_step_m',
                 'max_on_sec', 'settle_timeout_sec', 'max_acceleration',
                 'max_deceleration', 'braking_latency', 'uncertainty_m')
-    if data.get('reviewed') is not True or data.get('physical_motion_confirmed') is not True:
+    estimated = data.get('profile_kind') == 'estimated_trial'
+    if estimated:
+        if not allow_estimated or data.get('reviewed') is not False or data.get('physical_motion_confirmed') is not False:
+            raise ValueError('Estimated forward profile requires explicit opt-in and unverified labels')
+    elif data.get('reviewed') is not True or data.get('physical_motion_confirmed') is not True:
         raise ValueError('Forward response profile needs physical review')
     if not all(math.isfinite(data[k]) and data[k] > 0 for k in required):
         raise ValueError('Forward response measurements must be finite and positive')
     if not (.14 <= data['speed_mps'] <= .30 and
             data['min_step_m'] <= data['max_step_m'] < .15):
         raise ValueError('Invalid measured forward step envelope')
-    source = Path(data['source_log'])
-    if hashlib.sha256(source.read_bytes()).hexdigest() != data['source_sha256']:
-        raise ValueError('Forward response evidence hash mismatch')
+    if estimated:
+        model = data['speed_mps']**2/(2*data['max_deceleration'])+data['speed_mps']*data['braking_latency']
+        if data['stop_distance_m'] < model or data['uncertainty_m'] < .02 or data['max_step_m'] > .02:
+            raise ValueError('Estimated trial must retain model braking, 2cm uncertainty and <=2cm trigger')
+    else:
+        source = Path(data['source_log'])
+        if hashlib.sha256(source.read_bytes()).hexdigest() != data['source_sha256']:
+            raise ValueError('Forward response evidence hash mismatch')
     return data
 
 
@@ -121,13 +130,18 @@ class ForwardStep:
         self.phase, self.planned = 'MOVE', planned
         self.count += 1
         self.event('FORWARD_STEP_START', now, planned_travel_m=planned,
-                   remaining_forward_m=ex, reference_vx=p['speed_mps'])
+                   remaining_forward_m=ex, reference_vx=p['speed_mps'],
+                   profile_kind=p.get('profile_kind', 'measured'))
         return p['speed_mps']
 
     def report(self, core):
         result = dict(phase=self.phase, count=self.count, planned_travel_m=self.planned,
                       measured_travel_m=self.travel(core), last_result=self.last_result,
-                      calibration_ready=self.profile is not None, events=self.events)
+                      calibration_ready=(self.profile is not None and
+                          self.profile.get('profile_kind') != 'estimated_trial'),
+                      profile_available=self.profile is not None,
+                      profile_kind=self.profile.get('profile_kind', 'measured') if self.profile else None,
+                      events=self.events)
         self.events = []
         return result
 

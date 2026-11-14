@@ -49,7 +49,15 @@ class ScienceTargetApproach(Node):
         self.grasp_docking_enabled = self.get_parameter('grasp_docking_enabled').value
         from .forward_step import load_forward_profile
         profile_path = self.get_parameter('forward_step_profile_file').value
-        forward_profile = load_forward_profile(profile_path) if profile_path else None
+        if profile_path and not Path(profile_path).is_file():
+            from ament_index_python.packages import get_package_share_directory
+            profile_path = str(Path(get_package_share_directory('go2_science_perception'))/
+                               'config'/Path(profile_path).name)
+        forward_profile = load_forward_profile(profile_path, allow_estimated=
+            self.get_parameter('dock_allow_estimated_forward_profile').value) if profile_path else None
+        if forward_profile and forward_profile.get('profile_kind') == 'estimated_trial':
+            self.get_logger().warning('Using user-approved model estimates for forward trial; '
+                                      'NOT a measured calibration')
         docking = GraspDocking(DockSettings(**{
             f.name: self.get_parameter('dock_' + f.name).value for f in fields(DockSettings())
         }), forward_profile=forward_profile) if self.grasp_docking_enabled else None

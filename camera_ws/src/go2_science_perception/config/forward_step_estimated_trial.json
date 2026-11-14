@@ -1,0 +1,16 @@
+{
+  "profile_kind": "estimated_trial",
+  "reviewed": false,
+  "physical_motion_confirmed": false,
+  "source_basis": "User requests rough trial; original braking model, NOT measured stopping distance",
+  "speed_mps": 0.2,
+  "stop_distance_m": 0.127,
+  "min_step_m": 0.01,
+  "max_step_m": 0.02,
+  "max_on_sec": 3.0,
+  "settle_timeout_sec": 3.0,
+  "max_acceleration": 0.15,
+  "max_deceleration": 0.3,
+  "braking_latency": 0.3,
+  "uncertainty_m": 0.02
+}
