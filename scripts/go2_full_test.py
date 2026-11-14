@@ -162,6 +162,10 @@ def require_clean_checkout(work):
         raise RuntimeError('集成目录有未提交改动，保留现场并停止: '+str(work)+' '+entry)
 
 
+class ClockOffsetError(RuntimeError):
+    """Clock skew with a usable transport; eligible for the existing sync path."""
+
+
 def verify_clock(argv):
     """Measure live exchanges after SSH authentication, using the same connection."""
     process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -186,8 +190,10 @@ def verify_clock(argv):
             end = time.time()
             rtt, offset = end-start, stamp-(start+end)/2
             print(f'CLOCK_CHECK rtt={rtt:.6f}s offset={offset:+.6f}s', flush=True)
-            if rtt > 0.2 or abs(offset) > 0.05:
-                raise RuntimeError('对时偏差/SSH往返过大，停止；重新检查网络和时钟')
+            if rtt > 0.2:
+                raise RuntimeError('SSH往返过大，停止；重新检查网络和时钟')
+            if abs(offset) > 0.05:
+                raise ClockOffsetError('对时偏差超过50ms，停止；需要恢复伴随主机时钟')
     finally:
         process.stdin.close()
         try:

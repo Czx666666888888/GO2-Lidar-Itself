@@ -60,9 +60,31 @@ def main(argv=None):
         run(args, model, python)
 
 
+def prepare_remote_camera_clock(ssh, host):
+    """Repair a rebooted companion clock only before a camera owner exists."""
+    from go2_full_test import CLOCK_RESPONDER, ClockOffsetError, verify_clock
+    present = subprocess.run([*ssh, host, "pgrep -f '[r]ealsense2_camera_node'"],
+                             capture_output=True, timeout=10)
+    if present.returncode not in (0, 1):
+        raise RuntimeError('Remote camera inventory failed; no clock change or camera restart')
+    camera_running = present.returncode == 0
+    command = [*ssh, host, shlex.join(['/usr/bin/python3', '-u', '-c', CLOCK_RESPONDER])]
+    try:
+        verify_clock(command)
+    except ClockOffsetError:
+        if camera_running:
+            raise RuntimeError('远端相机正在运行且时钟失配；保留会话，先按原流程停止相机/定位再对时')
+        print('伴随主机时钟失配且没有相机所有者；调用原对时脚本。'
+              '请在本终端输入GO2 sudo密码，对时后重新检查50ms阈值。', flush=True)
+        subprocess.run(['/usr/bin/python3', str(ROOT/'camera_ws/scripts/sync_go2_clock.py')],
+                       check=True)
+        verify_clock(command)  # Never start perception or motion on sync exit alone.
+    return camera_running
+
+
 def run(args, model, python):
     # Import only transport helpers. Never construct the S1/full Workflow.
-    from go2_full_test import SSH, HOST, KEY, CAMERA_OWNER, CLOCK_RESPONDER, verify_clock, require_clean_checkout
+    from go2_full_test import SSH, HOST, KEY, CAMERA_OWNER, require_clean_checkout
     require_clean_checkout(ROOT)
     folder = ROOT/'camera_ws/records'/('color_block_'+str(time.time_ns()))
     folder.mkdir(parents=True)
@@ -128,17 +150,14 @@ n.destroy_node();rclpy.shutdown()
 """
         subprocess.run(shell(['/usr/bin/python3','-c',probe]), check=True)
         if not args.local_camera:
-            verify_clock([*SSH,HOST,shlex.join(['/usr/bin/python3','-u','-c',CLOCK_RESPONDER])])
-            present = subprocess.run([*SSH,HOST,"pgrep -f '[r]ealsense2_camera_node'"], capture_output=True)
-            if present.returncode == 1:
+            camera_running = prepare_remote_camera_clock(SSH, HOST)
+            if not camera_running:
                 remote_dir = '/home/unitree/go2_color_block_'+folder.name
                 subprocess.run([*SSH,HOST,'mkdir -p '+shlex.quote(remote_dir)],check=True)
                 script = ROOT/'camera_ws/scripts/launch_go2_d435_foxy.sh'
                 subprocess.run(['scp','-i',KEY,str(script),HOST+':'+remote_dir+'/'],check=True)
                 spawn([*SSH,HOST,shlex.join(['/usr/bin/python3','-c',CAMERA_OWNER,
                       remote_dir+'/'+script.name])], 'camera', direct=True, stdin=subprocess.PIPE)
-            elif present.returncode != 0:
-                raise RuntimeError('Remote camera inventory failed; no automatic restart')
         spawn(['ros2','launch','go2_science_perception','d435_slam_target_validation.launch.py',
                'remote_camera:='+str(not args.local_camera).lower(),'use_rviz:=false',
                'detector:='+args.detector,'yolo_model:='+str(model),'yolo_python:='+str(python)], 'perception_map')
