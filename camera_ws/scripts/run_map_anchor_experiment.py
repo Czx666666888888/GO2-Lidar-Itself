@@ -171,7 +171,8 @@ class Experiment:
             *(['-p', f'max_run_time:={self.args.timeout}']
               if not getattr(self.args, 'grasp_pose', False) else []),
             '-p', f'log_directory:={self.folder}', *search_params,
-            *(['--params-file', str(share / 'config/science_grasp_docking.yaml')]
+            *(['--params-file', str(share / 'config/science_grasp_docking_left.yaml' if
+                getattr(self.args, 'grasp_side', 'right') == 'left' else 'config/science_grasp_docking.yaml')]
               if getattr(self.args, 'grasp_pose', False) else []),
             *(['-p', 'dock_forward_response_check:=true']
               if getattr(self.args, 'forward_response_check', False) else [])], 'control')
