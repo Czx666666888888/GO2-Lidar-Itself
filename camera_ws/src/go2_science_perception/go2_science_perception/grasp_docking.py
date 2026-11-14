@@ -28,13 +28,6 @@ class GraspDocking:
 
     def begin_response_check(self, core, now):
         self.probe_origin, self.probe_started = core.robot, now
-        if self.p.stable_window_sec > 0:
-            baseline = core.docking_stop_evidence(now)
-            if not baseline['stopped']:
-                core.fault('forward response check requires stable trusted pose baseline')
-                return
-            xy = baseline['body']['position']
-            self.probe_origin = (xy[0], xy[1], core.robot[2])
         core.state = 'APPROACH_TO_GRASP_POSE'
         # This is measured travel from a real pose, not a fabricated visual anchor.
         core.target = core.anchor_initial = None

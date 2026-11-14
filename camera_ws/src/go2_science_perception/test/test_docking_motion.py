@@ -89,3 +89,18 @@ def test_isolated_pose_outlier_does_not_restart_stop_wait_or_claim_success():
     assert out['docking_phase'] == 'STOP_WAIT'
     assert c.docking.stop_wait_started == start
     assert out['state'] != 'STOP'
+
+
+def test_response_start_has_no_extra_pose_baseline_gate():
+    c = dock_core()
+    c.docking = GraspDocking(DockSettings(forward_response_check=True,
+        stable_window_sec=.5, forward_effective_speed=.20))
+    # Fresh original inputs remain; an incomplete extra stability window must
+    # not create a new one-shot startup fault before this measurement test.
+    c.pose_history.clear()
+    c.camera_history.clear()
+    c.docking.begin_response_check(c, 10.5)
+    out = c.step(10.5)
+    assert out['state'] == 'APPROACH_TO_GRASP_POSE'
+    assert 0 < out['vx'] <= .20
+    assert out['vy'] == out['wz'] == 0.
