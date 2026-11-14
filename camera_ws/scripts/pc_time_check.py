@@ -34,8 +34,13 @@ def main():
     parser.add_argument('--clock-diagnostic', action='store_true',
                         help='explicit full 20s online + 20s paused clock sampling')
     parser.add_argument('--forward-response-check', action='store_true')
+    parser.add_argument('--response-distance-limit', type=float, default=.20)
     parser.add_argument('--work-dir', type=Path, help='forward existing integration checkout option')
     args = parser.parse_args()
+    if not .10 <= args.response_distance_limit <= .50:
+        parser.error('response distance limit must be 0.10 to 0.50m')
+    if args.response_distance_limit != .20 and not args.forward_response_check:
+        parser.error('response distance override is for response check only')
     if args.forward_response_check and args.mode != 'dock':
         parser.error('Forward response check requires --mode dock')
     folder = ROOT/'camera_ws/records'/('pc_time_'+str(time.time_ns()))
@@ -79,7 +84,8 @@ def main():
             if args.left_geometry_verified:
                 command.append('--left-geometry-verified')
             if args.forward_response_check:
-                command.append('--forward-response-check')
+                command += ['--forward-response-check', '--response-distance-limit',
+                            str(args.response_distance_limit)]
             if args.work_dir is not None:
                 command += ['--work-dir',str(args.work_dir)]
         else:

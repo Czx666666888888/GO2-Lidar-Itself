@@ -87,7 +87,7 @@ def test_clock_sampling_is_explicit_only(tmp_path,monkeypatch,full):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     monkeypatch.setattr(module,'ROOT',tmp_path)
     monkeypatch.setattr(sys,'argv',['pc_time_check','--execute','--mode','dock']+
-                        (['--clock-diagnostic'] if full else []))
+                        (['--clock-diagnostic'] if full else ['--forward-response-check','--response-distance-limit','0.35']))
     durations=[]
     monkeypatch.setattr(module,'probe',lambda seconds:durations.append(seconds) or {})
     monkeypatch.setattr(module,'run',lambda *a,**k:None)
@@ -96,10 +96,16 @@ def test_clock_sampling_is_explicit_only(tmp_path,monkeypatch,full):
         code=next(active) if argv[:2]==['systemctl','is-active'] else 0
         return SimpleNamespace(returncode=code,stdout='')
     monkeypatch.setattr(module.subprocess,'run',run)
-    monkeypatch.setattr(module.subprocess,'Popen',lambda *a,**k:SimpleNamespace(poll=lambda:0,wait=lambda:0))
+    launched=[]
+    def launch(argv,**kw):
+        launched.append(argv)
+        return SimpleNamespace(poll=lambda:0,wait=lambda:0)
+    monkeypatch.setattr(module.subprocess,'Popen',launch)
     with pytest.raises(SystemExit) as exc:module.main()
     assert exc.value.code==0
     assert durations==([20,20] if full else [])
+    if not full:
+        assert launched[0][-2:]==['--response-distance-limit','0.35']
 
 
 def test_readonly_startup_never_enables_or_starts_devices(tmp_path,monkeypatch):
