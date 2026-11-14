@@ -700,7 +700,15 @@ class ApproachControl:
                     safe = math.sqrt((a * latency) ** 2 + 2 * a * clearance) - a * latency
                     desired = min(self.p.max_linear_speed, self.p.kp_linear * remaining, safe)
                     if abs(error) > self.p.align_yaw_threshold:
-                        desired = 0.0
+                        # Far from target or large yaw deviation (>60°): stop and align.
+                        # Near target with small-ish deviation: allow a creep so position
+                        # and heading converge together instead of oscillating in place.
+                        _near = remaining <= 4 * self.p.distance_tolerance
+                        _hard = abs(error) > math.pi / 3
+                        if _hard or not _near:
+                            desired = 0.0
+                        else:
+                            desired = min(desired, 0.03)  # 3 cm/s creep + wz correction
                     if brake >= clearance:
                         desired = min(desired, max(0.0, speed - a * dt))
                     self.vx = min(desired, self.vx + self.p.max_acceleration * dt)
