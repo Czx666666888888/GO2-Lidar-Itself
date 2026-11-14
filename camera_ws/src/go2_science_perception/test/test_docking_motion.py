@@ -205,3 +205,51 @@ def test_map_docking_can_finish_with_old_visual_only_after_actual_settling():
         assert out['vx'] == out['vy'] == out['wz'] == 0.
     assert out['state'] == 'STOP'
     assert out['grasp_docking_complete']
+
+
+def lateral_only_core(error):
+    c = dock_core(error)
+    c.docking = GraspDocking(DockSettings(position_tolerance=.08,
+        settle_exit_tolerance=.10, fine_forward_correction_enabled=False))
+    return c
+
+
+@pytest.mark.parametrize('error', [(.12, .03), (-.12, .03)])
+def test_lateral_only_disables_forward_and_reverse_but_keeps_lateral(error):
+    c = lateral_only_core(error)
+    out = c.step(10.5)
+    assert out['vx'] == pytest.approx(0., abs=1e-12)
+    assert out['vy'] > 0.
+    assert out['forward_step']['count'] == 0
+
+
+def test_lateral_only_brakes_existing_speed_and_never_restarts_on_drift():
+    c = lateral_only_core((.12, 0.))
+    c.docking.velocity_map = (.2, 0.)
+    old = .2
+    x, y, _ = c.robot
+    for i in range(12):
+        t = 10.501+i*.1
+        # First enter 12cm; later drift back beyond 15cm must not restart vx.
+        pos = (x, y) if i == 0 else (x-.04, y)
+        tick(c, t, pos)
+        out = c.step(t)
+        assert out['state'] != 'FAULT'
+        assert -1e-12 <= out['vx'] <= old+1e-12
+        assert old-out['vx'] <= c.p.max_deceleration*.101+1e-9
+        old = out['vx']
+    assert out['vx'] == pytest.approx(0., abs=1e-12)
+    assert c.docking.lateral_only
+
+
+def test_eight_cm_acceptance_still_requires_quiet_and_rejects_outside():
+    c = lateral_only_core((.075, 0.))
+    for i in range(8):
+        t = 10.501+i*.1
+        tick(c, t, c.robot[:2])
+        out = c.step(t)
+    assert out['state'] == 'STOP'
+    c = lateral_only_core((.085, 0.))
+    out = c.step(10.5)
+    assert out['state'] != 'STOP'
+    assert out['vx'] == pytest.approx(0., abs=1e-12)

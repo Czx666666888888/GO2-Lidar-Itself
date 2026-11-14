@@ -19,6 +19,7 @@ class GraspDocking:
         self.stop_wait_started = None
         self.exit_candidate_since = None
         self.visual_settle_started = None
+        self.lateral_only = False
         self.velocity_map = (0.0, 0.0)
         self.progress_at = None
         self.best_error = math.inf
@@ -140,6 +141,8 @@ class GraspDocking:
             core.vx = core.vy = 0.0
             return out
         distance, yaw_error = report['position_error_m'], report['yaw_error_rad']
+        if distance <= self.p.fine_distance and not self.p.fine_forward_correction_enabled:
+            self.lateral_only = True
         position_ok = distance <= self.p.position_tolerance+1e-12
         yaw_ok = abs(yaw_error) <= self.p.yaw_tolerance+1e-12
         if now-core.visual_time > core.p.visual_timeout:
@@ -271,6 +274,9 @@ class GraspDocking:
         self.stationary_since = None
         desired = 0.0
         fine = distance <= self.p.fine_distance
+        # Latch until the task resets: pose noise must not restart fore/aft
+        # motion after entering the lateral-only final approach.
+        fine = fine or self.lateral_only
         if not position_ok:
             a, latency = core.p.max_deceleration, core.p.braking_latency
             clearance = max(0.0, distance-self.p.position_tolerance/2)
@@ -286,8 +292,13 @@ class GraspDocking:
         # Kx=Ky=kp_linear. Map-frame slew limiting also accounts for rotation of
         # the body axes between ticks; both acceleration and braking are vector bounds.
         target_map = (desired*dx/distance, desired*dy/distance) if distance else (0.0, 0.0)
+        if self.lateral_only:
+            _, body_vy = rotate_xy(-core.robot[2], target_map)
+            target_map = rotate_xy(core.robot[2], (0., body_vy))
+            self.forward.reset()
+            out['docking_longitudinal_policy'] = 'brake_then_lateral_only'
         forward_override = None
-        if fine and self.p.forward_deadzone_guard:
+        if fine and self.p.forward_deadzone_guard and not self.lateral_only:
             body_vx, body_vy = rotate_xy(-core.robot[2], target_map)
             if 0 < body_vx < self.p.forward_effective_speed:
                 if ex > self.p.position_tolerance and yaw_ok and abs(ey) < self.p.position_tolerance:
@@ -300,7 +311,8 @@ class GraspDocking:
                     # lateral/yaw calculation instead of requesting ineffective vx.
                     target_map = rotate_xy(core.robot[2], (0., body_vy))
                     out['forward_deadzone_action'] = 'zero_unnecessary_positive_vx'
-        if (fine or self.forward.phase != 'IDLE') and self.p.forward_step_enabled:
+        if ((fine or self.forward.phase != 'IDLE') and self.p.forward_step_enabled
+                and not self.lateral_only):
             body_vx, body_vy = rotate_xy(-core.robot[2], target_map)
             forward_override = self.forward.request(
                 core, now, ex, ey, body_vx, body_vy, yaw_ok)

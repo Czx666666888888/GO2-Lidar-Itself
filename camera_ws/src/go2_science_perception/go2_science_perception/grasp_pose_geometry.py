@@ -26,6 +26,7 @@ class DockSettings:
     settled_sec: float = 0.5
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     fine_distance: float = 0.15
+    fine_forward_correction_enabled: bool = True
     fine_min_linear_speed: float = 0.0
     fine_max_linear_speed: float = 0.08
     settle_exit_tolerance: float = 0.06
