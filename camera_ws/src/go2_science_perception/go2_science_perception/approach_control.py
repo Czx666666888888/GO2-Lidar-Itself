@@ -136,6 +136,7 @@ class ApproachControl:
         self.search_started = self.first_seen = self.confirmed_at = None
         self.confirmation_spread = self.confirmation_count = None
         self.first_seen_stamp_ns = None
+        self.sport_output = None  # Read-only observation of the unique final velocity outlet.
         self.feedback_speed = self.feedback_yaw_rate = math.inf
         self.pose_yaw_rate = 0.0
         self.yaw_history = deque()

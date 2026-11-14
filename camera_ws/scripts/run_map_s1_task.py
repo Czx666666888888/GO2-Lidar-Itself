@@ -27,6 +27,7 @@ def parser():
     p.add_argument('--grasp-side', choices=('right','left'), default='right')
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
+    p.add_argument('--response-distance-limit', type=float, default=.20)
     p.add_argument('--forward-response-check', action='store_true',
                    help='one bounded configured-speed forward response check; no posture or grasp')
     p.add_argument('--docking-geometry-verified', action='store_true',
@@ -62,6 +63,10 @@ def main():
     args = p.parse_args()
     if args.full and args.grasp_side == 'left' and not args.left_geometry_verified:
         p.error('Left full grasp requires a verified left dock/support geometry; test dock first')
+    if not .10 <= args.response_distance_limit <= .50:
+        p.error('response distance limit must be 0.10 to 0.50m')
+    if args.response_distance_limit != .20 and not args.forward_response_check:
+        p.error('response distance override is for response check only')
     if args.forward_response_check and args.full:
         p.error('Forward response check forbids full posture/grasp')
     if args.posture_profile is not None:

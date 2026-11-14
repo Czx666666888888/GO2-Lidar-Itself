@@ -38,6 +38,8 @@ class DockSettings:
     forward_deadzone_guard: bool = False
     forward_effective_speed: float = 0.20  # Positive vx only, never a global floor.
     forward_step_enabled: bool = False  # Needs a reviewed response measurement first.
+    forward_response_max_distance: float = 0.20  # Diagnostic only; explicit override required.
+    forward_response_require_speed: bool = True
     forward_response_check: bool = False  # Explicit diagnostic, never a grasp goal.
     progress_timeout: float = 10.0  # Accepted for old configs; no longer stops docking.
     region_x_min: float = -0.05
@@ -61,6 +63,8 @@ class DockSettings:
                 self.settle_exit_confirm_sec, self.visual_loss_stop_sec) < 0 or
                 self.motion_noise_m <= 0 or not .14 <= self.forward_effective_speed <= .30):
             raise ValueError('Invalid dock motion evidence settings')
+        if not .10 <= self.forward_response_max_distance <= .50:
+            raise ValueError('Response-check distance limit must be 0.10 to 0.50m')
         # Dock clearance can exceed the original grasp reference region.
         # Keep that region unchanged so reachability diagnostics remain honest.
         if not (self.region_x_min <= self.region_x_max and

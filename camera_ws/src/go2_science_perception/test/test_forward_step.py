@@ -84,7 +84,8 @@ def test_mismatched_braking_and_no_progress_fail_closed():
 
 def test_response_check_ramps_then_stops_on_actual_pose_without_grasp_success():
     c = dock_core()
-    c.docking = GraspDocking(DockSettings(forward_response_check=True))
+    c.docking = GraspDocking(DockSettings(forward_response_check=True,
+                                          forward_response_require_speed=False))
     c.docking.begin_response_check(c, 10.5)
     origin = c.robot
     previous = 0.
@@ -108,7 +109,8 @@ def test_response_check_ramps_then_stops_on_actual_pose_without_grasp_success():
 @pytest.mark.parametrize('kind', ['timeout', 'cross', 'yaw', 'stale'])
 def test_response_check_keeps_bounds_and_freshness(kind):
     c = dock_core()
-    c.docking = GraspDocking(DockSettings(forward_response_check=True))
+    c.docking = GraspDocking(DockSettings(forward_response_check=True,
+                                          forward_response_require_speed=False))
     c.docking.begin_response_check(c, 10.5)
     t = 18.6 if kind == 'timeout' else 10.6
     c.last_tick = t-.1
@@ -119,3 +121,45 @@ def test_response_check_keeps_bounds_and_freshness(kind):
     out = c.step(t)
     assert out['state'] == 'FAULT'
     assert out['vx'] == out['vy'] == out['wz'] == 0.
+
+
+def test_response_separates_reference_reached_request_zero_and_outlet_zero():
+    c = dock_core()
+    c.docking = GraspDocking(DockSettings(forward_response_check=True,
+        forward_response_max_distance=.35, forward_effective_speed=.20))
+    c.docking.begin_response_check(c, 10.5)
+    origin = c.robot
+    # An apparent early 2cm displacement cannot label a .20m/s test complete.
+    tick(c, 10.6, (origin[0]+.025, origin[1]))
+    out = c.step(10.6)
+    assert out['response_check']['zero_requested'] is None
+    for i in range(1, 15):
+        t = 10.6+i*.1
+        tick(c, t, (origin[0]+.025, origin[1]))
+        c.sport_output = dict(received_monotonic=t, vx=min(.20,i*.015), vy=0., wz=0.)
+        out = c.step(t)
+    assert out['response_check']['outlet_speed_reached'] is not None
+    tick(c, 12.1, (origin[0]+.046, origin[1]))
+    out = c.step(12.1)
+    zero = out['response_check']['zero_requested']
+    assert zero == pytest.approx(12.1)
+    assert out['vx'] == 0.
+    assert out['response_check']['outlet_zero'] is None
+    tick(c, 12.2, (origin[0]+.055, origin[1]))
+    c.sport_output = dict(received_monotonic=12.2, vx=.10, vy=0., wz=0.)
+    assert c.step(12.2)['response_check']['outlet_zero'] is None
+    tick(c, 12.3, (origin[0]+.06, origin[1]))
+    c.sport_output = dict(received_monotonic=12.3, vx=0., vy=0., wz=0.)
+    result = c.step(12.3)['response_check']
+    assert result['outlet_zero']['monotonic'] > zero
+    assert result['stop_extra_m'] == pytest.approx(.014)
+    assert not result['calibration_accepted']
+
+
+def test_response_final_output_decoder_is_readonly_and_rejects_bad_values():
+    from go2_science_perception.forward_step import sport_output_sample
+    assert sport_output_sample(1008, '{"x":0.2,"y":0,"z":0}', 1.)['vx'] == .2
+    assert sport_output_sample(1003, '', 2.)['vx'] == 0.
+    assert sport_output_sample(101, '', 2.) is None
+    with pytest.raises(ValueError):
+        sport_output_sample(1008, '{"x":NaN,"y":0,"z":0}', 1.)

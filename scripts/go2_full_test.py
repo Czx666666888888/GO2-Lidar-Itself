@@ -657,7 +657,8 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
                    '--grasp-side', self.args.grasp_side, '--search-distance', '5', '--search-timeout', '60']
         if getattr(self.args, 'forward_response_check', False):
-            command.append('--forward-response-check')
+            command += ['--forward-response-check', '--response-distance-limit',
+                        str(getattr(self.args, 'response_distance_limit', .20))]
         if not (os.environ.get('DISPLAY') and shutil.which('gnome-terminal')):
             command.append('--no-log-terminal')
         if self.args.mode == 'full':
@@ -711,6 +712,7 @@ def main():
     parser.add_argument('--mode', choices=['full', 'dock'], default='full')
     parser.add_argument('--grasp-side', choices=['right','left'], default='right')
     parser.add_argument('--forward-response-check', action='store_true')
+    parser.add_argument('--response-distance-limit', type=float, default=.20)
     parser.add_argument('--work-dir', type=Path, default=Path('/tmp/go2_onekey_s1'))
     parser.add_argument('--probe', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--left-geometry-verified', action='store_true',
@@ -722,14 +724,18 @@ def main():
         raise RuntimeError('左侧完整抓取需先验证导航停靠及支撑外参；先运行左侧dock测试')
     if args.forward_response_check and args.mode != 'dock':
         parser.error('--forward-response-check requires --mode dock, never full')
+    if not .10 <= args.response_distance_limit <= .50:
+        parser.error('response distance limit must be 0.10 to 0.50m')
+    if args.response_distance_limit != .20 and not args.forward_response_check:
+        parser.error('response distance override is for --forward-response-check only')
     if args.probe:
         ros_probe()
         return
     if not args.execute and not args.startup_check:
         if args.forward_response_check:
             print('离线计划：复用现有S1保持和传感器预检；同一控制器/安全门正向缓升至配置参考速度（当前0.20m/s），'
-                  'Point-LIO测得2cm前移后请求零速，记录制动位移并确认停稳。'
-                  '20cm路径/8秒为故障上限，不是预设脉冲持续时间。无SEARCH/趴下/抓取。')
+                  '确认最终出口达到参考速度后，原始位姿再前移2cm即请求零速，记录出口归零与停稳。'
+                  f'本次路径保护{args.response_distance_limit:.2f}m/8秒，不是预设脉冲时间。无SEARCH/趴下/抓取。')
             return
         print('离线计划（未连接硬件、未写文件）：\n'
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '

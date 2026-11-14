@@ -18,6 +18,7 @@ from std_msgs.msg import Empty, Int8, Int32, String
 from tf2_geometry_msgs import do_transform_pose
 from tf2_ros import Buffer, TransformException, TransformListener
 from unitree_go.msg import SportModeState
+from unitree_api.msg import Request
 
 from .approach_control import ApproachControl, Settings
 from .grasp_pose_geometry import DockSettings
@@ -61,6 +62,7 @@ class ScienceTargetApproach(Node):
         self.recording_at = -math.inf
         self.recording_info = {}
         self.sport_velocity = None
+        self.gate_output_gid = None
         self.map_measurements = deque(maxlen=128)
         self.sport_state_info = {}
         log_dir = self.get_parameter('log_directory').value
@@ -97,6 +99,8 @@ class ScienceTargetApproach(Node):
                                  qos_profile_sensor_data)
         self.create_subscription(SportModeState, '/lf/sportmodestate', self._feedback,
                                  qos_profile_sensor_data)
+        if docking and docking.p.forward_response_check:
+            self.create_subscription(Request, '/api/sport/request', self._sport_output, 100)
         self.create_subscription(Empty, '/science/approach/start', self._start, 1)
         self.create_subscription(String, '/science/approach/recording', self._recording, 10)
         self.create_subscription(Empty, '/science/approach/confirm', self._confirm, 1)
@@ -243,6 +247,28 @@ class ScienceTargetApproach(Node):
             self.last_stamp = stamp
         except (ValueError, TransformException) as exc:
             self.core.fault(f'localization/TF: {exc}')
+
+    def _sport_output(self, msg, info):
+        """Observe/log final requests without adding any velocity publisher."""
+        from .forward_step import sport_output_sample
+        if self.gate_output_gid is None:
+            endpoints = self.get_publishers_info_by_topic('/api/sport/request')
+            matches = [bytes(e.endpoint_gid) for e in endpoints
+                       if e.node_name == 'go2_safety_gate']
+            if len(matches) != 1:
+                return
+            self.gate_output_gid = matches[0]
+        if bytes(info.publisher_gid) != self.gate_output_gid:
+            return
+        try:
+            sample = sport_output_sample(msg.header.identity.api_id, msg.parameter,
+                                         time.monotonic())
+        except (ValueError, TypeError, KeyError):
+            return
+        if sample is not None:
+            sample['request_id'] = int(msg.header.identity.id)
+            self.core.sport_output = sample
+            self.log_file.write(json.dumps(dict(event='SPORT_OUTPUT_OBSERVED', **sample))+'\n')
 
     def _feedback(self, msg):
         self.core.feedback_time = time.monotonic()

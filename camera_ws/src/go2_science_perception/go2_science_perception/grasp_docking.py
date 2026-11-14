@@ -25,6 +25,9 @@ class GraspDocking:
         self.probe_started = self.probe_zero = self.probe_stopped = None
         self.probe_zero_travel = None
         self.probe_result = {}
+        self.probe_speed_at = self.probe_speed_origin = None
+        self.probe_gate_zero = None
+        self.probe_peak_request = self.probe_peak_outlet = 0.
 
     def begin_response_check(self, core, now):
         self.probe_origin, self.probe_started = core.robot, now
@@ -40,24 +43,47 @@ class GraspDocking:
                        control_reference='FORWARD_RESPONSE_CHECK')
             return out
         x, y, yaw = self.probe_origin
-        measured_xy = core.robot[:2]
+        raw_travel, raw_cross = rotate_xy(-yaw, (core.robot[0]-x, core.robot[1]-y))
+        window_travel = None
         if self.p.stable_window_sec > 0:
             window = window_stats(core.pose_history, self.p.stable_window_sec,
                                   self.p.motion_noise_m)
             if window['ready']:
-                measured_xy = window['position']
-        travel, cross = rotate_xy(-yaw, (measured_xy[0]-x, measured_xy[1]-y))
+                window_travel = rotate_xy(-yaw, (window['position'][0]-x,
+                                                 window['position'][1]-y))[0]
+        outlet = getattr(core, 'sport_output', None)
+        if outlet and outlet['received_monotonic'] >= self.probe_started:
+            self.probe_peak_outlet = max(self.probe_peak_outlet, outlet['vx'])
+            if (self.probe_speed_at is None and
+                    outlet['vx'] >= self.p.forward_effective_speed-1e-4 and
+                    abs(outlet['vy']) <= .01 and abs(outlet['wz']) <= .01):
+                self.probe_speed_at, self.probe_speed_origin = now, core.robot
+            if (self.probe_zero is not None and self.probe_gate_zero is None and
+                    outlet['received_monotonic'] >= self.probe_zero and
+                    max(abs(outlet[k]) for k in ('vx', 'vy', 'wz')) < 1e-6):
+                self.probe_gate_zero = dict(monotonic=outlet['received_monotonic'],
+                                            raw_travel_m=raw_travel)
         yaw_delta = math.atan2(math.sin(core.robot[2]-yaw), math.cos(core.robot[2]-yaw))
-        if (abs(cross) > .03 or abs(yaw_delta) > math.radians(3) or
-                math.dist(core.robot[:2], self.probe_origin[:2]) > .20):
-            core.fault('forward response check path/heading boundary')
+        boundary = ('cross_track' if abs(raw_cross) > .03 else
+                    'heading' if abs(yaw_delta) > math.radians(3) else
+                    'raw_displacement' if math.dist(core.robot[:2], self.probe_origin[:2]) >
+                    self.p.forward_response_max_distance else None)
+        if boundary:
+            core.fault('forward response check boundary: '+boundary)
         if now-self.probe_started > 8.:
             core.fault('forward response check watchdog')
-        if self.probe_zero is None and (travel >= .02 or core.state == 'FAULT'):
-            self.probe_zero, self.probe_zero_travel = now, travel
+        speed_ready = self.probe_speed_at is not None or not self.p.forward_response_require_speed
+        after_speed = (rotate_xy(-yaw, (core.robot[0]-self.probe_speed_origin[0],
+                                       core.robot[1]-self.probe_speed_origin[1]))[0]
+                       if self.probe_speed_origin is not None else raw_travel)
+        if self.probe_zero is None and ((speed_ready and after_speed >= .02) or
+                                       core.state == 'FAULT'):
+            self.probe_zero, self.probe_zero_travel = now, raw_travel
+        stop_evidence = core.docking_stop_evidence(now)
         if self.probe_zero is not None:
             core.vx = 0.
-            if core.docking_stopped(now) and core.state != 'FAULT':
+            outlet_zero = self.probe_gate_zero is not None or not self.p.forward_response_require_speed
+            if stop_evidence['stopped'] and outlet_zero and core.state != 'FAULT':
                 if self.probe_stopped is None:
                     self.probe_stopped = now
                 elif now-self.probe_stopped >= self.p.settled_sec:
@@ -68,12 +94,22 @@ class GraspDocking:
             core.vx = min(self.p.forward_effective_speed, core.vx+core.p.max_acceleration*dt)
         if core.state == 'FAULT':
             core.vx = 0.
+        self.probe_peak_request = max(self.probe_peak_request, core.vx)
         self.probe_result = dict(started=self.probe_started, zero_requested=self.probe_zero,
-                                 zero_travel_m=self.probe_zero_travel,
-                                 measured_travel_m=travel, cross_track_m=cross,
-                                 stop_extra_m=travel-self.probe_zero_travel
-                                 if self.probe_zero_travel is not None else None,
-                                 elapsed_sec=now-self.probe_started)
+            origin_vehicle_pose=list(self.probe_origin), raw_pose_sample_monotonic=core.odom_time,
+            stopped_confirmed_monotonic=now if core.state == 'STOP' else None,
+            zero_travel_m=self.probe_zero_travel, measured_travel_m=raw_travel,
+            raw_travel_m=raw_travel, window_travel_m=window_travel,
+            cross_track_m=raw_cross, yaw_delta_rad=yaw_delta, boundary=boundary,
+            distance_limit_m=self.p.forward_response_max_distance,
+            reference_speed_mps=self.p.forward_effective_speed,
+            peak_request_mps=self.probe_peak_request, peak_outlet_mps=self.probe_peak_outlet,
+            outlet_speed_reached=self.probe_speed_at, raw_travel_after_speed_m=after_speed,
+            outlet_zero=self.probe_gate_zero, outlet_latest=outlet,
+            stopped_confirmation_since=self.probe_stopped, stop_evidence=stop_evidence,
+            stop_extra_m=raw_travel-self.probe_zero_travel if self.probe_zero is not None else None,
+            elapsed_sec=now-self.probe_started, physical_review_required=True,
+            calibration_accepted=False)
         out.update(state=core.state, reason=core.reason, vx=core.vx, vy=0., wz=0.,
                    grasp_docking_complete=False, control_reference='FORWARD_RESPONSE_CHECK',
                    response_check=self.probe_result)

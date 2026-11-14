@@ -130,3 +130,18 @@ class ForwardStep:
                       calibration_ready=self.profile is not None, events=self.events)
         self.events = []
         return result
+
+
+def sport_output_sample(api_id, parameter, received):
+    """Decode an observed final Sport request; this is not physical feedback."""
+    if api_id == 1003:
+        values = [0., 0., 0.]
+    elif api_id == 1008:
+        data = json.loads(parameter)
+        values = [float(data[k]) for k in ('x', 'y', 'z')]
+    else:
+        return None
+    if not all(math.isfinite(v) for v in values):
+        raise ValueError('nonfinite observed Sport command')
+    return dict(received_monotonic=received, api_id=api_id,
+                vx=values[0], vy=values[1], wz=values[2])
