@@ -503,6 +503,7 @@ def pids(pattern):
 arm=pids('[r]un_arm_integration.py') + pids('[r]un_go2_left_grasp.py')
 arm_devices=[]
 arm_modes=[]
+arm_roots=[]
 for pid in arm:
     argv=(Path('/proc')/str(pid)/'cmdline').read_bytes().decode().split('\0')
     device='/dev/ttyUSB0'  # Original service parser default.
@@ -518,7 +519,8 @@ for pid in arm:
     if len(opened)==1: device=next(iter(opened))
     arm_devices.append(device)
     arm_modes.append('left' if any('run_go2_left_grasp.py' in a for a in argv) else 'right')
-print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, task=pids('[s]1_task_host.py'),
+    arm_roots.append(str((Path('/proc')/str(pid)/'cwd').resolve()))
+print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, arm_roots=arm_roots, task=pids('[s]1_task_host.py'),
     camera=pids('[r]ealsense2_camera_node'),
     serial_devices=[device for device in ('/dev/ttyUSB0','/dev/ttyUSB1') if Path(device).exists()],
     cameras=[d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()],
@@ -528,6 +530,8 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, tas
                                         capture_output=True,text=True).stdout)
             if inventory['task']:
                 raise RuntimeError('远端抓取任务仍在运行')
+            if inventory['arm'] and any(root != ARM_V2 for root in inventory['arm_roots']):
+                raise RuntimeError('检测到历史S1服务，不能冒充v2自动回零；需先停止旧串口进程: '+str(inventory['arm_roots']))
             arm_device=select_arm_device(inventory['serial_devices'], inventory['arm_devices'])
             print('S1_SERIAL '+arm_device, flush=True)
             if not {'213622070598','231622302209'} <= set(inventory['cameras']):
@@ -621,6 +625,8 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, tas
             profile = self.work/'camera_ws/src/go2_science_perception/config'/(
                 'science_s1_posture_go2_20261112.json')
             command += ['--full', '--posture-profile', str(profile)]
+            if self.args.left_geometry_verified:
+                command.append('--left-geometry-verified')
         print('开始真实运动；Ctrl+C请求停止。物理遥控急停保持可用。', flush=True)
         task = subprocess.Popen(self.shell(shlex.join(command)))
         try:
@@ -673,8 +679,8 @@ def main():
     parser.add_argument('--startup-check', action='store_true',
                         help='read-only stage timing/status; never zero/enable/move')
     args = parser.parse_args()
-    if args.grasp_side=='left' and args.execute and not args.left_geometry_verified:
-        raise RuntimeError('左侧停靠外参尚未实机验证；需显式 --left-geometry-verified')
+    if args.grasp_side=='left' and args.mode=='full' and args.execute and not args.left_geometry_verified:
+        raise RuntimeError('左侧完整抓取需先验证导航停靠及支撑外参；先运行左侧dock测试')
     if args.forward_response_check and args.mode != 'dock':
         parser.error('--forward-response-check requires --mode dock, never full')
     if args.probe:
