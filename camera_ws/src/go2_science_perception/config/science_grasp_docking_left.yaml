@@ -1,0 +1,26 @@
+# Explicit left-side overlay; select only for left docking evaluation.
+# Target/S1 mounting requires real-world calibration; no automatic side switching.
+# Optional overlay AFTER existing approach/search profiles. Ordinary MAP mode unchanged.
+science_target_approach:
+  ros__parameters:
+    grasp_docking_enabled: true
+    dock_s1_base_x: -0.06  # User-measured 0.36m behind nominal lidar +0.30m.
+    dock_s1_base_y: 0.0
+    dock_target_s1_x: 0.0
+    dock_target_s1_y: -0.41  # Mirrored left-side prototype; physical calibration NOT VERIFIED.
+    dock_min_linear_speed: 0.20  # Far approach only; fine control/braking take priority.
+    dock_fine_distance: 0.15
+    dock_fine_min_linear_speed: 0.18  # Braking/measured-speed/slew limits still take priority.
+    dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
+    dock_settle_exit_tolerance: 0.06  # Resume correction; completion still requires 0.04m.
+    dock_settle_wait_sec: 2.0  # Resume fine correction if still outside 0.04m after waiting.
+    dock_forward_step_enabled: false  # Enable only after new bounded response validation.
+    forward_step_profile_file: ''
+    dock_position_tolerance: 0.04  # Navigation tolerance, not guaranteed arm reachability.
+    dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
+    dock_settled_sec: 0.5
+    dock_progress_timeout: 10.0  # Compatibility only; progress no longer triggers a stop.
+    dock_region_x_min: -0.05
+    dock_region_x_max: 0.05
+    dock_region_y_min: -0.33
+    dock_region_y_max: -0.29
