@@ -53,8 +53,10 @@ class DockSettings:
         # Dock clearance can exceed the original grasp reference region.
         # Keep that region unchanged so reachability diagnostics remain honest.
         if not (self.region_x_min <= self.region_x_max and
-                0 < self.region_y_min <= self.region_y_max and self.target_s1_y > 0):
-            raise ValueError('Invalid right-side dock target or grasp reference region')
+                self.region_y_min < self.region_y_max and self.target_s1_y != 0 and
+                self.region_y_min * self.target_s1_y > 0 and
+                self.region_y_max * self.target_s1_y > 0):
+            raise ValueError('Dock target and S1 grasp region must use the same side')
 
 
 def target_in_s1(target_map, vehicle_pose, settings=None):
