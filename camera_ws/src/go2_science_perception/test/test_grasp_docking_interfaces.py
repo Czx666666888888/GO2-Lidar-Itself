@@ -127,3 +127,70 @@ def test_runner_docking_exceeds_former_combined_deadline_plain_map_remains_bound
         assert clock[0] < 100 and timers == [85.5]
         assert any('max_run_time:=25.0' in args for _, args in launched)
     assert experiment.stop.messages
+
+
+def test_successful_dock_close_releases_owners_without_fixed_sleeps(tmp_path):
+    m = runner_module()
+    e = m.Experiment.__new__(m.Experiment)
+    e.args = SimpleNamespace(grasp_pose=True)
+    e.folder, e.tag = tmp_path, 'test'
+    e.control = dict(state='STOP', grasp_docking_complete=True)
+    e.recording, e.reports, e.children = dict(closed=True), [], []
+    e.timer, e.navigation_released = None, False
+    e.stop, e.arm, e.finish = Publisher(), Publisher(), Publisher()
+    halted = []
+    e.halt = lambda index: halted.append(index)
+    e.spin = lambda _: pytest.fail('no fixed wait when release/finalization already confirmed')
+    e.node = SimpleNamespace(count_publishers=lambda _: 0,
+                             get_publishers_info_by_topic=lambda _: [],
+                             destroy_node=lambda: None)
+    e.close()
+    assert halted == [1, 0, 2] and e.navigation_released
+    assert (tmp_path/'handoff_test.jsonl').exists()
+
+
+def test_publisher_still_present_prevents_handoff(tmp_path, monkeypatch):
+    m = runner_module()
+    e = m.Experiment.__new__(m.Experiment)
+    e.folder, e.tag, e.navigation_released = tmp_path, 'busy', False
+    e.halt, e.arm = lambda _: None, Publisher()
+    e.node = SimpleNamespace(count_publishers=lambda _: 1,
+                             get_publishers_info_by_topic=lambda _: [])
+    clock = [0.]
+    monkeypatch.setattr(m.time, 'monotonic', lambda: clock[0])
+    e.spin = lambda dt: clock.__setitem__(0, clock[0]+dt)
+    e.release_navigation()
+    assert not e.navigation_released
+
+
+def test_phase_durations_use_control_timestamps_and_separate_step_settle():
+    m = runner_module()
+    reports = [dict(control_monotonic=0., state='SEARCH'),
+               dict(control_monotonic=.1, state='STOP_CONFIRM'),
+               dict(control_monotonic=.2, state='APPROACH_TO_GRASP_POSE',
+                    docking_phase='FINE_CONTROL', forward_step=dict(phase='MOVE')),
+               dict(control_monotonic=.4, state='APPROACH_TO_GRASP_POSE',
+                    docking_phase='FINE_CONTROL', forward_step=dict(phase='SETTLE')),
+               dict(control_monotonic=.5, state='STOP')]
+    totals = m.phase_seconds(reports)
+    assert totals == pytest.approx(dict(SEARCH=.1, STOP_CONFIRM=.1,
+                                       FORWARD_MOVE=.2, FORWARD_SETTLE=.1))
+
+
+def test_initial_missing_feedback_is_logged_as_null_not_invalid_json():
+    import json
+    c = dock_core()
+    c.reset()
+    encoded = []
+    fake = SimpleNamespace(
+        core=c, grasp_docking_enabled=True, dry_run=True,
+        get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(
+            nanoseconds=100, to_msg=lambda: Time())), last_ros_time=0,
+        count_publishers=lambda _: 0, sport_velocity=None, sport_state_info={},
+        camera_frame='camera_link', recording_info={}, velocity=Publisher(),
+        telemetry=Publisher(), stop_request=None, last_reported_state='IDLE',
+        log_file=SimpleNamespace(write=encoded.append))
+    ScienceTargetApproach._tick(fake)
+    data = json.loads(encoded[-1])
+    assert data['stop_inputs']['sport_speed'] is None
+    assert data['stop_inputs']['odom_age'] is None

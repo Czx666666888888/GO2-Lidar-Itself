@@ -1,0 +1,28 @@
+{
+  "baseline": "235b1dd25c037401404a51f4b3c204e0cafc213e",
+  "runs": [
+    {
+      "log": "science_approach_1794649036065546131.jsonl",
+      "sha256": "f9a77ca7db1169fa9ed1555658a147d8f3276609c29fe053c8eb44433525b072",
+      "dock_reports": 742,
+      "positive_low_vx_reports": 499,
+      "sport_near_zero_reports": 499,
+      "min_position_error_m": 0.05835686248286076,
+      "limitation": "Sport feedback and Point-LIO are not independent physical truth; no isolated 0.15m/s stop-response calibration",
+      "terminal_reason": "remaining docking distance exceeds odometry budget",
+      "source_commit": "340fd139eb0031690902a474c52cb84be922d1ce"
+    },
+    {
+      "log": "science_approach_1794648405751513071.jsonl",
+      "sha256": "693df6abd4690c869216e1c3c1e0d83396c453eca9927e3060aaf1343e362f88",
+      "dock_reports": 678,
+      "positive_low_vx_reports": 99,
+      "sport_near_zero_reports": 95,
+      "min_position_error_m": 0.029647687116584484,
+      "limitation": "Sport feedback and Point-LIO are not independent physical truth; no isolated 0.15m/s stop-response calibration",
+      "terminal_reason": "remaining docking distance exceeds odometry budget",
+      "source_commit": "951c8f7ba6cf0a6b3efd037bf37c7a3268664f26"
+    }
+  ],
+  "calibration_status": "NOT VERIFIED"
+}

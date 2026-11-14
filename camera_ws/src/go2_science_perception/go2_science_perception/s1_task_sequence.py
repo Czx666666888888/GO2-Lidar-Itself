@@ -21,14 +21,19 @@ def finish_docked_task(arm_request, posture, log, timeout=300.0, poll=0.25,
         raise RuntimeError('StandDown feedback not confirmed')
     log('STAND_DOWN_CONFIRMED', down)
     require_zero_hold(arm_request('status'))
+    log('GRASP_START_REQUEST', {})
     accepted = arm_request('grasp')
     log('GRASP_REQUEST', accepted)
     if accepted.get('accepted') is not True:
         raise RuntimeError('S1 rejected grasp; keep GO2 down')
     deadline = monotonic()+timeout
+    running_observed = False
     while monotonic() < deadline:
         state = arm_request('status')
         log('ARM_STATUS', state)
+        if state.get('state') == 'GRASPING' and not running_observed:
+            log('GRASP_RUNNING_OBSERVED', state)
+            running_observed = True
         if state.get('state') in ('FAULT_HOLD', 'FAULT_IO', 'STOPPING', 'STOPPED'):
             raise RuntimeError('S1 fault/stopped; no StandUp: ' + str(state))
         if state.get('busy') is False:

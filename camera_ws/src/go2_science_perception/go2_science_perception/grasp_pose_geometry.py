@@ -30,6 +30,8 @@ class DockSettings:
     fine_max_linear_speed: float = 0.08
     settle_exit_tolerance: float = 0.06
     settle_wait_sec: float = 2.0
+    forward_step_enabled: bool = False  # Needs a reviewed response measurement first.
+    forward_response_check: bool = False  # Explicit diagnostic, never a grasp goal.
     progress_timeout: float = 10.0  # Accepted for old configs; no longer stops docking.
     region_x_min: float = -0.05
     region_x_max: float = 0.05

@@ -39,12 +39,18 @@ class ScienceTargetApproach(Node):
                             'log_directory': '/tmp'}.items():
             self.declare_parameter(name, value)
         self.declare_parameter('grasp_docking_enabled', False)
+        self.declare_parameter('forward_step_profile_file', '')
         for field in fields(DockSettings()):
             self.declare_parameter('dock_' + field.name, getattr(DockSettings(), field.name))
         self.grasp_docking_enabled = self.get_parameter('grasp_docking_enabled').value
+        from .forward_step import load_forward_profile
+        profile_path = self.get_parameter('forward_step_profile_file').value
+        forward_profile = load_forward_profile(profile_path) if profile_path else None
         docking = GraspDocking(DockSettings(**{
             f.name: self.get_parameter('dock_' + f.name).value for f in fields(DockSettings())
-        })) if self.grasp_docking_enabled else None
+        }), forward_profile=forward_profile) if self.grasp_docking_enabled else None
+        if docking and docking.p.forward_step_enabled and forward_profile is None:
+            raise ValueError('Forward short steps require a reviewed response profile')
         self.core = ApproachControl(Settings(**{
             f.name: self.get_parameter(f.name).value for f in fields(defaults)}), docking=docking)
         self.dry_run = self.get_parameter('dry_run').value
@@ -274,7 +280,14 @@ class ScienceTargetApproach(Node):
         if not self.dry_run and now-self.gate_verified_at > 1.0:
             self.get_logger().warning('START_REJECTED: gate not verified')
             return
+        response_check = (self.grasp_docking_enabled and
+                          self.core.docking.p.forward_response_check)
+        if response_check and not self.core._is_stopped(now):
+            self.get_logger().warning('START_REJECTED: response check requires measured stop')
+            return
         if self.core.start(now):
+            if response_check:
+                self.core.docking.begin_response_check(self.core, now)
             self.get_logger().info('MANUALLY_STARTED locked MAP anchor')
         else:
             self.get_logger().warning('START_REJECTED: lock/pose/TF/feedback not ready')
@@ -326,6 +339,16 @@ class ScienceTargetApproach(Node):
             if not self._recording_ready():
                 self.core.fault('recording heartbeat lost')
         report = self.core.step(now)
+        report['control_monotonic'] = now
+        report['stop_inputs'] = dict(
+            body_speed=self.core.actual_speed, camera_speed=self.core.camera_speed,
+            sport_speed=self.core.feedback_speed, pose_yaw_rate=self.core.pose_yaw_rate,
+            sport_yaw_rate=self.core.feedback_yaw_rate,
+            odom_age=now-self.core.odom_time, camera_age=now-self.core.camera_time,
+            sport_age=now-self.core.feedback_time)
+        report['stop_inputs'] = {
+            key: value if math.isfinite(value) else None
+            for key, value in report['stop_inputs'].items()}
         report['sport_velocity'] = self.sport_velocity
         report['sport_state'] = self.sport_state_info
         report['camera_frame'] = self.camera_frame

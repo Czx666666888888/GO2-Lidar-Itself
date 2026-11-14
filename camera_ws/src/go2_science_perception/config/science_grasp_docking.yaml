@@ -12,6 +12,8 @@ science_target_approach:
     dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
     dock_settle_exit_tolerance: 0.06  # Resume correction; completion still requires 0.04m.
     dock_settle_wait_sec: 2.0  # Resume fine correction if still outside 0.04m after waiting.
+    dock_forward_step_enabled: false  # Enable only after new bounded response validation.
+    forward_step_profile_file: ''
     dock_position_tolerance: 0.04  # Navigation tolerance, not guaranteed arm reachability.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_settled_sec: 0.5

@@ -31,8 +31,11 @@ def main():
     parser.add_argument('--mode', choices=('dock', 'full'), default='full')
     parser.add_argument('--clock-diagnostic', action='store_true',
                         help='explicit full 20s online + 20s paused clock sampling')
+    parser.add_argument('--forward-response-check', action='store_true')
     parser.add_argument('--work-dir', type=Path, help='forward existing integration checkout option')
     args = parser.parse_args()
+    if args.forward_response_check and args.mode != 'dock':
+        parser.error('Forward response check requires --mode dock')
     folder = ROOT/'camera_ws/records'/('pc_time_'+str(time.time_ns()))
     folder.mkdir(parents=True)
     state = {'service':'systemd-timesyncd', 'execute_requested':args.execute}
@@ -70,6 +73,8 @@ def main():
         env = dict(os.environ, GO2_TIME_MAPPING_MODE='imu', GO2_PC_TIME_HELD='1')
         if args.execute:
             command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode',args.mode]
+            if args.forward_response_check:
+                command.append('--forward-response-check')
             if args.work_dir is not None:
                 command += ['--work-dir',str(args.work_dir)]
         else:

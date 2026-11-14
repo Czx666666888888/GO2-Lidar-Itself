@@ -3,6 +3,57 @@
 更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
 
+## 2026-11-14 前向短步及快速姿态交接（待实测标定）
+
+本轮基线实际最新Push为235b1dd，并非早期340fd13。基线精调已为0.18请求下限/0.30总上限，
+仍会被制动模型压低；本轮不扩大vy/wz速度、不改SEARCH/确认/识别/时间映射/S1轨迹。
+
+前向短步仅用于15cm内、确需正向修正且连续vx低于约0.15m/s的情况；后退无死区补偿。
+每一步按Point-LIO真实投影位移结束，零速后等原多路速度/新鲜度确认，再重新规划；
+实际加减速限制及原唯一速度出口保留。可容纳步长还受实测制动位移及误差余量约束。
+没有实测响应文件时dock_forward_step_enabled保持false，不填假延迟或固定脉冲时间。
+启用需要forward_step_profile_file指定人工审核过的JSON，内容须有原始日志路径/SHA256、
+physical_motion_confirmed/reviewed=true，以及实测speed_mps/stop_distance_m/min_step_m/
+max_step_m/max_on_sec/settle_timeout_sec/uncertainty_m和一致的加减速/延迟参数。
+max_on_sec只是实测包络看门狗，不用速度乘时间推算运动量。条件不满足会阻断，不能猜值填表。
+
+新实机授权前仅查看本次前向响应检查计划（在集成目录）：
+
+```bash
+bash go2_test.sh --mode dock --forward-response-check
+```
+
+**以下命令会真实前进，必须另获本轮授权、路线空旷、急停在手、S1已ZERO_HOLD：**
+
+```bash
+bash go2_test.sh --execute --mode dock --forward-response-check
+```
+
+它复用同一控制器/gate，不需要视觉目标、不进入SEARCH、不重新使能S1、不趴下或抓取。
+正向请求按原加速度缓升到0.15，Point-LIO测得前移2cm即请求零速并测剩余制动位移；
+2cm是归零触发值，不是保证总位移。20cm路径、3cm横偏、3°转角和8秒为故障上限，
+均不是建议脉冲持续时间。停稳仍用原0.5秒/多路反馈条件；无有效位移则失败，不假定测试通过。
+保留录像、response_check/stop_inputs等JSONL，再由操作者确认真实位移并评估模型可信度。
+不能用单次无真值试验直接宣称重复精度或建立所有距离下的可达性。
+
+STOP_WAIT继续保留4cm进入/6cm退出，4～6cm不能算成功；0.5秒计时未放宽。
+成功停靠收尾取消原固定2秒、三段0.2秒和0.8秒等待，改为等待导航进程退出/发布者消失及录像关闭，
+其后直接启动原姿态交接。仍需S1 ZERO_HOLD、SDK独占lease、新鲜GO2停稳反馈及StopMove成功。
+不再新建节点固定等1秒重复审计，已有监控节点完成审计；检查失败禁止StandDown。
+同一SSH连接复用，S1状态最多复用0.25秒（PC）/0.05秒（远端），过期重读，故障不复用。
+
+日常运动入口保持两条，不自动测试或自动抓取：
+
+```bash
+bash go2_test.sh --execute --mode dock
+bash go2_test.sh --execute --mode full
+```
+
+按前向响应检查→审核参数→独立dock真实验收→full顺序推进。新增事件在原JSONL及handoff_*.jsonl，
+run JSON的flow_metrics.phase_seconds分开SEARCH/确认/粗停靠/精调/短步/停稳等待；
+PC事件用pc_monotonic，姿态主机用host_monotonic，禁止直接相减不同主机的monotonic。
+本轮软件检查不等于实机效果，未获新授权的部分均NOT VERIFIED。
+
 ## 2026-11-14 精调请求下限0.18m/s（当前）
 
 用户后续要求4～15cm修正请求下限提高为0.18m/s，旧0.08m/s上限同步移除，

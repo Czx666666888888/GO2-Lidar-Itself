@@ -29,8 +29,28 @@ def flow_metrics(reports):
         confirmation_attempts=final.get('stop_confirm_attempts', []),
         approach_visual_loss_count=final.get('visual_loss_count'),
         final_map_xy_error_m=final.get('camera_distance_xy'),
+        final_docking_position_error_m=final.get('grasp_docking', {}).get('position_error_m'),
         terminal_state=final.get('state'), terminal_reason=final.get('reason'),
+        phase_seconds=phase_seconds(reports),
         physical_distance_m=None, physical_result='PENDING_USER_OBSERVATION')
+
+
+def phase_seconds(reports):
+    totals = {}
+    for before, after in zip(reports, reports[1:]):
+        a, b = before.get('control_monotonic'), after.get('control_monotonic')
+        if a is None or b is None:
+            a, b = before.get('ros_stamp_ns'), after.get('ros_stamp_ns')
+            if a is not None and b is not None:
+                a, b = a/1e9, b/1e9
+        if a is None or b is None or not 0 <= b-a <= 1.:
+            continue
+        phase = before.get('docking_phase') or before.get('state', 'UNKNOWN')
+        step = before.get('forward_step', {}).get('phase')
+        if step in ('MOVE', 'SETTLE'):
+            phase = 'FORWARD_'+step
+        totals[phase] = totals.get(phase, 0.)+b-a
+    return totals
 
 
 class Experiment:
@@ -50,6 +70,8 @@ class Experiment:
         self.last_control_received = -float('inf')
         self.reports, self.children = [], []
         self.timer = None
+        self.navigation_released = False
+        self.last_timing_phase = None
         self.node.create_subscription(String, '/science/approach/status', self._status, 20)
         self.node.create_subscription(String, '/science/approach/recording', self._recording, 10)
         self.arm = self.node.create_publisher(Bool, '/arm', 1)
@@ -63,6 +85,27 @@ class Experiment:
         self.control = json.loads(msg.data)
         self.last_control_received = time.monotonic()
         self.reports.append(self.control)
+        phase = (self.control.get('state'), self.control.get('docking_phase'))
+        if phase != self.last_timing_phase:
+            self.event('CONTROL_PHASE', state=phase[0], phase=phase[1],
+                       control_monotonic=self.control.get('control_monotonic'))
+            previous = self.last_timing_phase or (None, None)
+            if previous[0] == 'SEARCH' and phase[0] != 'SEARCH':
+                self.event('SEARCH_END')
+            if previous[0] == 'STOP_CONFIRM' and phase[0] == 'LOCK_TARGET':
+                self.event('STOP_CONFIRM_END')
+            if phase[1] == 'FINE_CONTROL':
+                self.event('FINE_CONTROL_ENTER')
+            if phase[1] == 'STOP_WAIT':
+                self.event('STOP_WAIT_ENTER')
+            if self.control.get('grasp_docking_complete') is True:
+                self.event('DOCK_STOP_CONFIRMED')
+            self.last_timing_phase = phase
+
+    def event(self, name, **data):
+        row = dict(event=name, pc_monotonic=time.monotonic(), wall_time_ns=time.time_ns(), **data)
+        with (self.folder/f'handoff_{self.tag}.jsonl').open('a') as stream:
+            stream.write(json.dumps(row)+'\n')
 
     def _recording(self, msg):
         self.recording = json.loads(msg.data)
@@ -129,7 +172,9 @@ class Experiment:
               if not getattr(self.args, 'grasp_pose', False) else []),
             '-p', f'log_directory:={self.folder}', *search_params,
             *(['--params-file', str(share / 'config/science_grasp_docking.yaml')]
-              if getattr(self.args, 'grasp_pose', False) else [])], 'control')
+              if getattr(self.args, 'grasp_pose', False) else []),
+            *(['-p', 'dock_forward_response_check:=true']
+              if getattr(self.args, 'forward_response_check', False) else [])], 'control')
         self.launch('go2_science_perception', 'approach_video_recorder', [
             '-p', f'output_directory:={self.folder}'], 'recorder')
         self.spin(2)
@@ -194,28 +239,63 @@ class Experiment:
             if not seen and time.monotonic()-started > 2:
                 raise RuntimeError('start rejected; no automatic retry')
         self.stop.publish(Int8(data=1))
-        self.spin(2)
+        if not (getattr(self.args, 'grasp_pose', False) and
+                self.control.get('grasp_docking_complete') is True and
+                self.control.get('state') == 'STOP'):
+            self.spin(2)
+
+    def release_navigation(self):
+        """Release actual owners and await graph removal, not a fixed delay."""
+        self.event('NAVIGATION_RELEASE_START')
+        self.halt(1)
+        self.arm.publish(Bool(data=False))
+        self.halt(0)
+        deadline = time.monotonic()+2.
+        while True:
+            local = [e for e in self.node.get_publishers_info_by_topic('/api/sport/request')
+                     if e.node_name != '_CREATED_BY_BARE_DDS_APP_']
+            if not self.node.count_publishers('/cmd_vel_raw') and not local:
+                self.navigation_released = True
+                self.event('NAVIGATION_RELEASED')
+                return
+            if time.monotonic() > deadline:
+                self.event('NAVIGATION_RELEASE_FAILED')
+                return
+            self.spin(.02)
 
     def close(self):
         """Finalize evidence even when setup or execution fails."""
         self.navigation_guard = None
+        fast_handoff = (getattr(self.args, 'grasp_pose', False) and
+                        self.control.get('state') == 'STOP' and
+                        self.control.get('grasp_docking_complete') is True)
         self.stop.publish(Int8(data=1))
-        self.spin(0.2)
+        if not fast_handoff:
+            self.spin(0.2)
         if self.timer:
             self.timer.cancel()
-        self.halt(1)
-        self.spin(0.2)
-        self.arm.publish(Bool(data=False))
-        self.spin(0.2)
-        self.halt(0)
+        if fast_handoff:
+            self.release_navigation()
+        else:
+            self.halt(1)
+            self.spin(0.2)
+            self.arm.publish(Bool(data=False))
+            self.spin(0.2)
+            self.halt(0)
         self.finish.publish(Empty())
-        self.spin(0.8)
+        if fast_handoff:
+            deadline = time.monotonic()+2.
+            while not self.recording.get('closed') and time.monotonic() < deadline:
+                self.spin(.02)
+        else:
+            self.spin(0.8)
         self.halt(2)
         for _, stream in self.children:
             stream.close()
         summary = {'control_reports': self.reports, 'final': self.control,
                    'recording': self.recording, 'physical_result': 'PENDING_USER_OBSERVATION',
                    'flow_metrics': flow_metrics(self.reports)}
+        summary['navigation_released'] = self.navigation_released
         (self.folder / f'run_{self.tag}.json').write_text(json.dumps(summary, indent=2))
         print('FINISHED', json.dumps(summary['final']),
               json.dumps(self.recording), flush=True)

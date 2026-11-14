@@ -13,6 +13,8 @@ def arm_command(args, command):
     argv = [args.host_python, args.arm_client, command, '--socket', args.arm_socket]
     if args.arm_host != 'local':
         argv = ['ssh', '-i', args.ssh_key, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=3',
+                '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60',
+                '-o', 'ControlPath=/tmp/go2-startup-%C',
                 args.arm_host, shlex.join(argv)]
     result = subprocess.run(argv, capture_output=True, text=True, timeout=4, check=True)
     return json.loads(result.stdout)
@@ -22,6 +24,8 @@ def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--execute', action='store_true')
     p.add_argument('--full', action='store_true', help='after docking: StandDown/grasp/StandUp')
+    p.add_argument('--forward-response-check', action='store_true',
+                   help='one bounded 0.15m/s forward response check; no posture or grasp')
     p.add_argument('--docking-geometry-verified', action='store_true',
                    help='operator has completed separate physical XY docking validation')
     p.add_argument('--search-distance', type=float, default=5.0)
@@ -53,6 +57,8 @@ def parser():
 def main():
     p = parser()
     args = p.parse_args()
+    if args.forward_response_check and args.full:
+        p.error('Forward response check forbids full posture/grasp')
     if args.posture_profile is not None:
         profile = json.loads(args.posture_profile.read_text())
         for name in ('down_max_body_height_m', 'up_min_body_height_m', 'down_mode', 'up_mode'):
@@ -81,6 +87,10 @@ def main():
                 sdk_cyclonedds_home=args.sdk_cyclonedds_home,
                 docking_fixed_timeout_sec=None, legacy_timeout_argument_ignored=args.timeout,
                 execute=args.execute, arm_service_validation='NOT VERIFIED')
+    if args.forward_response_check:
+        plan.update(mode='forward_response_check',
+                    stages=['FORWARD_RESPONSE_CHECK', 'ZERO_REQUEST', 'MEASURED_STOP'],
+                    desired_target_s1_xy_m=None)
     print(json.dumps(plan, indent=2), flush=True)
     if not args.execute:
         return
@@ -89,8 +99,12 @@ def main():
     import rclpy
     args.search, args.grasp_pose, args.target_xy = True, True, None
 
+    status_cache = [None, -float('inf')]
+
     def navigation_guard():
-        require_zero_hold(arm_command(args, 'status'))
+        if time.monotonic()-status_cache[1] > .25:
+            status_cache[:] = [arm_command(args, 'status'), time.monotonic()]
+        require_zero_hold(status_cache[0])
 
     navigation_guard()
     rclpy.init()
@@ -108,19 +122,19 @@ def main():
     # The original controller AND gate must be gone before SDK posture control.
     if any(proc.poll() is None for proc, _ in experiment.children):
         raise RuntimeError('Navigation children still alive; no posture handoff')
-    audit = rclpy.create_node('s1_post_dock_handoff_audit')
-    try:
-        for _ in range(20):
-            rclpy.spin_once(audit, timeout_sec=0.05)
-        local = [e for e in audit.get_publishers_info_by_topic('/api/sport/request')
-                 if e.node_name != '_CREATED_BY_BARE_DDS_APP_']
-        if audit.count_publishers('/cmd_vel_raw') or local:
-            raise RuntimeError('Another movement publisher prevents posture handoff')
-    finally:
-        audit.destroy_node()
     if final.get('grasp_docking_complete') is not True or final.get('state') != 'STOP':
+        if (args.forward_response_check and final.get('state') == 'STOP' and
+                final.get('reason') == 'forward response check complete'):
+            print('FORWARD_RESPONSE_CHECK_COMPLETE: review measured travel before enabling steps',
+                  flush=True)
+            rclpy.shutdown()
+            return
         rclpy.shutdown()
         raise RuntimeError('Docking was not completed; no StandDown or grasp')
+    if not experiment.navigation_released:
+        rclpy.shutdown()
+        raise RuntimeError('Navigation ownership release not confirmed; no StandDown')
+    experiment.event('POST_DOCK_HANDOFF_READY')
     navigation_guard()
     if not args.full:
         print('DOCK_ONLY_COMPLETE: measure actual target XY in S1 before full execution',
@@ -151,6 +165,7 @@ def main():
         with log.open('x') as stream:
             process = subprocess.Popen(command, stdin=subprocess.PIPE,
                                        stdout=stream, stderr=subprocess.STDOUT, text=True)
+            experiment.event('POSTURE_HOST_STARTED')
             deadline = time.monotonic()+args.arm_timeout+90
             next_heartbeat = 0.0
             while process.poll() is None:

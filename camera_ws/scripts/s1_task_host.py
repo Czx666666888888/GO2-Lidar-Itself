@@ -10,6 +10,7 @@ import threading
 
 
 def main():
+    host_started = time.monotonic()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--execute', action='store_true')
     p.add_argument('--require-heartbeat', action='store_true',
@@ -79,11 +80,24 @@ def main():
     from unitree_sdk2py.idl.unitree_go.msg.dds_ import SportModeState_
     from unitree_sdk2py.go2.sport.sport_client import SportClient
 
+    event_times = {}
+
     def log(event, data):
-        print(json.dumps(dict(event=event, host_time_ns=time.time_ns(), data=data),
+        event_times.setdefault(event, time.monotonic())
+        print(json.dumps(dict(event=event, host_time_ns=time.time_ns(),
+                              host_monotonic=time.monotonic(), data=data),
                          allow_nan=False), flush=True)
 
-    require_zero_hold(client.request('status', args.socket))
+    log('TASK_HOST_START', dict(started_monotonic=host_started))
+
+    arm_cache = [None, -math.inf]
+
+    def arm_status():
+        if time.monotonic()-arm_cache[1] > .05:
+            arm_cache[:] = [client.request('status', args.socket), time.monotonic()]
+        return arm_cache[0]
+
+    require_zero_hold(arm_status())
     ChannelFactoryInitialize(0, args.interface)
     last = [None, -math.inf]
 
@@ -102,6 +116,7 @@ def main():
         if time.monotonic() >= deadline:
             raise RuntimeError('SDK Sport lease acquisition timeout; no posture call')
         time.sleep(0.1)
+    log('SDK_CONTROL_READY', dict(monotonic=time.monotonic()))
     holding_down = [False]
 
     def feedback():
@@ -126,7 +141,11 @@ def main():
                                 state['velocity_xy_mps'] > 0.05 or
                                 abs(state['yaw_rate']) > 0.10):
             raise RuntimeError('GO2 down/quiet condition lost during arm task; no StandUp')
-        result = client.request(command, args.socket)
+        if command == 'status':
+            result = arm_status()
+        else:
+            arm_cache[1] = -math.inf
+            result = client.request(command, args.socket)
         if command == 'status' and result.get('readiness_state') in ('COMMUNICATION_ERROR','FAULT'):
             raise RuntimeError('S1 feedback fault; no subsequent action: '+str(result))
         return result
@@ -144,6 +163,8 @@ def main():
             if code != 0:
                 raise RuntimeError('StopMove RPC failed: '+str(code))
         holding_down[0] = False
+        log('STAND_DOWN_RPC_START' if direction == 'down' else 'STAND_UP_RPC_START',
+            dict(monotonic=time.monotonic()))
         code = sdk.StandDown() if direction == 'down' else sdk.StandUp()
         log('POSTURE_RPC', dict(direction=direction, code=code))
         if code != 0:
@@ -152,7 +173,7 @@ def main():
         stable_since = None
         heights = []
         while time.monotonic() < deadline:
-            require_zero_hold(client.request('status', args.socket))
+            require_zero_hold(arm_status())
             state = feedback()
             height_ok = (state['body_height_m'] <= args.down_max_body_height_m
                          if direction == 'down' else
@@ -182,6 +203,14 @@ def main():
 
     result = finish_docked_task(request, posture, log, timeout=args.arm_timeout)
     log('RESULT', result)
+    def elapsed(start, end):
+        return (event_times[end]-event_times[start]
+                if start in event_times and end in event_times else None)
+    log('STAGE_DURATIONS', dict(
+        sdk_ready_sec=event_times['SDK_CONTROL_READY']-host_started,
+        stand_down_sec=elapsed('STAND_DOWN_RPC_START', 'STAND_DOWN_CONFIRMED'),
+        grasp_to_zero_hold_sec=elapsed('GRASP_START_REQUEST', 'GRASP_RETURNED_ZERO_HOLD'),
+        full_host_sec=time.monotonic()-host_started))
 
 
 if __name__ == '__main__':

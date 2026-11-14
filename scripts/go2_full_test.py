@@ -528,12 +528,18 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_hos
             print('READ_ONLY_CHECK '+json.dumps(result),flush=True)
             return
         with ThreadPoolExecutor(max_workers=1) as pool:
+            require_target = (self.args.mode == 'dock' and
+                              not getattr(self.args, 'forward_response_check', False))
             # Native/ROS observations are independent of the existing S1 socket.
-            pending=pool.submit(self.probe,'existing',3,'all',self.args.mode=='dock')
+            pending=pool.submit(self.probe,'existing',3,'all',require_target)
             with self.stage('s1_reuse_or_controlled_zero'):
                 if inventory['router']:
                     run(['ssh','-t','-i',KEY,HOST,'sudo systemctl stop go2-remote-router.service'])
-                self.ensure_s1(bool(inventory['arm']), arm_device)
+                if getattr(self.args, 'forward_response_check', False):
+                    if not inventory['arm'] or not zero_hold(self.status()):
+                        raise RuntimeError('Response check requires an existing S1 ZERO_HOLD')
+                else:
+                    self.ensure_s1(bool(inventory['arm']), arm_device)
             existing=pending.result()
         if not existing['native_ok']:
             raise RuntimeError('原生雷达不健康，不启动定位/运动: '+str(existing))
@@ -570,14 +576,14 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_hos
                 print('REUSE live readiness: no duplicate LiDAR/TF check',flush=True)
                 result=existing
             else:
-                result=self.probe('pre_motion',timeout=30,scope='chain',require_target=self.args.mode=='dock')
+                result=self.probe('pre_motion',timeout=30,scope='chain',require_target=require_target)
             if not result['ready'] and not result['slam_ok']:
                 print('INVALID_TIME_OR_LOCALIZATION: 重建本次定位会话一次，不复用offset',flush=True)
                 self.stop_invalid_localization()
                 command=['ros2','launch','go2_science_perception','d435_slam_target_validation.launch.py',
                          'remote_camera:=true','use_rviz:=false']
                 self.spawn(self.shell(shlex.join(command)),'slam')
-                result=self.probe('pre_motion_reinitialized',timeout=30,scope='chain',require_target=self.args.mode=='dock')
+                result=self.probe('pre_motion_reinitialized',timeout=30,scope='chain',require_target=require_target)
             if not result['ready']:
                 raise RuntimeError('实时定位/目标检查失败；禁止运动: '+str(result))
         # Existing full-task adapters are uploaded only for the full mode, not dock.
@@ -592,6 +598,8 @@ print(json.dumps(dict(arm=arm, arm_devices=arm_devices, task=pids('[s]1_task_hos
             raise RuntimeError('运动前S1状态变化，停止')
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
                    '--search-distance', '5', '--search-timeout', '60']
+        if getattr(self.args, 'forward_response_check', False):
+            command.append('--forward-response-check')
         if not (os.environ.get('DISPLAY') and shutil.which('gnome-terminal')):
             command.append('--no-log-terminal')
         if self.args.mode == 'full':
@@ -641,15 +649,23 @@ def main():
     parser.add_argument('--execute', action='store_true',
                         help='确认路线空旷、急停在手、S1初始位和支撑已核对；执行真实运动')
     parser.add_argument('--mode', choices=['full', 'dock'], default='full')
+    parser.add_argument('--forward-response-check', action='store_true')
     parser.add_argument('--work-dir', type=Path, default=Path('/tmp/go2_onekey_s1'))
     parser.add_argument('--probe', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--startup-check', action='store_true',
                         help='read-only stage timing/status; never zero/enable/move')
     args = parser.parse_args()
+    if args.forward_response_check and args.mode != 'dock':
+        parser.error('--forward-response-check requires --mode dock, never full')
     if args.probe:
         ros_probe()
         return
     if not args.execute and not args.startup_check:
+        if args.forward_response_check:
+            print('离线计划：复用现有S1保持和传感器预检；同一控制器/安全门正向缓升至0.15m/s，'
+                  'Point-LIO测得2cm前移后请求零速，记录制动位移并确认停稳。'
+                  '20cm路径/8秒为故障上限，不是预设脉冲持续时间。无SEARCH/趴下/抓取。')
+            return
         print('离线计划（未连接硬件、未写文件）：\n'
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
