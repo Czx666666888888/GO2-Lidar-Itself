@@ -220,22 +220,29 @@ def test_additional_right_clearance_preserves_grasp_reference():
     assert not report['predicted_in_grasp_region']
 
 
-@pytest.mark.parametrize('error', [(0.08, 0), (0, -0.08), (0.048, 0.064)])
-def test_ten_cm_minimum_is_planar_and_preserves_braking(error):
+@pytest.mark.parametrize('minimum,error', [
+    (.10, (.08, 0)), (.10, (0, -.08)), (.10, (.048, .064)),
+    (.20, (.15, 0)), (.20, (0, -.15)), (.20, (.09, .12)),
+])
+def test_minimum_is_planar_and_preserves_braking(minimum, error):
     c = dock_core(error)
-    c.docking.p = DockSettings(min_linear_speed=0.10)
+    c.docking.p = DockSettings(min_linear_speed=minimum)
     c.p.braking_latency = .30  # Actual deployed profile.
-    for i in range(12):
+    for i in range(20):
         t = 10.6+i*.1
         c.visual_time = t
         tick(c, t, c.robot[:2])
         out = c.step(t)
-    assert math.hypot(out['vx'], out['vy']) == pytest.approx(0.10)
+    assert math.hypot(out['vx'], out['vy']) == pytest.approx(minimum)
     # Near the tolerance boundary the braking cap can go below the minimum.
     t += .1
     c.visual_time = t
     goal = docking_goal(c.target, 0)
     tick(c, t, (goal[0]-.041, goal[1]))
     c.actual_speed = 0.0
-    out = c.step(t)
-    assert math.hypot(out['vx'], out['vy']) < .10
+    for _ in range(10):
+        c.visual_time = t
+        tick(c, t+.001, c.robot[:2])
+        out = c.step(t+.001)
+        t += .1
+    assert math.hypot(out['vx'], out['vy']) < minimum
