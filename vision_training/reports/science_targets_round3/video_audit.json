@@ -1,0 +1,352 @@
+[
+  {
+    "video_id": "r3_new1",
+    "source_video": "e057c20fe375b09e167558519c87cdc1.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_round3/e057c20fe375b09e167558519c87cdc1.mp4",
+    "source_video_sha256": "12204e9bc7dfac4e6da25b1c85770000405f4e567fc39a24c00cc665a81a11c8",
+    "source_type": "phone_real",
+    "capture_group": "phone_round3_scene_1",
+    "fps": 29.977046671767408,
+    "resolution": [
+      960,
+      544
+    ],
+    "declared_frames": 3918,
+    "decoded_frames": 3918,
+    "duration_nominal_sec": 130.7,
+    "counts": {
+      "candidates": 922,
+      "kept": 922,
+      "interval_not_due": 2996
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_new1_timeline.jsonl",
+    "frame_log_records": 0,
+    "rgb_source_elapsed_sec": null
+  },
+  {
+    "video_id": "r3_new2",
+    "source_video": "600de715a46f6849e2bc8096c9754fa8.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_round3/600de715a46f6849e2bc8096c9754fa8.mp4",
+    "source_video_sha256": "d901cdaaade1afbe5150abaacca396f8cb61c2a7e8dd9ff88776b59d0c7f2330",
+    "source_type": "phone_real",
+    "capture_group": "phone_round3_scene_2",
+    "fps": 29.97427101200686,
+    "resolution": [
+      1280,
+      720
+    ],
+    "declared_frames": 2330,
+    "decoded_frames": 2330,
+    "duration_nominal_sec": 77.73333333333333,
+    "counts": {
+      "candidates": 448,
+      "kept": 448,
+      "interval_not_due": 1882
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_new2_timeline.jsonl",
+    "frame_log_records": 0,
+    "rgb_source_elapsed_sec": null
+  },
+  {
+    "video_id": "r3_new3",
+    "source_video": "34bc68fd1b0ed9fc6aadbd3099a03b3f.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_round3/34bc68fd1b0ed9fc6aadbd3099a03b3f.mp4",
+    "source_video_sha256": "703ee53d9faa4d5856589b8ac7becf2c4869f3afc196109cff99dfc4fad66c76",
+    "source_type": "phone_real",
+    "capture_group": "phone_round3_scene_3",
+    "fps": 29.848484848484848,
+    "resolution": [
+      1280,
+      720
+    ],
+    "declared_frames": 1182,
+    "decoded_frames": 1182,
+    "duration_nominal_sec": 39.6,
+    "counts": {
+      "candidates": 180,
+      "kept": 180,
+      "interval_not_due": 1002
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_new3_timeline.jsonl",
+    "frame_log_records": 0,
+    "rgb_source_elapsed_sec": null
+  },
+  {
+    "video_id": "r3_new4",
+    "source_video": "55bd8a6e98c0bd790f966933e0a2b8aa.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/vision_training/video_sources/science_targets_round3/55bd8a6e98c0bd790f966933e0a2b8aa.mp4",
+    "source_video_sha256": "962889bf61fc31b7501dcfb23e8634fc81acc6ff05bae52cad600ca67cd9abd8",
+    "source_type": "phone_real",
+    "capture_group": "phone_round3_scene_4",
+    "fps": 29.987277353689567,
+    "resolution": [
+      1280,
+      720
+    ],
+    "declared_frames": 2357,
+    "decoded_frames": 2357,
+    "duration_nominal_sec": 78.6,
+    "counts": {
+      "candidates": 329,
+      "kept": 329,
+      "interval_not_due": 2028
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_new4_timeline.jsonl",
+    "frame_log_records": 0,
+    "rgb_source_elapsed_sec": null
+  },
+  {
+    "video_id": "r3_go2_01",
+    "source_video": "approach_20261108_211245_917119_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_211245_917119_raw.mp4",
+    "source_video_sha256": "af388de1d8d3123003d73163837f940702530019c96f21b5d9f0af40388f0b63",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 84,
+    "decoded_frames": 84,
+    "duration_nominal_sec": 5.6,
+    "counts": {
+      "candidates": 22,
+      "kept": 22,
+      "interval_not_due": 62
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_01_timeline.jsonl",
+    "frame_log_records": 84,
+    "rgb_source_elapsed_sec": 5.576961182
+  },
+  {
+    "video_id": "r3_go2_02",
+    "source_video": "approach_20261108_222156_798690_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_222156_798690_raw.mp4",
+    "source_video_sha256": "fa0606c4519168421bec6cbf3585cd50b2d45ef9ba1360f3ec34330205691281",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 233,
+    "decoded_frames": 233,
+    "duration_nominal_sec": 15.533333333333333,
+    "counts": {
+      "candidates": 49,
+      "kept": 49,
+      "interval_not_due": 184
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_02_timeline.jsonl",
+    "frame_log_records": 233,
+    "rgb_source_elapsed_sec": 15.588574707
+  },
+  {
+    "video_id": "r3_go2_03",
+    "source_video": "approach_20261108_222516_034701_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_222516_034701_raw.mp4",
+    "source_video_sha256": "8bef4d9fb91748b1a6d2fcc2b66caa06a6c25d57ac6af385f6065b7b1002cba2",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 184,
+    "decoded_frames": 184,
+    "duration_nominal_sec": 12.266666666666667,
+    "counts": {
+      "candidates": 47,
+      "kept": 47,
+      "interval_not_due": 137
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_03_timeline.jsonl",
+    "frame_log_records": 184,
+    "rgb_source_elapsed_sec": 12.296959229
+  },
+  {
+    "video_id": "r3_go2_04",
+    "source_video": "approach_20261108_222842_367393_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_222842_367393_raw.mp4",
+    "source_video_sha256": "4af9559e656ea0836c6594cad3c348fc9d8050d744052f1faeafbd72ecc9dada",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 203,
+    "decoded_frames": 203,
+    "duration_nominal_sec": 13.533333333333333,
+    "counts": {
+      "candidates": 53,
+      "kept": 53,
+      "interval_not_due": 150
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_04_timeline.jsonl",
+    "frame_log_records": 203,
+    "rgb_source_elapsed_sec": 13.57316626
+  },
+  {
+    "video_id": "r3_go2_05",
+    "source_video": "approach_20261108_223231_137141_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261108_223231_137141_raw.mp4",
+    "source_video_sha256": "2e66fa4f7f1c2ba88948dfec0e3d25a0f58dc2ded5abfb130c3e7ada352a94d8",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 394,
+    "decoded_frames": 394,
+    "duration_nominal_sec": 26.266666666666666,
+    "counts": {
+      "candidates": 80,
+      "kept": 80,
+      "interval_not_due": 314
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_05_timeline.jsonl",
+    "frame_log_records": 394,
+    "rgb_source_elapsed_sec": 26.367021972
+  },
+  {
+    "video_id": "r3_go2_06",
+    "source_video": "approach_20261109_202905_232322_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261109_202905_232322_raw.mp4",
+    "source_video_sha256": "f6b0f9087fc16e413d068651041f490e0649fc67ca97d3aa9d91de8d94339dd0",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 237,
+    "decoded_frames": 237,
+    "duration_nominal_sec": 15.8,
+    "counts": {
+      "candidates": 87,
+      "kept": 87,
+      "interval_not_due": 150
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_06_timeline.jsonl",
+    "frame_log_records": 237,
+    "rgb_source_elapsed_sec": 15.858025146
+  },
+  {
+    "video_id": "r3_go2_07",
+    "source_video": "approach_20261109_203226_883196_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261109_203226_883196_raw.mp4",
+    "source_video_sha256": "ad875e36293802550227e2af9e39fa9550d877c66e67f69403cabc2a03db3085",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 327,
+    "decoded_frames": 327,
+    "duration_nominal_sec": 21.8,
+    "counts": {
+      "candidates": 132,
+      "kept": 132,
+      "interval_not_due": 195
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_07_timeline.jsonl",
+    "frame_log_records": 327,
+    "rgb_source_elapsed_sec": 21.897588379
+  },
+  {
+    "video_id": "r3_go2_08",
+    "source_video": "approach_20261109_203609_327607_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261109_203609_327607_raw.mp4",
+    "source_video_sha256": "5d226c35b12f303f0868bac2f9d2b526febf77d1b6b55d8f545dcf49cf2cabb4",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 560,
+    "decoded_frames": 560,
+    "duration_nominal_sec": 37.333333333333336,
+    "counts": {
+      "candidates": 203,
+      "kept": 203,
+      "interval_not_due": 357
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_08_timeline.jsonl",
+    "frame_log_records": 560,
+    "rgb_source_elapsed_sec": 37.562194824
+  },
+  {
+    "video_id": "r3_go2_09",
+    "source_video": "approach_20261109_204520_581746_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261109_204520_581746_raw.mp4",
+    "source_video_sha256": "30f8d7135288894a096a74cd3a4bd4ea70bf621dc49d96f3e3ee5e637a16ff43",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 528,
+    "decoded_frames": 528,
+    "duration_nominal_sec": 35.2,
+    "counts": {
+      "candidates": 198,
+      "kept": 198,
+      "interval_not_due": 330
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_09_timeline.jsonl",
+    "frame_log_records": 528,
+    "rgb_source_elapsed_sec": 35.410995118
+  },
+  {
+    "video_id": "r3_go2_10",
+    "source_video": "approach_20261109_205725_163351_raw.mp4",
+    "source_video_path": "/home/czx666/today_full_20260901/today_full/camera_ws/records/approach_20261109_205725_163351_raw.mp4",
+    "source_video_sha256": "83117210d0616d558c184497423b64f86471ebd94b89d32c0f3a9985aa9d8b22",
+    "source_type": "d435_real",
+    "capture_group": "lab_floor_20261108_09",
+    "fps": 15.0,
+    "resolution": [
+      640,
+      480
+    ],
+    "declared_frames": 367,
+    "decoded_frames": 367,
+    "duration_nominal_sec": 24.466666666666665,
+    "counts": {
+      "candidates": 139,
+      "kept": 139,
+      "interval_not_due": 228
+    },
+    "complete_decode": true,
+    "timeline": "manifests/r3_go2_10_timeline.jsonl",
+    "frame_log_records": 367,
+    "rgb_source_elapsed_sec": 24.861451905
+  }
+]

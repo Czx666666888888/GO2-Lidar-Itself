@@ -144,7 +144,7 @@ def package(root, batch_size, package_dir=None, contact_dir=None):
     return manifest
 
 
-def extract(config_path, output, mode='coverage', input_dir=None):
+def extract(config_path, output, mode='coverage', input_dir=None, make_packages=True):
     config = yaml.safe_load(config_path.read_text())
     settings = config['sampling']
     if not 0 < settings['min_interval_sec'] <= settings['base_interval_sec'] <= settings['max_interval_sec']:
@@ -282,10 +282,10 @@ def extract(config_path, output, mode='coverage', input_dir=None):
     write_json(output/'manifests/videos.json',summaries)
     (output/'data.yaml').write_text(yaml.safe_dump(dict(path='.',names=NAMES,nc=3,status='unlabelled_candidate_pool_no_split'),sort_keys=False))
     add_pool(output,rows)
-    batches=package(output,config['batch_size']) if mode=='coverage' else []
+    batches=package(output,config['batch_size']) if mode=='coverage' and make_packages else []
     report=dict(mode=mode,source_type=source_type,source_confirmation=config.get('source_confirmation'),
         videos=summaries,images=len(rows),zip_count=len(batches),batch_counts=[b['images'] for b in batches],
-        labels_created=0,reviewed_images=0,split_created=False,
+        labels_created=0,reviewed_images=0,split_created=False,packages_requested=make_packages,
         config=config,config_sha256=sha256(config_path),script_sha256=sha256(Path(__file__)),opencv=cv2.__version__,numpy=np.__version__)
     write_json(output/'reports/summary.json',report)
     (output/'COMPLETE').write_text(str(len(rows))+'\n')
@@ -335,7 +335,7 @@ def verify(root):
         if index!=video['decoded_frames'] or matched!=len(selected):raise ValueError('Independent decode incomplete')
     expected = {r['filename']:r['image_sha256'] for r in rows}
     seen = {}
-    if rows:
+    if rows and summary.get('zip_count', 0):
         batches = json.loads((root/'cvat_packages/manifest.json').read_text())['batches']
         for batch in batches:
             path = root/batch['archive']
@@ -352,7 +352,7 @@ def verify(root):
     report=dict(status='PASS',images=len(rows),source_frame_content_checks=source_checks,
         original_decoded_frames=sum(v['decoded_frames'] for v in videos),
         timeline_contiguous=True,original_resolution_preserved=True,images_readable=True,
-        stable_unique_names=True,cross_zip_duplicates=0,zip_images_match_manifest=True,
+        stable_unique_names=True,cross_zip_duplicates=0,zip_images_match_manifest=True if summary.get('zip_count',0) else None,
         labels_created=0,reviewed_images=0,split_created=False)
     write_json(root/'reports/verification.json',report)
     return report

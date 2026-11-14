@@ -1,0 +1,105 @@
+{
+  "total_candidates": 446,
+  "sources": {
+    "r3_new1": 90,
+    "r3_new2": 90,
+    "r3_new3": 50,
+    "r3_new4": 86,
+    "r3_go2_01": 8,
+    "r3_go2_02": 10,
+    "r3_go2_03": 11,
+    "r3_go2_04": 13,
+    "r3_go2_05": 12,
+    "r3_go2_06": 9,
+    "r3_go2_07": 9,
+    "r3_go2_08": 42,
+    "r3_go2_09": 8,
+    "r3_go2_10": 8
+  },
+  "roles": {
+    "train_candidate": 310,
+    "validation_candidate": 50,
+    "final_test_candidate": 86
+  },
+  "priority_zip_images": 305,
+  "pending": 441,
+  "uncertain": 5,
+  "confirmed_negative": 0,
+  "go2_candidates": 130,
+  "go2_visually_blurred_motion_supported": 21,
+  "legacy20_reused": 20,
+  "old_reviewed_335_selected": 0,
+  "pending19_selected": 0,
+  "predicted_class_frames": {
+    "color_block": 122,
+    "rock_compact": 28,
+    "rock_spiky": 148
+  },
+  "predicted_boxes": {
+    "color_block": 259,
+    "rock_compact": 29,
+    "rock_spiky": 170
+  },
+  "predicted_small_frames": 17,
+  "predicted_edge_frames": 93,
+  "prediction_assessed_images": 310,
+  "heldout_unassessed_images": 136,
+  "gt_class_counts": "Unknown: not annotated; grey rocks require human identity confirmation",
+  "prediction_size_counts_are_not_gt": true,
+  "model_imgsz": 640,
+  "model_confidence": 0.1,
+  "batches": [
+    {
+      "batch": "batch_001",
+      "archive": "round3_priority_batch_001.zip",
+      "images": 153,
+      "sha256": "44ef31a10256f4018eceb2cfe77bbb7959cd60d779d3cb677cdc69e94c5910e0",
+      "source_counts": {
+        "r3_new1": 45,
+        "r3_new2": 45,
+        "r3_go2_01": 4,
+        "r3_go2_02": 5,
+        "r3_go2_03": 6,
+        "r3_go2_04": 6,
+        "r3_go2_05": 6,
+        "r3_go2_06": 5,
+        "r3_go2_07": 4,
+        "r3_go2_08": 21,
+        "r3_go2_09": 3,
+        "r3_go2_10": 3
+      }
+    },
+    {
+      "batch": "batch_002",
+      "archive": "round3_priority_batch_002.zip",
+      "images": 152,
+      "sha256": "4572aac30053ca3f4d62bc9eb4e65455627c065f611f5d7438509364fd42dae1",
+      "source_counts": {
+        "r3_new1": 45,
+        "r3_new2": 45,
+        "r3_go2_01": 4,
+        "r3_go2_02": 5,
+        "r3_go2_03": 5,
+        "r3_go2_04": 7,
+        "r3_go2_05": 6,
+        "r3_go2_06": 4,
+        "r3_go2_07": 4,
+        "r3_go2_08": 21,
+        "r3_go2_09": 3,
+        "r3_go2_10": 3
+      }
+    }
+  ],
+  "verified_original_frame_matches": 446,
+  "full_input_frames": 12904,
+  "full_inferred_frames": 9365,
+  "preserved_files": 9708,
+  "training_performed": false,
+  "formal_splits_created": false,
+  "new_video_predicted_class_frames": {
+    "color_block": 86,
+    "rock_compact": 18,
+    "rock_spiky": 128
+  },
+  "legacy_attention_edge_candidates": 6
+}

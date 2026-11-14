@@ -1,0 +1,86 @@
+{
+  "r3_new2_predictions": [
+    [
+      3,
+      384,
+      640
+    ]
+  ],
+  "r3_go2_02_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_08_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_07_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_09_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_05_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_01_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_new1_predictions": [
+    [
+      3,
+      384,
+      640
+    ]
+  ],
+  "r3_go2_10_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_04_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_03_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ],
+  "r3_go2_06_predictions": [
+    [
+      3,
+      480,
+      640
+    ]
+  ]
+}

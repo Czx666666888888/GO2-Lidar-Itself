@@ -534,3 +534,14 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 - 主仓库入口转发实际集成模式，补齐PC校时包装器参数；原full/dock路径不改。12项针对性检查、单包构建、指定venv导入、launch参数及互斥检查通过。
 - 用户最新要求先完成代码；本轮无设备连接/实时预览/运动。D435定位误差、实时画面、到位距离/停止原因、单/多方块真实运行全部NOT VERIFIED。
 - 入口与限制：camera_ws/docs/color_block_map_approach.md；预览命令bash go2_test.sh --mode approach --preview --view。后续先静态误差核验，再另授权运动。
+
+
+## 第三轮YOLO候选数据（2026-11-15，不训练）
+
+- 远端起点cd6dc9c；实际找到4段新手机视频及10段历史GO2 raw，完整解码9787+3117=12904帧。用户确认手机不同场景/独立拍摄会话；相近水泥背景的外推限制仍保留。
+- 第1/2段及历史9365帧V2离线推理，仅辅助筛选；第3/4段不推理留出。最终446候选=310训练候选+50验证候选+86最终测试候选，不建立正式split。
+- 历史130图逐图质量预览，21张可辨模糊方块且运动日志支持；5张边界不清uncertain排除送标；旧20张人工标签复制复用不再送标。
+- 优先CVAT包305图：round3_priority_batch_001.zip153张、batch_002.zip152张，位于vision_training/annotations/science_targets_round3；原尺寸，仅图片、无预测标签/自动negative。类别固定0block/1compact/2spiky。
+- 新训练视频模型提示compact18张/spiky128张，真实类别数量Unknown待人工确认；预测小目标17张/边缘93张也不是GT。第3/4段136图不推理、不送当前优先包；旧B57仍是开发验证非最终test。
+- 446张原视频重新解码/hash/尺寸核验、ZIP完整性及9项针对性检查通过；9708个保护文件未变，不改600合成、335真实、19pending、旧20标签或V1/V2模型。
+- 代码/统计/少量预览见vision_training/reports/science_targets_round3/README.md；原视频、批量图和ZIP留本机。本轮无训练、部署、ROS/运动/抓取；新GT类别/正式划分/V3性能NOT VERIFIED。

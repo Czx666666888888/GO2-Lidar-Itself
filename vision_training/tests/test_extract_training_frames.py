@@ -137,3 +137,14 @@ def test_shared_capture_group_does_not_imply_independent_scenes(tmp_path):
     assert {r['group'] for r in rows}=={'unverified_scene'}
     assert all((root/r['image']).is_file() for r in rows)
     assert verify(root)['images']==len(rows)
+
+
+def test_audit_extraction_can_skip_packages_without_losing_timeline(tmp_path):
+    config,_=fixture_config(tmp_path)
+    root=tmp_path/'audit_only'
+    result=extract(config,root,make_packages=False)
+    assert result['images']>0 and result['zip_count']==0
+    assert not (root/'cvat_packages').exists()
+    report=verify(root)
+    assert report['source_frame_content_checks']==result['images']
+    assert report['zip_images_match_manifest'] is None

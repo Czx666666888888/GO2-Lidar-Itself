@@ -1,0 +1,19 @@
+names: [color_block, rock_compact, rock_spiky]
+imgsz: 640
+confidence: 0.10
+nms_iou: 0.45
+# Quotas are upper targets, never a reason to accept duplicates.
+new_videos:
+  - {id: r3_new1, filename: e057c20fe375b09e167558519c87cdc1.mp4, count: 90, role: train_candidate, inference: true, capture_group: phone_round3_scene_1}
+  - {id: r3_new2, filename: 600de715a46f6849e2bc8096c9754fa8.mp4, count: 90, role: train_candidate, inference: true, capture_group: phone_round3_scene_2}
+  - {id: r3_new3, filename: 34bc68fd1b0ed9fc6aadbd3099a03b3f.mp4, count: 50, role: validation_candidate, inference: false, capture_group: phone_round3_scene_3}
+  - {id: r3_new4, filename: 55bd8a6e98c0bd790f966933e0a2b8aa.mp4, count: 90, role: final_test_candidate, inference: false, capture_group: phone_round3_scene_4}
+source_confirmation: '用户2026-11-15确认：手机不同场景；是否与旧场景相同仍通过预览核对。'
+historical:
+  count: 130
+  capture_group: lab_floor_20261108_09
+  source_confirmation: '原D435录制器源码、既有数据来源manifest及对应RGB时间戳JSONL；HSV不是标注。'
+  priority:
+    - approach_20261109_203609_327607_raw.mp4
+    - approach_20261109_203226_883196_raw.mp4
+batch_size: 160

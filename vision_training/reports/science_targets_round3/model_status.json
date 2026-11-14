@@ -1,0 +1,10 @@
+{
+  "path": "vision_training/runs/science_targets_mixed_v2/baseline/weights/best.pt",
+  "sha256": "e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1",
+  "training": "Existing V2 only; no training performed",
+  "names": [
+    "color_block",
+    "rock_compact",
+    "rock_spiky"
+  ]
+}

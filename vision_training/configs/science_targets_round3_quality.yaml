@@ -1,0 +1,32 @@
+basis: Assistant visual quality review of all 130 full-frame/crop gallery panels;
+  HSV crop hints are not boxes or GT
+visually_blurred_recognizable_blocks:
+- r3_go2_02_f0000145.jpg
+- r3_go2_02_f0000153.jpg
+- r3_go2_02_f0000161.jpg
+- r3_go2_04_f0000143.jpg
+- r3_go2_05_f0000024.jpg
+- r3_go2_05_f0000085.jpg
+- r3_go2_05_f0000189.jpg
+- r3_go2_07_f0000180.jpg
+- r3_go2_07_f0000188.jpg
+- r3_go2_07_f0000196.jpg
+- r3_go2_07_f0000220.jpg
+- r3_go2_08_f0000162.jpg
+- r3_go2_08_f0000174.jpg
+- r3_go2_08_f0000182.jpg
+- r3_go2_08_f0000202.jpg
+- r3_go2_08_f0000210.jpg
+- r3_go2_08_f0000384.jpg
+- r3_go2_09_f0000320.jpg
+- r3_go2_10_f0000259.jpg
+- r3_go2_10_f0000279.jpg
+- r3_go2_10_f0000287.jpg
+uncertain_boundary:
+- r3_go2_07_f0000228.jpg
+- r3_go2_09_f0000106.jpg
+- r3_go2_09_f0000140.jpg
+- r3_go2_10_f0000125.jpg
+- r3_go2_10_f0000133.jpg
+note: Quality triage only, not complete annotation or negative review; all other candidates
+  remain pending

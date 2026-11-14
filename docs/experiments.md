@@ -147,3 +147,15 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 原控制器、Manager、转换器实现及camera_origin/0.10m配置未改，hash证据见camera_ws/docs/evidence/color_block_interface/unchanged_integration_controls.json。新增集成approach分支，不启动S1/抓取，不改full/dock功能。
 - 用户改为先完成代码，本轮不连接设备/预览/运动；没有相机/MAP实测坐标、停车距离或物理停止结论。上述真机项均NOT VERIFIED；后续先静态误差检查再另授权单方块、多方块。
 - 完整命令、数据路径和失检ODOM行为：camera_ws/docs/color_block_map_approach.md。早于build的参数检查及默认只读ROS日志目录检查失败，build完成并指定/tmp日志后解析通过。
+
+
+## 2026-11-15：第三轮YOLO候选数据审计与CVAT包
+
+- 起点cd6dc9c；4新手机视频9787帧、10历史GO2 raw3117帧，合计12904完整解码，10段对应JSONL帧号完整。
+- 第1/2段与历史原始9365帧离线V2推理，imgsz640/conf.10，实际新视频384×640、raw480×640；逐帧记录而非去重序列连续性。预测不是GT；第3/4段未推理。
+- 最终446候选，训练候选310/验证候选50/最终测试候选86，无正式划分；历史130图中的21张目视可辨模糊且有运动日志，另5uncertain不送标。
+- 已标20蓝方块框复制复用（其它类完整性待查）；中间候选排除6个相同已标源帧、63个旧标签邻近帧，最终无335/20/19pending重复；不把邻近帧全称精确重复。
+- 305图图片ZIP=153+152，路径vision_training/annotations/science_targets_round3；类0color_block/1rock_compact/2rock_spiky。真实compact/spiky新增量Unknown；新视频预测提示18/128帧，不是确认标签。
+- 446图独立源帧重解码/JPEG/hash/原尺寸、ZIP完整性、9708原文件保护及9项针对性检查通过；原视频和权重未改。
+- 数据/预览/说明：vision_training/reports/science_targets_round3/README.md；完整抽帧/时间线/矿选记录在datasets/science_targets_round3_candidates。第3/4段独立性来自用户确认会话，背景相似限制仍记载。
+- 证据等级：源文件实际解码、离线预测、图片质量目视审查和用户来源确认；不是GT框/负样本审核。没有训练、正式split或机器人操作，V3效果NOT VERIFIED。

@@ -38,3 +38,8 @@ datasets/science_targets_round2_reviewed_v2/
 !reports/science_targets_mixed_v2/round2_review.csv
 !reports/science_targets_mixed_v2/pending_19.csv
 !reports/science_targets_mixed_v2/results.csv
+
+# Round-three originals, full inference timelines and bulk candidates stay local.
+datasets/science_targets_round3_candidates/
+reports/science_targets_round3/local_audit_previews/
+!reports/science_targets_round3/review.csv

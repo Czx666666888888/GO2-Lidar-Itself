@@ -1,0 +1,29 @@
+{
+  "selected": 446,
+  "sources": {
+    "r3_new1": 90,
+    "r3_new2": 90,
+    "r3_new3": 50,
+    "r3_new4": 86,
+    "r3_go2_01": 8,
+    "r3_go2_02": 10,
+    "r3_go2_03": 11,
+    "r3_go2_04": 13,
+    "r3_go2_05": 12,
+    "r3_go2_06": 9,
+    "r3_go2_07": 9,
+    "r3_go2_08": 42,
+    "r3_go2_09": 8,
+    "r3_go2_10": 8
+  },
+  "roles": {
+    "train_candidate": 310,
+    "validation_candidate": 50,
+    "final_test_candidate": 86
+  },
+  "duplicate_exclusions": {
+    "already_annotated_source_frame": 6,
+    "legacy_label_temporal_neighbour_not_exact_duplicate": 63,
+    "temporal_neighbour_selection_attempts": 271
+  }
+}

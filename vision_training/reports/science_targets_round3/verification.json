@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "targeted_tests": 9,
+  "original_decode_frames": 12904,
+  "inferred_contiguous_frames": 9365,
+  "independent_selected_frame_checks": 446,
+  "zip_images": 305,
+  "zip_count": 2,
+  "zip_crc_decode_hash_unique": "PASS",
+  "protected_files": 9708,
+  "old_data_and_weights_unchanged": true,
+  "labels_generated_from_predictions": 0,
+  "negative_labels_created": 0,
+  "training_performed": false,
+  "new_formal_splits": false
+}
