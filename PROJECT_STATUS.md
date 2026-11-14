@@ -1,5 +1,18 @@
 # Project Status
 
+## 2026-11-14 修复S1进程清单误报历史版本
+
+用户full日志在connection_and_inventory阶段拒绝/home/unitree，未进入导航/姿态/抓取。
+源码确认原pgrep按整条命令行匹配，而SSH检查代码自身包含左侧脚本名称，可能匹配其外层shell；
+同时原版本判断用cwd，绝对路径启动的真实v2服务也可能被误报。
+现按/proc读取Python实际脚本操作数，排除shell、python -c/-m和其他脚本参数中的名称；
+相对入口结合cwd解析，绝对入口直接解析，按真实scripts父目录判断v1/v2。
+仍拒绝真实旧版/多所有者/不一致端口，未删除安全检查，未停止任何进程或重启机械臂。
+42项针对性离线检查、语法/关键lint/diff通过；远端执行完全相同的只读清单返回
+arm=[]、task=[]、camera=[]、USB0唯一存在、D435/D455枚举正常，无历史S1进程。
+原始清单：本机camera_ws/records/s1_v2_inventory_fix_20261114/inventory.json。
+本轮没有运行dock/full，运动、自动回零及抓取效果仍NOT VERIFIED。
+
 ## 2026-11-14 S1 v2 已真实部署及右侧零位启动
 
 来源：ce20ba909dbe最新Push、用户原ZIP、远端部署输出、真实串口/Socket/相机记录。

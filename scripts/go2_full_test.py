@@ -68,6 +68,66 @@ def remote(command, **kwargs):
     return run([*SSH, HOST, command], timeout=kwargs.pop('timeout',20), **kwargs)
 
 
+INVENTORY_SCRIPT = r"""
+import json, os, subprocess
+from pathlib import Path
+import pyrealsense2 as r
+def pids(pattern):
+    out=subprocess.run(['pgrep','-f',pattern],capture_output=True,text=True)
+    return [int(x) for x in out.stdout.split()]
+def arm_entry(argv, cwd):
+    # Match the actual Python script operand, never text embedded in a shell/-c command.
+    if not argv or not Path(argv[0]).name.startswith('python'):
+        return None
+    for value in argv[1:]:
+        if value in ('-c', '-m'):
+            return None
+        if value.startswith('-'):
+            continue
+        if Path(value).name not in ('run_arm_integration.py', 'run_go2_left_grasp.py'):
+            return None
+        path=Path(value)
+        return (path if path.is_absolute() else Path(cwd)/path).resolve()
+    return None
+arm=[]
+entries={}
+arguments={}
+for proc in Path('/proc').iterdir():
+    if not proc.name.isdigit():continue
+    try:
+        argv=proc.joinpath('cmdline').read_bytes().decode().split('\0')
+        entry=arm_entry(argv,proc.joinpath('cwd').resolve())
+    except (OSError,UnicodeError):
+        continue  # Process exited during read-only enumeration.
+    if entry is not None:
+        pid=int(proc.name);arm.append(pid);entries[pid]=entry;arguments[pid]=argv
+arm_devices=[]
+arm_modes=[]
+arm_roots=[]
+for pid in arm:
+    argv=arguments[pid]
+    device='/dev/ttyUSB0'  # Original service parser default.
+    for index, value in enumerate(argv):
+        if value=='--dev': device=argv[index+1]
+        elif value.startswith('--dev='): device=value.split('=',1)[1]
+    opened=set()
+    for fd in (Path('/proc')/str(pid)/'fd').iterdir():
+        try:
+            target=os.readlink(fd).removesuffix(' (deleted)')
+            if target in ('/dev/ttyUSB0','/dev/ttyUSB1'): opened.add(target)
+        except OSError: pass
+    if len(opened)==1: device=next(iter(opened))
+    arm_devices.append(device)
+    arm_modes.append('left' if entries[pid].name=='run_go2_left_grasp.py' else 'right')
+    arm_roots.append(str(entries[pid].parent.parent))
+print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, arm_roots=arm_roots, task=pids('[s]1_task_host.py'),
+    camera=pids('[r]ealsense2_camera_node'),
+    serial_devices=[device for device in ('/dev/ttyUSB0','/dev/ttyUSB1') if Path(device).exists()],
+    cameras=[d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()],
+    router=subprocess.run(['systemctl','is-active','--quiet','go2-remote-router.service']).returncode==0)))
+"""
+
+
 def select_arm_device(devices, running_devices):
     candidates = [device for device in ARM_DEVICES if device in devices]
     if len(candidates) != 1:
@@ -505,40 +565,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                                   capture_output=True,text=True)
             if active.returncode != 1:
                 raise RuntimeError('已有控制任务，拒绝并行启动: '+active.stdout)
-            inventory_script = r"""
-import json, os, subprocess
-from pathlib import Path
-import pyrealsense2 as r
-def pids(pattern):
-    out=subprocess.run(['pgrep','-f',pattern],capture_output=True,text=True)
-    return [int(x) for x in out.stdout.split()]
-arm=pids('[r]un_arm_integration.py') + pids('[r]un_go2_left_grasp.py')
-arm_devices=[]
-arm_modes=[]
-arm_roots=[]
-for pid in arm:
-    argv=(Path('/proc')/str(pid)/'cmdline').read_bytes().decode().split('\0')
-    device='/dev/ttyUSB0'  # Original service parser default.
-    for index, value in enumerate(argv):
-        if value=='--dev': device=argv[index+1]
-        elif value.startswith('--dev='): device=value.split('=',1)[1]
-    opened=set()
-    for fd in (Path('/proc')/str(pid)/'fd').iterdir():
-        try:
-            target=os.readlink(fd).removesuffix(' (deleted)')
-            if target in ('/dev/ttyUSB0','/dev/ttyUSB1'): opened.add(target)
-        except OSError: pass
-    if len(opened)==1: device=next(iter(opened))
-    arm_devices.append(device)
-    arm_modes.append('left' if any('run_go2_left_grasp.py' in a for a in argv) else 'right')
-    arm_roots.append(str((Path('/proc')/str(pid)/'cwd').resolve()))
-print(json.dumps(dict(arm=arm, arm_devices=arm_devices, arm_modes=arm_modes, arm_roots=arm_roots, task=pids('[s]1_task_host.py'),
-    camera=pids('[r]ealsense2_camera_node'),
-    serial_devices=[device for device in ('/dev/ttyUSB0','/dev/ttyUSB1') if Path(device).exists()],
-    cameras=[d.get_info(r.camera_info.serial_number) for d in r.context().query_devices()],
-    router=subprocess.run(['systemctl','is-active','--quiet','go2-remote-router.service']).returncode==0)))
-"""
-            inventory=json.loads(remote(shlex.join([ARM_PY,'-c',inventory_script]),
+            inventory=json.loads(remote(shlex.join([ARM_PY,'-c',INVENTORY_SCRIPT]),
                                         capture_output=True,text=True).stdout)
             if inventory['task']:
                 raise RuntimeError('远端抓取任务仍在运行')
