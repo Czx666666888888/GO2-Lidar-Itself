@@ -708,7 +708,7 @@ class ApproachControl:
                         if _hard or not _near:
                             desired = 0.0
                         else:
-                            desired = min(desired, 0.03)  # 3 cm/s creep + wz correction
+                            desired = min(desired, 0.2)  # keep approaching while wz corrects yaw
                     if brake >= clearance:
                         desired = min(desired, max(0.0, speed - a * dt))
                     self.vx = min(desired, self.vx + self.p.max_acceleration * dt)
