@@ -2,6 +2,20 @@
 
 ## 2026-11-14 修复零位恢复后导航许可锁存
 
+### 本轮授权后的实际部署结果
+
+用户确认可靠支撑、空间无干涉、急停在手，授权仅S1升级及安全重启。
+旧PID3365已空闲/零位/通信正常，按原SIGTERM流程正常退出；确认USB0释放后升级。
+兼容层v2_usb01_feedback_2已部署，新右侧PID5633唯一占用USB0。
+启动时已在原容差内，日志STARTUP_ZERO_SKIPPED_ALREADY_AT_ZERO；未执行非零位回零。
+连续12次真实Socket采样均ZERO_HOLD、busy=false、at_zero=true、navigation_allowed=true、
+communication_state=OK；最大关节绝对偏差0.0268944rad。旧状态许可false的阻塞已解除。
+保留新版保持服务；未启动GO2行走、趴下或抓取，full仍未实机验收。
+证据本机camera_ws/records/s1_nav_recovery_9448301/（before.json、after_samples.json），
+运行日志camera_ws/records/s1_nav_recovery_9448301_run.log。
+采样SHA256：`b327eeddf782d5af1c64ef5e81eb8a763458d59c039e4df181f30c1c2af948e1`。超限后再次恢复的连续硬件过程未人为制造，已由离线回归覆盖。
+
+
 来源：用户异常输出、原Socket只读状态和适配源码。J1先为-0.0803009rad（超过0.08rad），
 随后已回到-0.0268944rad，at_zero=true、readiness_state=ZERO_HOLD且通信正常，
 但navigation_allowed仍false。根因为snapshot只在超限时写false，恢复后不重算true。
