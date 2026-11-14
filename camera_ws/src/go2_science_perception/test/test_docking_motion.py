@@ -168,3 +168,40 @@ def test_arrival_exception_does_not_bypass_odometry_budget():
     out = c.step(10.5)
     assert out['state'] == 'FAULT'
     assert 'odometry continuation limit' in out['reason']
+
+
+@pytest.mark.parametrize('profile', ['science_grasp_docking.yaml',
+                                     'science_grasp_docking_left.yaml'])
+def test_deployed_profiles_continue_map_docking_without_visual_age_fault(profile):
+    from pathlib import Path
+    import yaml
+    p = Path(__file__).parents[1]/'config'/profile
+    settings = yaml.safe_load(p.read_text())['science_target_approach']['ros__parameters']
+    c = dock_core((.42, 0.))
+    c.docking = GraspDocking(DockSettings(
+        visual_loss_stop_sec=settings['dock_visual_loss_stop_sec']))
+    c.visual_time = 0.
+    out = c.step(10.5)
+    assert out['state'] == 'APPROACH_TO_GRASP_POSE'
+    assert out['vx'] > 0.
+    assert c.docking.visual_settle_started is None
+    # The retained budget still stops a blind continuation at 5m.
+    c.odom_travel = 5.
+    tick(c, 10.6, c.robot[:2])
+    out = c.step(10.6)
+    assert out['state'] == 'FAULT'
+    assert out['reason'] == 'odometry continuation limit'
+
+
+def test_map_docking_can_finish_with_old_visual_only_after_actual_settling():
+    c = arrival_core()
+    c.docking = GraspDocking(DockSettings(position_tolerance=.06,
+        settle_exit_tolerance=.08, stable_window_sec=.5, visual_loss_stop_sec=0.))
+    c.visual_time = 0.
+    for i in range(8):
+        t = 10.501+i*.1
+        tick(c, t, c.robot[:2])
+        out = c.step(t)
+        assert out['vx'] == out['vy'] == out['wz'] == 0.
+    assert out['state'] == 'STOP'
+    assert out['grasp_docking_complete']

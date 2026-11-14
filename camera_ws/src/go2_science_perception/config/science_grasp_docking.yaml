@@ -21,7 +21,7 @@ science_target_approach:
     dock_motion_noise_m: 0.02
     dock_stable_window_sec: 0.5
     dock_settle_exit_confirm_sec: 0.3
-    dock_visual_loss_stop_sec: 3.0
+    dock_visual_loss_stop_sec: 0.0  # Locked MAP docking: retain 5m budget, no visual-age fault.
     dock_position_tolerance: 0.06  # User-approved 2026-11-14: accept 4-6cm, not arm reachability.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_settled_sec: 0.5
