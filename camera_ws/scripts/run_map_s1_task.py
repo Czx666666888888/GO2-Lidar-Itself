@@ -23,6 +23,7 @@ def arm_command(args, command):
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--execute', action='store_true')
+    p.add_argument('--preview-image', action='store_true', help='publish existing annotated debug image')
     p.add_argument('--full', action='store_true', help='after docking: StandDown/grasp/StandUp')
     p.add_argument('--grasp-side', choices=('right','left'), default='right')
     p.add_argument('--left-geometry-verified', action='store_true',

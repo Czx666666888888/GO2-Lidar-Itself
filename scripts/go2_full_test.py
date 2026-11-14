@@ -266,6 +266,9 @@ class Workflow:
         self.args = args
         self.work = args.work_dir.resolve()
         self.children = []
+        self.detector = ('hsv' if getattr(args, 'forward_response_check', False)
+                         else getattr(args, 'detector', 'yolo'))
+        self.vision_model = self.vision_python = None
         self.folder = ROOT / 'camera_ws/records' / ('full_' + str(time.time_ns()))
         self.overlay = self.work / '.onekey/install/setup.bash'
         self.env_prefix = ''
@@ -305,6 +308,11 @@ class Workflow:
                    '--timeout', str(timeout), '--scope', scope, '--report', str(target)]
         if require_target:
             command.append('--require-target')
+        if scope != 'native' and not getattr(self.args, 'forward_response_check', False):
+            command += ['--detector', self.detector]
+            if self.detector == 'yolo':
+                from go2_color_block_test import V2_SHA256
+                command += ['--model-sha256', V2_SHA256]
         with self.stage('probe_'+label):
             result = subprocess.run(self.shell(shlex.join(command)))
         if result.returncode not in (0, 2) or not target.exists():
@@ -313,6 +321,54 @@ class Workflow:
         if any('existing velocity controller' in error for error in report.get('errors',[])):
             raise RuntimeError('已有其他速度发布者，保留定位并拒绝新任务')
         return report
+
+    def configure_vision(self):
+        """Validate model identity before S1 initialization or any navigation."""
+        if getattr(self.args, 'view', False) and not os.environ.get('DISPLAY'):
+            raise RuntimeError('--view需要桌面DISPLAY；无桌面时去掉--view')
+        from go2_color_block_test import detector_assets, V2_SHA256
+        from types import SimpleNamespace
+        assets = SimpleNamespace(detector=self.detector,
+            model_path=getattr(self.args, 'model_path', None),
+            python_executable=getattr(self.args, 'python_executable', None))
+        self.vision_model, self.vision_python = detector_assets(assets, self.work)
+        path = self.folder/'manifest.json'
+        data = json.loads(path.read_text())
+        data.update(detector=self.detector, view=bool(getattr(self.args, 'view', False)),
+                    model=str(self.vision_model) if self.detector == 'yolo' else None,
+                    model_sha256=V2_SHA256 if self.detector == 'yolo' else None)
+        path.write_text(json.dumps(data, indent=2)+'\n')
+        if self.detector == 'yolo':
+            for key, value in dict(OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1',
+                    YOLO_CONFIG_DIR=str(self.folder/'ultralytics'),
+                    MPLCONFIGDIR=str(self.folder/'matplotlib')).items():
+                self.env_prefix += 'export '+key+'='+shlex.quote(value)+'; '
+
+    def perception_command(self):
+        command = ['ros2', 'launch', 'go2_science_perception',
+                   'd435_slam_target_validation.launch.py', 'remote_camera:=true',
+                   'use_rviz:=false', 'detector:='+self.detector]
+        if self.detector == 'yolo':
+            command += ['yolo_model:='+str(self.vision_model),
+                        'yolo_python:='+str(self.vision_python)]
+        return command
+
+    def task_command(self):
+        command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
+                   '--grasp-side', self.args.grasp_side, '--search-distance', '5', '--search-timeout', '60']
+        if getattr(self.args, 'forward_response_check', False):
+            command += ['--forward-response-check', '--response-distance-limit',
+                        str(getattr(self.args, 'response_distance_limit', .20))]
+        if getattr(self.args, 'view', False):
+            command.append('--preview-image')
+        if not (os.environ.get('DISPLAY') and shutil.which('gnome-terminal')):
+            command.append('--no-log-terminal')
+        if self.args.mode == 'full':
+            profile = self.work/'camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json'
+            command += ['--full', '--posture-profile', str(profile)]
+            if getattr(self.args, 'left_geometry_verified', False):
+                command.append('--left-geometry-verified')
+        return command
 
     def deploy_s1(self):
         # Only called while the single-owner service is absent. Never hot-patch it.
@@ -412,7 +468,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
 
     def healthy(self):
         for p, _, name in self.children:
-            if p.poll() is not None:
+            if p.poll() is not None and name != 'viewer':
                 raise RuntimeError(f'{name} 已退出({p.returncode})，查看 {self.folder}')
 
     def wait_job(self, p):
@@ -563,6 +619,8 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             self.prepare()
             run(['bash',self.work/'camera_ws/scripts/run_go2_time_diagnostic.sh','--prepare-only'])
             self.env_prefix += 'source '+shlex.quote(str(self.work/'.time_sync/install/setup.bash'))+' || exit; '
+            if not self.args.startup_check and not getattr(self.args, 'forward_response_check', False):
+                self.configure_vision()
         with self.stage('connection_and_inventory'):
             route=subprocess.check_output(['ip','route','get','192.168.123.18'],text=True)
             if 'dev enp12s0' not in route or 'src 192.168.123.99' not in route:
@@ -605,6 +663,10 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                 else:
                     self.ensure_s1(bool(inventory['arm']), arm_device, inventory['arm_modes'])
             existing=pending.result()
+        if (existing.get('slam_ok') and not getattr(self.args, 'forward_response_check', False)
+                and existing.get('detector_mode') != self.detector):
+            raise RuntimeError('现有检测器与请求不一致，保留会话；先退出旧会话再切换: '+
+                               str(existing.get('detector_mode'))+' requested='+self.detector)
         if not existing['native_ok']:
             raise RuntimeError('原生雷达不健康，不启动定位/运动: '+str(existing))
         with self.stage('camera_clock_and_chain'):
@@ -617,8 +679,9 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             if not inventory['camera']:
                 try:
                     verify_clock([*SSH,HOST,shlex.join(['/usr/bin/python3','-u','-c',CLOCK_RESPONDER])])
-                except RuntimeError:
+                except ClockOffsetError:
                     run(['/usr/bin/python3',self.work/'camera_ws/scripts/sync_go2_clock.py'])
+                    verify_clock([*SSH,HOST,shlex.join(['/usr/bin/python3','-u','-c',CLOCK_RESPONDER])])
                 remote('mkdir -p '+REMOTE)
                 run(['scp','-i',KEY,'-o','BatchMode=yes',
                      self.work/'camera_ws/scripts/launch_go2_d435_foxy.sh',HOST+':'+REMOTE+'/'])
@@ -626,8 +689,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                            REMOTE+'/launch_go2_d435_foxy.sh'])],'camera',stdin=subprocess.PIPE)
             if not existing['slam_ok']:
                 self.stop_invalid_localization()
-                command=['ros2','launch','go2_science_perception','d435_slam_target_validation.launch.py',
-                         'remote_camera:=true','use_rviz:=false']
+                command=self.perception_command()
                 self.spawn(self.shell(shlex.join(command)),'slam')
             else:
                 print('REUSE Point-LIO/base/IMU mapping/TF',flush=True)
@@ -644,8 +706,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             if not result['ready'] and not result['slam_ok']:
                 print('INVALID_TIME_OR_LOCALIZATION: 重建本次定位会话一次，不复用offset',flush=True)
                 self.stop_invalid_localization()
-                command=['ros2','launch','go2_science_perception','d435_slam_target_validation.launch.py',
-                         'remote_camera:=true','use_rviz:=false']
+                command=self.perception_command()
                 self.spawn(self.shell(shlex.join(command)),'slam')
                 result=self.probe('pre_motion_reinitialized',timeout=30,scope='chain',require_target=require_target)
             if not result['ready']:
@@ -660,19 +721,10 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                      HOST+':'+REMOTE+'/'])
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
-        command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
-                   '--grasp-side', self.args.grasp_side, '--search-distance', '5', '--search-timeout', '60']
-        if getattr(self.args, 'forward_response_check', False):
-            command += ['--forward-response-check', '--response-distance-limit',
-                        str(getattr(self.args, 'response_distance_limit', .20))]
-        if not (os.environ.get('DISPLAY') and shutil.which('gnome-terminal')):
-            command.append('--no-log-terminal')
-        if self.args.mode == 'full':
-            profile = self.work/'camera_ws/src/go2_science_perception/config'/(
-                'science_s1_posture_go2_20261112.json')
-            command += ['--full', '--posture-profile', str(profile)]
-            if self.args.left_geometry_verified:
-                command.append('--left-geometry-verified')
+        command = self.task_command()
+        if getattr(self.args, 'view', False):
+            self.spawn(self.shell('ros2 run rqt_image_view rqt_image_view '
+                                  '/science/approach/debug_image'), 'viewer')
         print('开始真实运动；Ctrl+C请求停止。物理遥控急停保持可用。', flush=True)
         task = subprocess.Popen(self.shell(shlex.join(command)))
         try:
@@ -717,6 +769,10 @@ def main():
                         help='确认路线空旷、急停在手、S1初始位和支撑已核对；执行真实运动')
     parser.add_argument('--mode', choices=['full', 'dock'], default='full')
     parser.add_argument('--grasp-side', choices=['right','left'], default='right')
+    parser.add_argument('--detector', choices=['yolo','hsv'], default='yolo')
+    parser.add_argument('--view', action='store_true')
+    parser.add_argument('--model-path', type=Path)
+    parser.add_argument('--python-executable', type=Path)
     parser.add_argument('--forward-response-check', action='store_true')
     parser.add_argument('--response-distance-limit', type=float, default=.20)
     parser.add_argument('--work-dir', type=Path, default=Path('/tmp/go2_onekey_s1'))
@@ -746,7 +802,7 @@ def main():
         print('离线计划（未连接硬件、未写文件）：\n'
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
-              'SEARCH 5m/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
+              '检测器='+args.detector+' → SEARCH 5m/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
               (' → 趴下 → S1抓取 → ZERO_HOLD → 起立' if args.mode == 'full' else '') +
               '\n真实执行：bash go2_test.sh --execute\n'
               '无自动避障；退出保留S1保持服务。完整流程真机验收：NOT VERIFIED。')

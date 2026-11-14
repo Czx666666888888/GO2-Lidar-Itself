@@ -1,5 +1,21 @@
 # GO2 实机测试命令手册（中文，从接线到关闭）
 
+## 当前统一完整入口：YOLO→停靠→趴下→抓取→起立
+
+PC原入口默认full/dock使用本地V2 YOLO；无需先运行approach。确认现场运动/支撑条件后：
+
+```bash
+bash go2_test.sh --execute --mode full --view
+```
+
+--view显示原录制器叠加画面；无桌面去掉--view。若确需旧HSV，可显式追加--detector hsv，
+必须先退出旧会话，不能同时运行两种检测器。原健康同侧S1服务直接复用。
+流程是YOLO类0方块/RGB-D→MAP/目标管理→SEARCH→STOP_CONFIRM→抓取位姿停靠→STOP→
+释放导航→StandDown确认→S1抓取→ZERO_HOLD→StandUp确认。
+终验仍为<=6cm/10度/实际停稳0.5秒；短步参数是用户批准的估算试用，未冒充精细标定。
+--mode approach --view依然只接近方块到camera XY10cm，不调用S1；它不是full的前置步骤。
+本轮仅完成软件检查和构建，未由助手运行完整实机流程。
+
 ## approach --view重启后对时恢复（2026-11-14）
 
 ```bash

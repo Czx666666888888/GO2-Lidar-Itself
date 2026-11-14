@@ -1,5 +1,41 @@
 # Project Status
 
+## 2026-11-14 YOLO贯通原S1完整流程（软件接入）
+
+最新Push基线45e1391。此前approach独立YOLO接口绕过S1，而full仍使用launch默认HSV；
+用户要求“这些都串起来”，本轮将YOLO接入原full编排，不以approach的10cm停车替代抓取停靠。
+
+当前PC默认full/dock使用yolo，可显式--detector hsv；approach仍为仅视觉接近、无S1动作。
+本地V2权重/venv路径和SHA校验提取为共用函数，full在S1准备前校验同一份模型，
+实核模型e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1，未下载新权重。
+PC时间包装器完整转发detector/view/model-path/python-executable；full正常支持--view，
+沿用原录制器preview-image和debug_image，关闭可选viewer不触发控制任务错误。
+--local-camera仍只属于approach，full/dock沿用伴随主机D435；本机aarch64流程未改。
+
+full启动及失败后原有定位重建两条路径均显式传detector/yolo_model/yolo_python，
+仅class0方块、同源RGB-D/实测ROI/精确时间TF→原目标Manager→原SEARCH/STOP_CONFIRM→
+抓取位姿停靠→STOP→导航控制权释放→原StandDown反馈确认→S1右侧抓取→ZERO_HOLD→StandUp。
+S1启动/复用、串口唯一所有者、姿态反馈、原抓取轨迹与串口协议均保留，未改Point-LIO、时间映射。
+停靠仍是用户批准<=6cm/10度/实际停稳0.5秒，继续原明确未验证的估算短步参数；
+不会因YOLO接入而改成approach的camera XY10cm或绕过STOP/导航释放条件。
+
+启动探针扩展已有就绪检查：核对实际detector节点、连续新鲜有效输出、YOLO运行时V2模型hash。
+健康会话仅在detector一致时复用；混合HSV/YOLO或请求不一致保留现场并要求先退出旧会话，
+不热切换、不并行开两套正式目标发布者。full SEARCH可在无目标时开始，但检测器必须已有有效帧输出；
+dock仍需原新鲜CONFIRMED目标。独立响应检查不加载YOLO或执行抓取。
+复用full原连续定位/TF预检，不使用approach固定3秒等待作为full就绪依据。
+伴随冷启动对时成功后再次严格verify_clock，不放宽50ms/200ms检查，也不把网络错误当时钟回退。
+
+验证：45项入口/转发/复用接口/时钟模拟检查及9项目标选择/适配/S1序列检查通过，
+共54项针对性检查；Python/Bash语法、关键lint/diff通过。
+full--view离线计划及S1任务离线计划通过，明确包含StandDown/抓取/ZERO_HOLD/StandUp；
+真实V2本地文件hash已验证（未加载推理或硬件）。原感知单包构建到full使用的.onekey overlay成功，
+YOLO/选择器/适配器/停靠/短步/S1序列及launch安装文件逐字节一致，launch--show-args解析通过。
+原full构建指纹已更新，不因文档提交重复构建；未构建全仓库。
+本轮未启动相机/定位运行节点、未连接机器人、未使能S1、未行走/趴下/抓取。
+本轮结论为软件串联完成，YOLO+停靠+机械臂完整实机效果NOT VERIFIED。
+
+
 ## 2026-11-14 approach一键入口对时恢复
 
 最新Push基线ea1b127（独立YOLO/HSV方块接近模式）。用户日志offset=-132031297.091764秒、

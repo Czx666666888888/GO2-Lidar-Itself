@@ -96,6 +96,13 @@ def main():
                             str(args.response_distance_limit)]
             if args.work_dir is not None:
                 command += ['--work-dir',str(args.work_dir)]
+            if args.mode != 'approach':
+                command += ['--detector', args.detector]
+                if args.view: command.append('--view')
+                if args.model_path: command += ['--model-path',str(args.model_path)]
+                if args.python_executable: command += ['--python-executable',str(args.python_executable)]
+                if args.local_camera:
+                    raise RuntimeError('--local-camera只用于approach；full/dock沿用GO2伴随主机相机')
             if args.mode == 'approach':
                 command = ['bash',str(ROOT/'go2_test.sh'),'--execute','--mode','approach',
                            '--detector',args.detector,'--timeout',str(args.timeout)]

@@ -1,5 +1,14 @@
 # Tasks
 
+## 2026-11-14 YOLO完整抓取链
+
+- [x] 共用V2模型/venv/SHA，默认full/dock选择YOLO，显式HSV可保留。
+- [x] 外层时间包装器贯通detector/view及模型参数；full录制器显示和S1交接相连。
+- [x] 两条感知启动路径、实际检测器/运行模型/连续输出预检，异类会话不混用。
+- [x] 原SEARCH/STOP_CONFIRM/6cm停靠/导航释放/趴下/S1抓取/回零保持/起立算法均复用。
+- [x] 54项针对性软件检查、单包构建/安装一致性、launch参数解析，无硬件执行。
+- 验证边界：已完成软件接入；完整YOLO+S1真机运行NOT VERIFIED，不在本轮自行运动。
+
 ## 2026-11-14 approach时钟入口
 
 - [x] 核对ea1b127最新Push、用户失败日志及远端只读date/uptime。

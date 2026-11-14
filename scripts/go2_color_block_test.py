@@ -34,6 +34,20 @@ def arguments(argv=None):
     return args
 
 
+def detector_assets(args, root=ROOT):
+    """Resolve the same local V2 assets for approach, dock and full."""
+    data_root = Path(os.environ.get('GO2_VISION_ROOT',
+        str((root/'camera_ws/records').resolve().parents[1])))
+    model = getattr(args, 'model_path', None) or data_root/'vision_training/runs/science_targets_mixed_v2/baseline/weights/best.pt'
+    python = getattr(args, 'python_executable', None) or data_root/'vision_training/.venv/bin/python'
+    if args.detector == 'yolo':
+        if not python.is_file() or not model.is_file():
+            raise RuntimeError('Missing local V2 weights/venv; use GO2_VISION_ROOT or explicit paths')
+        if hashlib.sha256(model.read_bytes()).hexdigest() != V2_SHA256:
+            raise RuntimeError('Model differs from verified science_targets_mixed_v2 best.pt')
+    return model, python
+
+
 def main(argv=None):
     args = arguments(argv)
     if not args.preview and not args.execute:
@@ -45,15 +59,7 @@ def main(argv=None):
               '真实运动：bash go2_test.sh --mode approach --execute --view\n'
               'HSV回退：同命令追加 --detector hsv（先退出原会话）；不自动切换检测器。')
         return
-    data_root = Path(os.environ.get('GO2_VISION_ROOT',
-        str((ROOT/'camera_ws/records').resolve().parents[1])))
-    model = args.model_path or data_root/'vision_training/runs/science_targets_mixed_v2/baseline/weights/best.pt'
-    python = args.python_executable or data_root/'vision_training/.venv/bin/python'
-    if args.detector == 'yolo':
-        if not python.is_file() or not model.is_file():
-            raise RuntimeError('Missing local V2 weights/venv; use GO2_VISION_ROOT or explicit paths')
-        if hashlib.sha256(model.read_bytes()).hexdigest() != V2_SHA256:
-            raise RuntimeError('Model differs from verified science_targets_mixed_v2 best.pt')
+    model, python = detector_assets(args)
     # The original full/dock runner uses this same lock; never run both owners.
     with open('/tmp/go2_full_test.lock', 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

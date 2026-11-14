@@ -1,5 +1,15 @@
 # 单类别YOLO方块接近接口
 
+## 最新：YOLO已接入原full/S1编排
+
+PC默认full/dock现已显式选择YOLO，共用本页V2权重、venv及模型hash。
+`bash go2_test.sh --execute --mode full --view`在原6cm停靠/停稳后释放导航并执行
+趴下→S1抓取→ZERO_HOLD→起立；外层时间入口完整转发显示和检测器参数。
+本页approach模式继续保留为仅视觉接近10cm、不操作S1。后文“full保持原路径”
+是此接入之前的历史说明，当前full感知已通过原launch参数切换YOLO，动作算法未改。
+启动复用须匹配实际检测器和V2模型输出，禁止HSV/YOLO正式目标混用。
+本轮54项相关软件检查/单包构建/安装一致性通过，无实机动作，物理全链路NOT VERIFIED。
+
 ## 入口修复：伴随主机重启后恢复对时
 
 无相机时检测到>50ms时钟偏差，复用原sync_go2_clock.py交互恢复并重新严格检查。

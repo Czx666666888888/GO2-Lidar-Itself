@@ -105,7 +105,7 @@ def test_clock_sampling_is_explicit_only(tmp_path,monkeypatch,full):
     assert exc.value.code==0
     assert durations==([20,20] if full else [])
     if not full:
-        assert launched[0][-2:]==['--response-distance-limit','0.35']
+        assert launched[0][launched[0].index('--response-distance-limit')+1]=='0.35'
 
 
 def test_readonly_startup_never_enables_or_starts_devices(tmp_path,monkeypatch):

@@ -10,7 +10,13 @@ import statistics
 import time
 
 
-def probe(timeout=8., scope='all', require_target=False):
+def detector_kind(names):
+    kinds = [kind for kind, name in (('yolo', 'yolo_detector'), ('hsv', 'coarse_target_locator'))
+             if name in names]
+    return 'mixed' if len(kinds) > 1 else kinds[0] if kinds else None
+
+
+def probe(timeout=8., scope='all', require_target=False, expected_detector=None, model_sha256=None):
     import rclpy
     from rclpy.qos import qos_profile_sensor_data
     from sensor_msgs.msg import PointCloud2, Imu, Image
@@ -24,7 +30,7 @@ def probe(timeout=8., scope='all', require_target=False):
     rclpy.init()
     n = rclpy.create_node('go2_startup_readonly')
     samples = defaultdict(lambda: deque(maxlen=500))
-    mapping = {}; tracks = {}; native = {}; bad = []
+    mapping = {}; tracks = {}; native = {}; detector = {}; bad = []
     tf = Buffer(); listener = TransformListener(tf, n)
     begin = time.monotonic(); baseline = time.time()-begin
     parameter_client=n.create_client(GetParameters,'/laserMapping/get_parameters')
@@ -32,6 +38,16 @@ def probe(timeout=8., scope='all', require_target=False):
     selected_position=[]
     def receive(m, key):
         now = time.monotonic()
+        if key == 'detector':
+            try:
+                value = json.loads(m.data)
+                stamp = value.get('rgb_stamp_ns', value.get('color_stamp_ns', 0))/1e9
+                detector.clear(); detector.update(value=value, received=now)
+                if value.get('status', 'OK') == 'OK' and stamp > 0:
+                    samples[key].append((now, stamp, {}))
+            except (ValueError, TypeError):
+                bad.append('invalid detector JSON')
+            return
         if key in ('mapping', 'tracks'):
             try:
                 dest = mapping if key == 'mapping' else tracks
@@ -65,6 +81,9 @@ def probe(timeout=8., scope='all', require_target=False):
                   ('mapping','/utlidar/time_mapping/status',String),
                   ('tracks','/science/target_tracks',String),
                   ('selected','/science/selected_target',PointStamped)]
+    if expected_detector and scope != 'native':
+        specs.append(('detector', '/science/yolo/detections' if expected_detector == 'yolo'
+                      else '/science/detection_debug', String))
     subscriptions=[n.create_subscription(typ,topic,lambda m,key=key:receive(m,key),
                                          qos_profile_sensor_data) for key,topic,typ in specs]
     report = {}
@@ -129,7 +148,13 @@ def probe(timeout=8., scope='all', require_target=False):
                 bad.append('unexpected /clock publisher')
             if n.count_publishers('/cmd_vel_raw'):
                 bad.append('existing velocity controller publisher')
-            report=dict(native_ok=native_ok if scope!='chain' else None, native_check_reused=scope=='chain',
+            mode = detector_kind(n.get_node_names()) if scope != 'native' else None
+            detector_ready = (not expected_detector or
+                (mode == expected_detector and fresh('detector', .5, .05) and
+                 (not model_sha256 or detector.get('value', {}).get('model_sha256') == model_sha256)))
+            report=dict(detector_mode=mode, detector_ready=detector_ready,
+                        detector_model_sha256=detector.get('value', {}).get('model_sha256'),
+                        native_ok=native_ok if scope!='chain' else None, native_check_reused=scope=='chain',
                         checked_wall_ns=time.time_ns(),
                         base_stamp_ns=round(samples['base'][-1][1]*1e9) if samples['base'] else None,
                         camera_stamp_ns=round(samples['rgb'][-1][1]*1e9) if samples['rgb'] else None, native_received_hz=hz, native_state=native,
@@ -138,7 +163,8 @@ def probe(timeout=8., scope='all', require_target=False):
                         errors=list(dict.fromkeys(bad)), sample_counts={k:len(v) for k,v in samples.items()},
                         elapsed_sec=now-begin)
             report['ready']=((native_ok or scope=='chain') and not bad and (scope=='native' or
-                (slam_ok and camera_ok and camera_tf and (target_ok or not require_target))))
+                (slam_ok and camera_ok and camera_tf and detector_ready and
+                 (target_ok or not require_target))))
             if report['ready'] or ((scope=='chain' or native_ok) and
                     (bad or mapped.get('fault'))):
                 break
@@ -152,10 +178,12 @@ def main():
     p.add_argument('--timeout',type=float,default=8)
     p.add_argument('--scope',choices=['native','all','chain'],default='all')
     p.add_argument('--require-target',action='store_true')
+    p.add_argument('--detector',choices=['yolo','hsv'])
+    p.add_argument('--model-sha256')
     p.add_argument('--report',type=Path,required=True)
     a=p.parse_args()
     if not 0<a.timeout<=60:p.error('timeout must be in (0,60]')
-    result=probe(a.timeout,a.scope,a.require_target)
+    result=probe(a.timeout,a.scope,a.require_target,a.detector,a.model_sha256)
     a.report.write_text(json.dumps(result,indent=2)+'\n')
     print('STARTUP_PROBE '+json.dumps(result),flush=True)
     return 0 if result.get('ready') else 2

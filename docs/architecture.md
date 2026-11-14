@@ -1,5 +1,15 @@
 # Current Architecture
 
+## 2026-11-14 PC完整任务的YOLO接入（源码确认）
+
+`go2_test.sh --mode full`经PC时间包装器进入原Workflow：共用V2资产验证，
+原launch的detector=yolo提供类0方块/RGB-D→精确时间MAP→原Manager；
+随后原SEARCH/STOP_CONFIRM/抓取停靠执行。成功STOP并释放唯一导航控制权后，
+原s1_task_host/s1_task_sequence执行StandDown确认、S1抓取、ZERO_HOLD、StandUp确认。
+新增的是编排参数连接和就绪检查，定位、目标管理、停靠、S1算法未重构。
+approach仍独立只接近到camera XY10cm；full使用抓取位姿6cm/10度/0.5秒。
+此处为源码/软件检查确认，整条实机链NOT VERIFIED。
+
 本文档基于当前仓库静态阅读，描述能够从源码、launch 和脚本确认的结构。它不是当前硬件的运行证明；所有运行时关系仍需按 `TASKS.md` 验证。
 
 ## ROS 2 Packages
