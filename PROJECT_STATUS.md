@@ -513,3 +513,14 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 - PT960 GPU推理通过：实际矩形1×3×544×960峰值allocated71.88MiB，方形warmup94.82MiB，均不含CUDA上下文/ROS等额外显存。
 - 固定640 ONNX需另行960导出并匹配元数据；本轮未导出或修改ROS2。960训练显存/精度、ROS实流仍NOT VERIFIED。
 - 报告和预览：vision_training/reports/science_targets_round2/README.md。2项测试、ZIP/逐图检查通过。
+
+
+## 科学目标混合V2实训与验证（2026-11-14）
+
+- 来源：最新远端454d544、用户确认161张标全/类别正确、ZIP/逐图hash检查、100轮RTX4060 GPU实训和同57张B验证。
+- 第二轮实际按名称重写ID 0→0/1→2/2→1，161 positive、0 confirmed negative、19 pending；新增框56/0/122。19张缺标签清单/缩略图已保存，未补空标签或纳入训练。
+- 独立science_targets_mixed_v2：758train（480合成+278真实A/C）、177val（120合成+原57B）；原600张、V1数据/权重/评估6523文件hash和集合不变。V2审核池独立，后续选图须排除其161张reviewed。
+- V1 best初始化YOLO11n/640/batch8/nbs64/warmup3，100轮、1958.46秒、9500batch/1233更新，best第100轮；49项离线检查、compile和dry-run通过。
+- B验证V2 640 P/R/AP50：block .8666/.6958/.8178，compact 0/0/.0189，spiky .2810/.3333/.2318。conf.25逐类TP/FP/FN为139/21/85、0/17/33、14/27/46；目标未达标。
+- 同一640权重960推理AP50为.8294/.1215/.3039，spiky Recall .50；conf.25 compact仍0TP，总FP65→82。未做960训练，不继续盲调；真实compact训练0框、新122个spiky仅1个小目标，优先补独立真实训练场景。
+- 保留HSV，不改Point-LIO/MAP/导航/抓取；D435实时RGB-D/三维关联、最终独立test仍NOT VERIFIED。完整报告/证据：vision_training/reports/science_targets_mixed_v2/README.md；本地best在vision_training/runs/science_targets_mixed_v2/baseline/weights/best.pt。

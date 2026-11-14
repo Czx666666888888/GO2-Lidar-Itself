@@ -1,0 +1,46 @@
+{
+  "imported": 161,
+  "positive": 161,
+  "confirmed_negative": 0,
+  "pending": 19,
+  "new_boxes": {
+    "color_block": 56,
+    "rock_compact": 0,
+    "rock_spiky": 122
+  },
+  "class_mapping": {
+    "0": 0,
+    "1": 2,
+    "2": 1
+  },
+  "original_sha256": "c3e1be9f4f4cc0321ead37b700cdd12be5ad91506998b9898c11e3b2b4e61c8a",
+  "normalized_sha256": "680a9ab9b90061dfd6fd3c05bb3cd1ab3ac529fac25942467b08fa40d18d586e",
+  "split_counts": {
+    "train": {
+      "images": 758,
+      "boxes": {
+        "color_block": 465,
+        "rock_compact": 292,
+        "rock_spiky": 512
+      },
+      "sources": {
+        "synthetic": 480,
+        "phone_real": 278
+      }
+    },
+    "val": {
+      "images": 177,
+      "boxes": {
+        "color_block": 314,
+        "rock_compact": 109,
+        "rock_spiky": 148
+      },
+      "sources": {
+        "synthetic": 120,
+        "phone_real": 57
+      }
+    }
+  },
+  "review_source": "User explicitly confirmed all 161 labeled images complete and correct in this session",
+  "limitation": "No new real compact boxes; B remains held out; 19 missing labels are pending, not negatives"
+}

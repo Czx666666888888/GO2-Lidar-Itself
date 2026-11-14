@@ -1,0 +1,11 @@
+{
+  "batch": 8,
+  "nbs": 64,
+  "batches_per_epoch": 95,
+  "warmup_epochs": 3.0,
+  "warmup_batch_boundary": 285,
+  "initial_accumulate": 8,
+  "optimizer": "AdamW",
+  "trainer_sha256": "09df7940b2770b87e7728397d5881ab8b03d69655845dd46eb1d00bb6c57f3a9",
+  "ultralytics": "8.3.40"
+}

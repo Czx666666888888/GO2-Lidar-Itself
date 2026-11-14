@@ -1,0 +1,289 @@
+{
+  "validation_images": [
+    "video_B_f0000000.jpg",
+    "video_B_f0000048.jpg",
+    "video_B_f0000096.jpg",
+    "video_B_f0000144.jpg",
+    "video_B_f0000192.jpg",
+    "video_B_f0000240.jpg",
+    "video_B_f0000286.jpg",
+    "video_B_f0000335.jpg",
+    "video_B_f0000388.jpg",
+    "video_B_f0000441.jpg",
+    "video_B_f0000489.jpg",
+    "video_B_f0000539.jpg",
+    "video_B_f0000592.jpg",
+    "video_B_f0000646.jpg",
+    "video_B_f0000700.jpg",
+    "video_B_f0000754.jpg",
+    "video_B_f0000808.jpg",
+    "video_B_f0000862.jpg",
+    "video_B_f0000911.jpg",
+    "video_B_f0000959.jpg",
+    "video_B_f0001007.jpg",
+    "video_B_f0001055.jpg",
+    "video_B_f0001103.jpg",
+    "video_B_f0001151.jpg",
+    "video_B_f0001199.jpg",
+    "video_B_f0001247.jpg",
+    "video_B_f0001295.jpg",
+    "video_B_f0001343.jpg",
+    "video_B_f0001391.jpg",
+    "video_B_f0001439.jpg",
+    "video_B_f0001487.jpg",
+    "video_B_f0001535.jpg",
+    "video_B_f0001584.jpg",
+    "video_B_f0001632.jpg",
+    "video_B_f0001680.jpg",
+    "video_B_f0001729.jpg",
+    "video_B_f0001780.jpg",
+    "video_B_f0001828.jpg",
+    "video_B_f0001876.jpg",
+    "video_B_f0001924.jpg",
+    "video_B_f0001972.jpg",
+    "video_B_f0002020.jpg",
+    "video_B_f0002074.jpg",
+    "video_B_f0002128.jpg",
+    "video_B_f0002182.jpg",
+    "video_B_f0002236.jpg",
+    "video_B_f0002290.jpg",
+    "video_B_f0002344.jpg",
+    "video_B_f0002398.jpg",
+    "video_B_f0002450.jpg",
+    "video_B_f0002498.jpg",
+    "video_B_f0002546.jpg",
+    "video_B_f0002594.jpg",
+    "video_B_f0002642.jpg",
+    "video_B_f0002690.jpg",
+    "video_B_f0002738.jpg",
+    "video_B_f0002791.jpg"
+  ],
+  "results": {
+    "V1_640": {
+      "weights_sha256": "d0b6dc563add714d3b4b01485f604781c91b53dca8cb8797e22cee91a57692e4",
+      "imgsz": 640,
+      "metrics": {
+        "images": 57,
+        "precision": 0.3040725385361675,
+        "recall": 0.5359307359307359,
+        "map50": 0.3673460882385195,
+        "map50_95": 0.23546910603160498,
+        "per_class": {
+          "color_block": {
+            "precision": 0.6996197718631179,
+            "recall": 0.8214285714285714,
+            "map50": 0.8374488624117399,
+            "map50_95": 0.5754685158595374
+          },
+          "rock_compact": {
+            "precision": 0.08196721311475409,
+            "recall": 0.30303030303030304,
+            "map50": 0.05381830601092897,
+            "map50_95": 0.020771516440882664
+          },
+          "rock_spiky": {
+            "precision": 0.13063063063063063,
+            "recall": 0.48333333333333334,
+            "map50": 0.21077109629288965,
+            "map50_95": 0.1101672857943949
+          }
+        },
+        "scope": "held-out validation",
+        "fixed_conf_025_iou_05_counts": {
+          "tp": 134,
+          "fp": 50,
+          "fn": 183
+        },
+        "fixed_conf_per_class": {
+          "color_block": {
+            "tp": 122,
+            "fp": 15,
+            "fn": 102
+          },
+          "rock_compact": {
+            "tp": 0,
+            "fp": 16,
+            "fn": 33
+          },
+          "rock_spiky": {
+            "tp": 12,
+            "fp": 19,
+            "fn": 48
+          }
+        },
+        "small_short_side_lt16_at_640": {
+          "color_block": {
+            "tp": 12,
+            "fn": 60
+          },
+          "rock_compact": {
+            "tp": 0,
+            "fn": 25
+          },
+          "rock_spiky": {
+            "tp": 4,
+            "fn": 22
+          }
+        },
+        "multi_object_counts": {
+          "images": 44,
+          "tp": 131,
+          "fp": 50,
+          "fn": 175
+        }
+      }
+    },
+    "V2_640": {
+      "weights_sha256": "e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1",
+      "imgsz": 640,
+      "metrics": {
+        "images": 57,
+        "precision": 0.38252458425136954,
+        "recall": 0.34303338464780236,
+        "map50": 0.3561826668959849,
+        "map50_95": 0.23327555162214875,
+        "per_class": {
+          "color_block": {
+            "precision": 0.8665562516325188,
+            "recall": 0.6957668206100738,
+            "map50": 0.8178332092383087,
+            "map50_95": 0.5785177936349759
+          },
+          "rock_compact": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "map50": 0.018907070974576272,
+            "map50_95": 0.003661972679345684
+          },
+          "rock_spiky": {
+            "precision": 0.2810175011215897,
+            "recall": 0.3333333333333333,
+            "map50": 0.2318077204750697,
+            "map50_95": 0.11764688855212473
+          }
+        },
+        "scope": "held-out validation",
+        "fixed_conf_025_iou_05_counts": {
+          "tp": 153,
+          "fp": 65,
+          "fn": 164
+        },
+        "fixed_conf_per_class": {
+          "color_block": {
+            "tp": 139,
+            "fp": 21,
+            "fn": 85
+          },
+          "rock_compact": {
+            "tp": 0,
+            "fp": 17,
+            "fn": 33
+          },
+          "rock_spiky": {
+            "tp": 14,
+            "fp": 27,
+            "fn": 46
+          }
+        },
+        "small_short_side_lt16_at_640": {
+          "color_block": {
+            "tp": 28,
+            "fn": 44
+          },
+          "rock_compact": {
+            "tp": 0,
+            "fn": 25
+          },
+          "rock_spiky": {
+            "tp": 6,
+            "fn": 20
+          }
+        },
+        "multi_object_counts": {
+          "images": 44,
+          "tp": 148,
+          "fp": 65,
+          "fn": 158
+        },
+        "size_protocol": "Short side <16px after scaling longest image side to 640; fixed for cross-resolution comparison"
+      }
+    },
+    "V2_960_inference": {
+      "weights_sha256": "e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1",
+      "imgsz": 960,
+      "metrics": {
+        "images": 57,
+        "precision": 0.3399603520571262,
+        "recall": 0.6083603896103896,
+        "map50": 0.4182467215687144,
+        "map50_95": 0.2612394559971866,
+        "per_class": {
+          "color_block": {
+            "precision": 0.6964285714285714,
+            "recall": 0.8705357142857143,
+            "map50": 0.8293590973597056,
+            "map50_95": 0.5944753367126514
+          },
+          "rock_compact": {
+            "precision": 0.16129032258064516,
+            "recall": 0.45454545454545453,
+            "map50": 0.12146810850439882,
+            "map50_95": 0.03871412539399531
+          },
+          "rock_spiky": {
+            "precision": 0.16216216216216217,
+            "recall": 0.5,
+            "map50": 0.3039129588420388,
+            "map50_95": 0.15052890588491313
+          }
+        },
+        "scope": "held-out validation",
+        "fixed_conf_025_iou_05_counts": {
+          "tp": 182,
+          "fp": 82,
+          "fn": 135
+        },
+        "fixed_conf_per_class": {
+          "color_block": {
+            "tp": 162,
+            "fp": 39,
+            "fn": 62
+          },
+          "rock_compact": {
+            "tp": 0,
+            "fp": 16,
+            "fn": 33
+          },
+          "rock_spiky": {
+            "tp": 20,
+            "fp": 27,
+            "fn": 40
+          }
+        },
+        "small_short_side_lt16_at_640": {
+          "color_block": {
+            "tp": 37,
+            "fn": 35
+          },
+          "rock_compact": {
+            "tp": 0,
+            "fn": 25
+          },
+          "rock_spiky": {
+            "tp": 8,
+            "fn": 18
+          }
+        },
+        "multi_object_counts": {
+          "images": 44,
+          "tp": 178,
+          "fp": 81,
+          "fn": 128
+        },
+        "size_protocol": "Short side <16px after scaling longest image side to 640; fixed for cross-resolution comparison"
+      }
+    }
+  },
+  "protocol": "Ultralytics P/R at curve-selected operating point; fixed counts separately at conf0.25/class-aware IoU0.5",
+  "limitation": "B is development validation used in model selection, not untouched final test; 960 uses 640-trained weights unless explicitly documented otherwise"
+}

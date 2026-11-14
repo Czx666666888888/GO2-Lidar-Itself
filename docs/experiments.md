@@ -122,3 +122,18 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 证据：vision_training/synthetic_generation/GENERATOR_REVIEW.md与reports/sampling_*.json。
 - NOT VERIFIED：新采样RGB/Mask实际效果/全分布覆盖、实物尺寸/重心、D435实际CameraInfo。
   未导正式池、未训练、未操作机器人；最小预览命令仅提供，未执行。
+
+
+## 2026-11-14：第二轮CVAT映射与科学目标V2（离线GPU）
+
+- 远端/本地起点454d544。原CVAT类顺序block/spiky/compact；按名称实际重写标签为block/compact/spiky，原ZIP SHA256 c3e1be9f4f4cc0321ead37b700cdd12be5ad91506998b9898c11e3b2b4e61c8a。
+- 用户明确确认161张已标全/类别正确：新增框56/0/122；19张缺TXT继续pending，负样本0。规范化train.txt仅161张，pending.txt单列19张，不补空标签；隔离导入池与审核表保留。
+- 数据V2 758train/177val，真实train278（263positive/15negative），仍同57张B；原600图480/120划分不变，原V1和源池不动，6523文件核对未变。
+- YOLO11n以V1 best微调640，batch8/nbs64/warmup3，100轮1958.46秒，9500batch/1233 optimizer step，best第100轮；显存日志约1.26–1.27GB，无OOM。
+- 真实B的640逐类P/R/AP50：block .8666/.6958/.8178；compact 0/0/.0189；spiky .2810/.3333/.2318。conf.25 TP/FP/FN=139/21/85、0/17/33、14/27/46。
+- 960为同一640权重推理对照，非960训练：逐类P/R/AP50=.6964/.8705/.8294、.1613/.4545/.1215、.1622/.5000/.3039；conf.25 compact仍0TP，总TP/FP/FN182/82/135。
+- 小目标spiky TP/FN：V1 4/22、V2 640 6/20、V2 960 8/18；44张多目标图分别TP/FP/FN131/50/175、148/65/158、178/81/128。小目标固定为缩至640后短边<16px。
+- 新122个spiky仅1个小目标，B60个中26个小目标；真实compact训练依然0框。目标未达标，保留HSV，优先补真实训练场景，不追加盲目调参/960训练。
+- 49项离线检查、静态编译/dry-run、GPU训练/评估通过；未整仓ROS build、未运动。首次未约束CPU的比较进程PIL/enum导入报错，限定线程/亲和性后重跑成功，原因未知，未改环境。
+- 报告与Git证据：vision_training/reports/science_targets_mixed_v2/；完整本地训练/逐图对照：vision_training/runs/science_targets_mixed_v2/；best SHA256 e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1。
+- 证据等级：文件/标签检查、用户审核确认、离线GPU训练与B开发验证；B非最终test。D435实时RGB-D、类别/框/三维点/时间戳/frame关联、导航和抓取均NOT VERIFIED；未替换HSV。

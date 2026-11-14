@@ -1,0 +1,14 @@
+{
+  "python": "3.10.12",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "packages": {
+    "torch": "2.5.1+cu124",
+    "torchvision": "0.20.1+cu124",
+    "ultralytics": "8.3.40",
+    "numpy": "1.26.4",
+    "opencv-python": "4.10.0.84",
+    "onnx": "1.17.0",
+    "onnxruntime": "1.20.1"
+  },
+  "git_commit": "454d5440f1c0633cbbbdebee263d2c4f688eee52"
+}

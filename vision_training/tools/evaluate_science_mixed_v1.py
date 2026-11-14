@@ -39,6 +39,8 @@ def main():
     p.add_argument('--dataset',type=Path,required=True)
     p.add_argument('--weights',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--imgsz', type=int, default=640)
+    p.add_argument('--groups', nargs='+', choices=['synthetic_val','phone_val','phone_train_fit'])
     args=p.parse_args();args.dataset=args.dataset.resolve();args.output=args.output.resolve()
     args.output.mkdir(parents=True,exist_ok=False)
     records=json.loads((args.dataset/'preparation.json').read_text())['records']
@@ -51,14 +53,16 @@ def main():
     model=YOLO(str(args.weights))
     if [model.names[i] for i in range(3)] != names:
         raise ValueError('Model class names/order do not match dataset')
-    report={'weights_sha256':sha256(args.weights),'groups':{}}
+    report={'weights_sha256':sha256(args.weights),'imgsz':args.imgsz,'groups':{}}
     groups=dict(synthetic_val=[r for r in records if r['split']=='val' and r['source_type']=='synthetic'],
                 phone_val=[r for r in records if r['split']=='val' and r['source_type']=='phone_real'],
                 phone_train_fit=[r for r in records if r['split']=='train' and r['source_type']=='phone_real'])
     for group, rows in groups.items():
+        if args.groups and group not in args.groups:
+            continue
         listing=args.output/(group+'.txt');listing.write_text(''.join(str(args.dataset/r['image'])+'\n' for r in rows))
         data=args.output/(group+'.yaml');data.write_text(yaml.safe_dump(dict(path=str(args.dataset),train=str(listing),val=str(listing),names=names)))
-        val=model.val(data=str(data),split='val',imgsz=640,device=0,batch=8,workers=0,
+        val=model.val(data=str(data),split='val',imgsz=args.imgsz,device=0,batch=8,workers=0,
                       plots=True,project=str(args.output),name=group,exist_ok=True)
         per_class={}
         for i,c in enumerate(val.box.ap_class_index):
@@ -69,15 +73,29 @@ def main():
             scope='training fit only' if group.endswith('fit') else 'held-out validation',
             confusion_matrix=val.confusion_matrix.matrix.tolist(),speed_ms=val.speed)
         cases=[];counts=Counter();tiles={i:[] for i in range(3)}
+        class_counts={n:Counter(tp=0,fp=0,fn=0) for n in names}
+        size_counts={n:Counter(tp=0,fn=0) for n in names}
+        multi=Counter(images=0,tp=0,fp=0,fn=0)
         for row in rows:
             path=args.dataset/row['image'];image=cv2.imread(str(path));h,w=image.shape[:2]
             label=Path(str(path).replace('/images/','/labels/')).with_suffix('.txt')
             boxes=validate_label(label,3)
             gt=np.array([[c,(x-bw/2)*w,(y-bh/2)*h,(x+bw/2)*w,(y+bh/2)*h] for c,x,y,bw,bh in boxes]).reshape(-1,5)
-            result=model.predict(str(path),imgsz=640,conf=.25,device=0,verbose=False)[0]
+            result=model.predict(str(path),imgsz=args.imgsz,conf=.25,device=0,verbose=False)[0]
             pred=np.concatenate([result.boxes.cls.cpu().numpy()[:,None],result.boxes.xyxy.cpu().numpy()],axis=1)
             used_g,used_p=match(gt,pred)
+            for i,g in enumerate(gt):
+                n=names[int(g[0])]; key='tp' if i in used_g else 'fn'
+                class_counts[n][key]+=1
+                if min(g[3]-g[1],g[4]-g[2])*640/max(h,w)<16:
+                    size_counts[n][key]+=1
+            for i,b in enumerate(pred):
+                if i not in used_p: class_counts[names[int(b[0])]]['fp']+=1
+            if len(gt)>1:
+                multi.update(images=1,tp=len(used_g),fp=len(pred)-len(used_p),fn=len(gt)-len(used_g))
             error=dict(image=path.name,source_video=row['source_video'],gt=len(gt),pred=len(pred),
+                gt_boxes=gt.tolist(), predictions=pred.tolist(), matched_gt=sorted(used_g),
+                prediction_confidences=result.boxes.conf.cpu().tolist(),
                 tp=len(used_g),fn=len(gt)-len(used_g),fp=len(pred)-len(used_p),
                 missed_classes=[int(gt[i,0]) for i in range(len(gt)) if i not in used_g],
                 false_classes=[int(pred[i,0]) for i in range(len(pred)) if i not in used_p],
@@ -95,9 +113,17 @@ def main():
             cv2.putText(banner,f"GT | PRED conf=.25 {path.name} TP={error['tp']} FP={error['fp']} FN={error['fn']}",(4,24),cv2.FONT_HERSHEY_SIMPLEX,.48,(255,255,255),1)
             tile=np.concatenate([banner,tile])
             if group=='phone_val':
+                case_dir=args.output/'phone_val_cases';case_dir.mkdir(exist_ok=True)
+                full_banner=np.zeros((40,full.shape[1],3),np.uint8)
+                cv2.putText(full_banner,f"GT LEFT | PRED RIGHT conf=.25 {path.name} TP={error['tp']} FP={error['fp']} FN={error['fn']}",(8,27),cv2.FONT_HERSHEY_SIMPLEX,.7,(255,255,255),2)
+                cv2.imwrite(str(case_dir/path.name),np.concatenate([full_banner,full]))
                 for c in set(int(x) for x in list(gt[:,0])+list(pred[:,0])):
                     tiles[c].append((error['fn']+error['fp'],tile,path.name))
         metrics['fixed_conf_025_iou_05_counts']=dict(counts)
+        metrics['fixed_conf_per_class']={n:dict(c) for n,c in class_counts.items()}
+        metrics['small_short_side_lt16_at_640']={n:dict(c) for n,c in size_counts.items()}
+        metrics['multi_object_counts']=dict(multi)
+        metrics['size_protocol']='Short side <16px after scaling longest image side to 640; fixed for cross-resolution comparison'
         metrics['cases']=cases
         report['groups'][group]=metrics
         for c,items in tiles.items():
@@ -107,12 +133,12 @@ def main():
             seen={};[seen.setdefault(item[2],item[1]) for item in chosen]
             cv2.imwrite(str(args.output/f'{group}_{names[c]}_examples.jpg'),np.concatenate(list(seen.values())))
     first=str(args.dataset/groups['phone_val'][0]['image'])
-    for _ in range(10):model.predict(first,imgsz=640,device=0,verbose=False)
+    for _ in range(10):model.predict(first,imgsz=args.imgsz,device=0,verbose=False)
     times=[];inference=[]
     for i in range(90):
         path=str(args.dataset/groups['phone_val'][i%len(groups['phone_val'])]['image'])
         torch.cuda.synchronize();started=time.perf_counter()
-        result=model.predict(path,imgsz=640,device=0,verbose=False)[0]
+        result=model.predict(path,imgsz=args.imgsz,device=0,verbose=False)[0]
         torch.cuda.synchronize();times.append((time.perf_counter()-started)*1000);inference.append(result.speed['inference'])
     report['timing']=dict(samples=90,warmup=10,batch=1,device=torch.cuda.get_device_name(0),
         wall_mean_ms=float(np.mean(times)),wall_p50_ms=float(np.median(times)),wall_p95_ms=float(np.percentile(times,95)),

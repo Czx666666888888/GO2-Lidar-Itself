@@ -1,0 +1,27 @@
+project: science_targets_mixed_v2
+name: baseline
+data: ../datasets/science_targets_mixed_v2/data.yaml
+model: ../runs/science_targets_mixed_v1/baseline/weights/best.pt
+output: ../runs
+imgsz: 640
+epochs: 100
+patience: 30
+batch: 8
+nbs: 64
+warmup_epochs: 3.0
+device: 0
+workers: 0
+seed: 42
+augmentation:
+  hsv_h: 0.0
+  hsv_s: 0.2
+  hsv_v: 0.3
+  degrees: 10.0
+  translate: 0.05
+  scale: 0.15
+  fliplr: 0.5
+  flipud: 0.0
+  mosaic: 0.0
+  mixup: 0.0
+  close_mosaic: 0
+runtime_audit: true

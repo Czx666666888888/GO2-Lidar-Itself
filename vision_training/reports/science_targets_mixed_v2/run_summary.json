@@ -1,0 +1,20 @@
+{
+  "epochs": 100,
+  "best_epoch": 100,
+  "train_seconds": 1958.457455369,
+  "batches": 9500,
+  "optimizer_steps": 1233,
+  "tests_passed": 49,
+  "compile_passed": true,
+  "dry_run_passed": true,
+  "unchanged_protected_files": 6523,
+  "gpu": "RTX 4060 Laptop",
+  "gpu_nvidia_smi_total_mib": 8188,
+  "gpu_torch_reported_mib": 7808,
+  "driver": "595.99.02",
+  "logged_training_gpu_mem_gb": "approximately 1.26-1.27; not allocator peak measurement",
+  "best_weights": "e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1",
+  "trained_imgsz": 640,
+  "resolution_comparison": "Same 640-trained best.pt at inference imgsz640 vs960; no 960 training",
+  "deployment_recommendation": "Keep HSV; V2 misses goals and lacks real compact training labels"
+}
