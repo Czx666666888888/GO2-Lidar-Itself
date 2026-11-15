@@ -1,5 +1,23 @@
 # D435 Experiment Record
 
+## 2026-11-15 full双相机自动录像：仅离线验证
+
+用户要求后续full自动保留前侧目标识别录像，并在实际执行机械臂时保存腕部D455录像。
+本轮在实际运行集成分支ac86bf7上实现；未部署或启动硬件、未使能/运动。
+前侧保留原始/识别叠加双视频并归档至full目录；腕部在原S1抓取工作循环中复用单一RGB-D pipeline，
+录制原回调前至结束，保存帧时间/容器帧数/错误，异常也封口，PC复制本轮已封口结果且保留远端原件。
+旧运行服务不热替换；原ZIP或远端hash核验后的原始备份生成兼容层，未知文件拒绝覆盖。
+
+验证命令为设置原ZIP的GO2_S1_V2_ARCHIVE，设置PYTHONPATH=camera_ws/src/go2_science_perception，
+运行 `python3 -m pytest camera_ws/test camera_ws/src/go2_science_perception/test/test_s1_task_sequence.py -q`：82 passed。
+其中模拟RGB-D帧实际编码为MP4并全量解码，核对JSONL/帧数、双快照只用一个pipeline、异常封口、
+编码器启动失败阻断抓取、旧录像不复制、复制失败保留远端以及原ZIP补丁保持原capture算法。
+新运行模块flake8（100字符）、Python静态编译、离线full计划与diff检查通过。
+额外ROS接口测试曾因环境未source缺builtin_interfaces/unitree_go无法收集；source现有导航underlay后
+进程退出139，未取得该测试通过证据；未修改原underlay或据此宣称构建/ROS集成通过。
+真实D455连续采集及深度质量、CPU/USB负载、完整运动/录像取回均NOT VERIFIED。
+操作与目录边界详见 `full_video_recording.md`。
+
 ## 2026-11-14 用户批准估算短步接入full
 
 按用户最新要求取消继续独立标定，估算JSON明确未验证并通过显式opt-in接入原full。

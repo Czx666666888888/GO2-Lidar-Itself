@@ -4,6 +4,8 @@
 No arm device is opened here. A running serial owner is never replaced.
 """
 import hashlib
+import base64
+import io
 import json
 import os
 from pathlib import Path
@@ -17,13 +19,40 @@ DEFAULT_ARCHIVE = 'S1_arm_integration_20261114_auto_v2.zip'
 REMOTE_PACKAGE = '/home/unitree/s1-arm-control-v2'
 
 
+def installed_source_bundle(ssh, host):
+    """Recover only hash-verified original sources when the local ZIP is absent."""
+    script = r'''
+import base64,hashlib,io,json,pathlib,sys,zipfile
+root=pathlib.Path(sys.argv[1])
+expected={}
+for line in (root/'SHA256SUMS').read_text().splitlines():
+    digest,name=line.split('  ',1);expected[name]=digest
+names=('scripts/run_arm_integration.py','s1_control/integration.py',
+       'scripts/arm_task_client.py','scripts/verify_handoff.py','demo_grasp/capture_rgbd.py')
+data=io.BytesIO()
+with zipfile.ZipFile(data,'w') as archive:
+    for name in names:
+        source=root/'.v2-compat-upstream'/name
+        if not source.exists():source=root/name
+        content=source.read_bytes()
+        if hashlib.sha256(content).hexdigest()!=expected[name]:
+            raise SystemExit('Original S1 source hash mismatch: '+name)
+        archive.writestr('s1-arm-control/'+name,content)
+print(base64.b64encode(data.getvalue()).decode())
+'''
+    result = subprocess.run([*ssh, host, shlex.join(['/usr/bin/python3', '-c', script,
+                              REMOTE_PACKAGE])], capture_output=True, text=True,
+                            timeout=20, check=True)
+    return zipfile.ZipFile(io.BytesIO(base64.b64decode(result.stdout.strip(), validate=True)))
+
+
 def ensure_v2_compat(root, ssh, host, *, running=False, archive=None):
     check = r'''
 import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]);p=root/'S1_V2_COMPAT.json'
 if not p.exists(): print('MISSING');raise SystemExit(0)
 d=json.loads(p.read_text())
-if d['version'] not in (sys.argv[2], 'v2_usb01_feedback_1'):
+if d['version'] not in (sys.argv[2], 'v2_usb01_feedback_1', 'v2_usb01_feedback_2'):
     raise SystemExit('Unknown S1 v2 compatibility version; preserve')
 for name,meta in d['files'].items():
     if hashlib.sha256((root/name).read_bytes()).hexdigest()!=meta['sha256']:
@@ -39,7 +68,7 @@ print('READY' if d['version']==sys.argv[2] else 'UPGRADE')
     if running:
         raise RuntimeError('S1 v2 service is running; cannot patch live source')
     path = Path(archive or os.environ.get('GO2_S1_V2_ARCHIVE', root/DEFAULT_ARCHIVE))
-    with zipfile.ZipFile(path) as bundle:
+    with (zipfile.ZipFile(path) if path.is_file() else installed_source_bundle(ssh, host)) as bundle:
         payload = compatibility_payload(root,bundle)
     script = r'''
 import base64,hashlib,json,pathlib,shutil,subprocess,sys

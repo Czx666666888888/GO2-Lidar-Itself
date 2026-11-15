@@ -3,7 +3,7 @@ import base64
 import hashlib
 from pathlib import Path
 
-COMPAT_VERSION = 'v2_usb01_feedback_2'
+COMPAT_VERSION = 'v2_usb01_feedback_video_3'
 
 
 def replace_once(text, old, new):
@@ -109,12 +109,36 @@ def compatibility_payload(root, bundle):
     changed[names[3]] = verify.encode()
     helper = 's1_control/startup_status.py'
     changed[helper] = (Path(root)/'camera_ws/s1_service'/helper).read_bytes()
+    previous_changed = dict(changed)
+    entry = replace_once(entry,
+        'from s1_control.integration import ArmIntegrationSession, ZERO_Q',
+        'from s1_control.integration import ArmIntegrationSession, ZERO_Q\n'
+        'from s1_control.grasp_video import run_recorded_flow')
+    entry = replace_once(entry,
+        'session.run_task(lambda active: flow.main(flow_arguments(args, execute=True),\n'
+        '                                                     arm_session=active))',
+        'session.run_task(lambda active: run_recorded_flow(flow, args, active,\n'
+        '                lambda owner: flow.main(flow_arguments(args, execute=True),\n'
+        '                                        arm_session=owner)))')
+    changed[names[0]] = entry.encode()
+    capture_name = 'demo_grasp/capture_rgbd.py'
+    originals[capture_name] = bundle.read('s1-arm-control/'+capture_name)
+    capture = replace_once(originals[capture_name].decode(),
+        '    pipeline = rs.pipeline(context)',
+        '    from s1_control.grasp_video import capture_pipeline\n'
+        '    pipeline = capture_pipeline(rs, context, api_serial, width, height, fps)')
+    changed[capture_name] = capture.encode()
+    video_helper = 's1_control/grasp_video.py'
+    changed[video_helper] = (Path(root)/'camera_ws/s1_service'/video_helper).read_bytes()
     for name, content in changed.items():
         compile(content, name, 'exec')
     return {name: dict(original_sha256=hashlib.sha256(originals[name]).hexdigest()
                        if name in originals else None,
-                       accepted_previous_sha256=([hashlib.sha256(previous_integration.encode()).hexdigest()]
-                           if name == names[1] else []),
+                       accepted_previous_sha256=(
+                           [hashlib.sha256(previous_integration.encode()).hexdigest()]
+                           if name == names[1] else []) + (
+                           [hashlib.sha256(previous_changed[name]).hexdigest()]
+                           if name in previous_changed and content != previous_changed[name] else []),
                        sha256=hashlib.sha256(content).hexdigest(),
                        content=base64.b64encode(content).decode())
             for name, content in changed.items()}

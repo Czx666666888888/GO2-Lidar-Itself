@@ -366,6 +366,7 @@ class Workflow:
         if self.args.mode == 'full':
             profile = self.work/'camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json'
             command += ['--full', '--posture-profile', str(profile)]
+            command += ['--evidence-directory', str(self.folder)]
             if getattr(self.args, 'left_geometry_verified', False):
                 command.append('--left-geometry-verified')
         return command
@@ -416,6 +417,8 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
                                    str(running_modes)+' requested='+side)
             state=self.status()
             if zero_hold(state):
+                if self.args.mode == 'full':
+                    ensure_v2_package(ROOT, SSH, HOST, running=True)
                 print('REUSE S1 v2 '+side+' ZERO_HOLD',flush=True)
                 return
             if state.get('busy') or state.get('state') in ('STARTING','QUEUED','GRASPING','RETURNING_ZERO'):

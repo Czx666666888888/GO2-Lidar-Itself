@@ -27,6 +27,7 @@ def test_yolo_full_keeps_the_original_arm_handoff_and_preview(tmp_path):
     assert 'yolo_model:=/local/best.pt' in perception
     assert 'yolo_python:=/local/python' in perception
     assert '--full' in task and '--posture-profile' in task and '--preview-image' in task
+    assert task[task.index('--evidence-directory')+1] == str(tmp_path)
     assert '--forward-response-check' not in task
 
 

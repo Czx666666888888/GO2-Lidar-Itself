@@ -64,7 +64,9 @@ class Experiment:
         self.node = rclpy.create_node('science_map_anchor_experiment')
         self.root = Path(__file__).resolve().parents[2]
         self.folder = self.root / 'camera_ws/records'
-        self.folder.mkdir(exist_ok=True)
+        if getattr(args, 'evidence_directory', None) is not None:
+            self.folder = Path(args.evidence_directory).resolve()
+        self.folder.mkdir(parents=True, exist_ok=True)
         self.tag = str(time.time_ns())
         self.control, self.recording = {}, {}
         self.last_control_received = -float('inf')

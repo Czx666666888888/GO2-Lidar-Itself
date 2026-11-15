@@ -7,6 +7,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import time
+from full_video_evidence import save_front_evidence, save_video_evidence
 
 
 def arm_command(args, command):
@@ -25,6 +26,8 @@ def parser():
     p.add_argument('--execute', action='store_true')
     p.add_argument('--preview-image', action='store_true', help='publish existing annotated debug image')
     p.add_argument('--full', action='store_true', help='after docking: StandDown/grasp/StandUp')
+    p.add_argument('--evidence-directory', type=Path,
+                   help='full session directory for front video and retrieved wrist video')
     p.add_argument('--grasp-side', choices=('right','left'), default='right')
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
@@ -127,6 +130,8 @@ def main():
             final = dict(experiment.control)
         finally:
             experiment.close()
+            if args.full:
+                save_front_evidence(experiment.folder, experiment.recording)
     except BaseException:
         if rclpy.ok():
             rclpy.shutdown()
@@ -167,6 +172,7 @@ def main():
                    '-o', 'ConnectTimeout=3', args.arm_host, shlex.join(command)]
     log = experiment.folder / ('s1_task_' +
                                datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.jsonl')
+    previous_recording = arm_command(args, 'status').get('last_recording')
     from std_msgs.msg import Int8
     supervisor = rclpy.create_node('s1_posture_task_supervisor')
     stopped = [False]
@@ -205,6 +211,8 @@ def main():
         supervisor.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+        save_video_evidence(args, experiment.folder, experiment.recording,
+                            previous_recording, arm_command)
     if completed.returncode:
         raise RuntimeError('Posture/arm task failed; no automatic recovery. See '+str(log))
     print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))

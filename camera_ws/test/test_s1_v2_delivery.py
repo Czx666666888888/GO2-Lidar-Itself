@@ -129,3 +129,51 @@ def test_upgrade_accepts_exact_deployed_previous_adapter():
     assert meta['accepted_previous_sha256'] == [
         'b98a9881893686af2e998d3cf60874c616c1de6290dd426a0a6822d2bce52d87']
     assert meta['sha256'] != meta['accepted_previous_sha256'][0]
+
+
+def test_video_upgrade_preserves_capture_algorithm_and_accepts_previous_entry():
+    path = os.environ.get('GO2_S1_V2_ARCHIVE')
+    if not path:
+        pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
+    with zipfile.ZipFile(path) as bundle:
+        payload = compatibility_payload(ROOT, bundle)
+        upstream = bundle.read('s1-arm-control/demo_grasp/capture_rgbd.py').decode()
+    capture = base64.b64decode(payload['demo_grasp/capture_rgbd.py']['content']).decode()
+    restored = capture.replace(
+        '    from s1_control.grasp_video import capture_pipeline\n'
+        '    pipeline = capture_pipeline(rs, context, api_serial, width, height, fps)',
+        '    pipeline = rs.pipeline(context)')
+    assert restored == upstream
+    assert payload['scripts/run_arm_integration.py']['accepted_previous_sha256'] == [
+        '7abc5219e43b944667e6a867e256a5dc0e640f1b926ee7769255bc9d209642e7']
+
+
+def test_upgrade_recovers_hash_verified_installed_originals(tmp_path, monkeypatch):
+    import s1_v2_delivery as delivery
+    import hashlib
+    import shlex
+    import subprocess
+    path = os.environ.get('GO2_S1_V2_ARCHIVE')
+    if not path:
+        pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
+    with zipfile.ZipFile(path) as archive:
+        names = ['scripts/run_arm_integration.py','s1_control/integration.py',
+                 'scripts/arm_task_client.py','scripts/verify_handoff.py','demo_grasp/capture_rgbd.py']
+        hashes = []
+        for name in names:
+            content = archive.read('s1-arm-control/'+name)
+            destination = tmp_path/'.v2-compat-upstream'/name
+            destination.parent.mkdir(parents=True,exist_ok=True)
+            destination.write_bytes(content)
+            hashes.append(hashlib.sha256(content).hexdigest()+'  '+name)
+    (tmp_path/'SHA256SUMS').write_text('\n'.join(hashes)+'\n')
+    original_run = subprocess.run
+    def run(argv, **kwargs):
+        command=shlex.split(argv[-1]);command[-1]=str(tmp_path)
+        return original_run(command,**kwargs)
+    monkeypatch.setattr(delivery.subprocess,'run',run)
+    with delivery.installed_source_bundle(['ssh'],'host') as recovered:
+        compatibility_payload(ROOT,recovered)
+    (tmp_path/'.v2-compat-upstream'/names[0]).write_text('modified')
+    with pytest.raises(subprocess.CalledProcessError):
+        delivery.installed_source_bundle(['ssh'],'host')
