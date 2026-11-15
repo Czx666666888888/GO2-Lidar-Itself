@@ -1,5 +1,5 @@
 """Planar S1 docking geometry, metres/radians; never invent a base height."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 
 
@@ -86,6 +86,15 @@ def target_in_s1(target_map, vehicle_pose, settings=None):
     x, y, theta = vehicle_pose
     local = rotate_xy(-theta, (target_map[0]-x, target_map[1]-y))
     return p.s1_base_x-local[0], p.s1_base_y-local[1]
+
+
+def shared_side_settings(settings):
+    """Reuse every tuning value; mirror only the S1 lateral target/reference region."""
+    bounds = sorted((abs(settings.region_y_min), abs(settings.region_y_max)))
+    right = replace(settings, target_s1_y=abs(settings.target_s1_y),
+                    region_y_min=bounds[0], region_y_max=bounds[1])
+    return dict(right=right, left=replace(right, target_s1_y=-right.target_s1_y,
+                region_y_min=-right.region_y_max, region_y_max=-right.region_y_min))
 
 
 def docking_goal(target_map, theta, settings=None):

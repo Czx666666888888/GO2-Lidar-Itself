@@ -23,7 +23,7 @@ from unitree_go.msg import SportModeState
 from unitree_api.msg import Request
 
 from .approach_control import ApproachControl, Settings
-from .grasp_pose_geometry import DockSettings
+from .grasp_pose_geometry import DockSettings, shared_side_settings
 from .grasp_docking import GraspDocking
 
 
@@ -42,6 +42,8 @@ class ScienceTargetApproach(Node):
                             'log_directory': '/tmp'}.items():
             self.declare_parameter(name, value)
         self.declare_parameter('grasp_docking_enabled', False)
+        self.declare_parameter('dock_auto_side_enabled', False)
+        self.declare_parameter('completed_targets_json', '[]')
         self.declare_parameter('forward_step_profile_file', '')
         self.declare_parameter('response_gate_log_file', '')
         for field in fields(DockSettings()):
@@ -64,8 +66,13 @@ class ScienceTargetApproach(Node):
         if docking and docking.p.forward_step_enabled and forward_profile is None:
             self.get_logger().warning('Forward step enabled; positive-vx fine correction '
                                       'requires a reviewed response/braking profile')
+        options = {}
+        if docking and self.get_parameter('dock_auto_side_enabled').value:
+            options = shared_side_settings(docking.p)
+        self.completed_targets = json.loads(self.get_parameter('completed_targets_json').value)
         self.core = ApproachControl(Settings(**{
-            f.name: self.get_parameter(f.name).value for f in fields(defaults)}), docking=docking)
+            f.name: self.get_parameter(f.name).value for f in fields(defaults)}), docking=docking,
+                                    docking_options=options)
         self.dry_run = self.get_parameter('dry_run').value
         self.map_frame = self.get_parameter('map_frame').value
         self.future_tolerance = self.get_parameter('future_tolerance').value
@@ -198,6 +205,9 @@ class ScienceTargetApproach(Node):
                 if t['id'] in ids or not all(math.isfinite(v) for v in t['position']):
                     raise ValueError('invalid target snapshot')
                 ids.add(t['id'])
+                if any(math.dist(t['position'][:2], point[:2]) < .15
+                       for point in self.completed_targets):
+                    t['visited'] = True  # Existing target-manager visited radius, session retained.
                 t['age'] = (now_ros - t['observed_ns']) / 1e9
                 if t['observed_ns'] <= 0 or t['age'] < -self.future_tolerance:
                     raise ValueError('invalid target timestamp')

@@ -11,7 +11,7 @@ import time
 from full_video_evidence import save_front_evidence
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]/"scripts"))
-from go2_camera_handoff import CameraHandoff
+from go2_camera_handoff import CameraHandoff, atomic_json
 
 
 def arm_command(args, command):
@@ -34,7 +34,10 @@ def parser():
                    help='full session directory for front video and retrieved wrist video')
     p.add_argument('--camera-handoff-directory', type=Path,
                    help='per-run camera switch channel owned by go2_test full supervisor')
-    p.add_argument('--grasp-side', choices=('right','left'), default='right')
+    p.add_argument('--grasp-side', choices=('right','left','auto'), default='right')
+    p.add_argument('--continuous-search', action='store_true')
+    p.add_argument('--completed-targets-json', default='[]')
+    p.add_argument('--round-result', type=Path)
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
     p.add_argument('--response-distance-limit', type=float, default=.20)
@@ -73,8 +76,6 @@ def main():
     args = p.parse_args()
     if args.execute and args.full and args.camera_handoff_directory is None:
         p.error("Full camera switching requires the go2_test.sh --execute --mode full entry")
-    if args.full and args.grasp_side == 'left' and not args.left_geometry_verified:
-        p.error('Left full grasp requires a verified left dock/support geometry; test dock first')
     if not .10 <= args.response_distance_limit <= .50:
         p.error('response distance limit must be 0.10 to 0.50m')
     if args.response_distance_limit != .20 and not args.forward_response_check:
@@ -102,7 +103,9 @@ def main():
                 stages=['SEARCH', 'STOP_CONFIRM', 'APPROACH_TO_GRASP_POSE', 'STOP'] +
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
                 s1_base_vehicle_xy_m=[-.06, 0],
-                desired_target_s1_xy_m=[0, .37 if args.grasp_side=='right' else -.41],
+                desired_target_s1_xy_m=(None if args.grasp_side == 'auto' else
+                                       [0, .37 if args.grasp_side=='right' else -.37]),
+                search_continuous=args.continuous_search,
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),
                 posture_profile=str(args.posture_profile) if args.posture_profile else None,
@@ -177,6 +180,7 @@ def main():
                '--up-min-body-height-m', str(args.up_min_body_height_m),
                '--down-mode', str(args.down_mode), '--up-mode', str(args.up_mode),
                '--arm-timeout', str(args.arm_timeout)]
+    command += ['--grasp-side', final.get('grasp_side', args.grasp_side)]
     if args.arm_host != 'local':
         command = ['ssh', '-i', args.ssh_key, '-o', 'BatchMode=yes',
                    '-o', 'ConnectTimeout=3', args.arm_host, shlex.join(command)]
@@ -223,7 +227,22 @@ def main():
                 rclpy.shutdown()
         if completed.returncode:
             raise RuntimeError('Posture/arm task failed; no automatic recovery. See '+str(log))
-        print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))
+    completion = None
+    for line in log.read_text().splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get('event') == 'RESULT':
+            completion = row.get('data')
+    if not completion or not completion.get('task_motion_complete') or not (
+            completion.get('stand_up', {}).get('confirmed')):
+        raise RuntimeError('No new completed grasp/confirmed StandUp result; do not count round')
+    if args.round_result:
+        atomic_json(args.round_result, dict(target_map_xy=final['target'],
+                    target_id=final['target_id'], grasp_side=final['grasp_side'],
+                    task_motion_complete=True, placement_confirmed=None, arm_log=str(log)))
+    print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))
 
 
 if __name__ == '__main__':

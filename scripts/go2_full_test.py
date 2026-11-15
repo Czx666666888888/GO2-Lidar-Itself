@@ -7,7 +7,8 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 from go2_build_fingerprint import fingerprint
 from s1_v2_delivery import ensure_v2_package
-from go2_camera_handoff import RELEASE_CHECK, service_requests
+from go2_camera_handoff import RELEASE_CHECK, service_requests, atomic_json
+from go2_three_grasps import run_three_grasps
 import fcntl
 import json
 import os
@@ -276,6 +277,8 @@ class Workflow:
         self.stages = []
         self.timing_lock = threading.Lock()
         self.camera_paused = False
+        self.current_round = 0
+        self.completed_targets = []
 
     @contextmanager
     def stage(self, name):
@@ -355,6 +358,11 @@ class Workflow:
                         'yolo_python:='+str(self.vision_python)]
         return command
 
+    @property
+    def camera_handoff_directory(self):
+        base = self.folder/'camera_handoff'
+        return base/('round_%02d' % self.current_round) if self.current_round else base
+
     def task_command(self):
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
                    '--grasp-side', self.args.grasp_side, '--search-distance', '5', '--search-timeout', '60']
@@ -368,8 +376,10 @@ class Workflow:
         if self.args.mode == 'full':
             profile = self.work/'camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json'
             command += ['--full', '--posture-profile', str(profile)]
-            command += ['--evidence-directory', str(self.folder)]
-            command += ['--camera-handoff-directory', str(self.folder/'camera_handoff')]
+            command += ['--evidence-directory', str(self.folder), '--continuous-search',
+                        '--completed-targets-json', json.dumps(self.completed_targets),
+                        '--round-result', str(self.folder/('round_%02d_result.json' % self.current_round))]
+            command += ['--camera-handoff-directory', str(self.camera_handoff_directory)]
             if getattr(self.args, 'left_geometry_verified', False):
                 command.append('--left-geometry-verified')
         return command
@@ -415,7 +425,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         running_modes=running_modes or []
         entry='run_go2_left_grasp.py' if side=='left' else 'run_arm_integration.py'
         if running:
-            if len(running_modes)!=1 or running_modes[0]!=side:
+            if len(running_modes)!=1 or (side != 'auto' and running_modes[0]!=side):
                 raise RuntimeError('S1抓取侧别与请求不一致；空闲ZERO_HOLD后手动切换服务: '+
                                    str(running_modes)+' requested='+side)
             state=self.status()
@@ -480,7 +490,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
     def wait_job(self, p):
         while p.poll() is None:
             if self.args.mode == 'full':
-                service_requests(self.folder/'camera_handoff',
+                service_requests(self.camera_handoff_directory,
                                  self.pause_front_camera, self.resume_front_camera)
             self.healthy()
             time.sleep(0.2)
@@ -780,10 +790,28 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                      HOST+':'+REMOTE+'/'])
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
-        command = self.task_command()
         if getattr(self.args, 'view', False):
             self.spawn(self.shell('ros2 run rqt_image_view rqt_image_view '
                                   '/science/approach/debug_image'), 'viewer')
+        if self.args.mode == 'full':
+            run_three_grasps(self.run_full_round, lambda completed: atomic_json(
+                self.folder/'three_grasps.json', dict(completed_count=len(completed),
+                goal_count=3, completed=completed, placement_confirmed=None)))
+            print('THREE_GRASP_CYCLES_COMPLETE: third StandUp confirmed; exploration stopped', flush=True)
+        else:
+            self.run_task()
+
+    def run_full_round(self, number, completed_targets):
+        self.current_round = number
+        self.completed_targets = completed_targets
+        if not zero_hold(self.status()):
+            raise RuntimeError('S1 not ready before next exploration round')
+        print('GRASP_ROUND_START '+str(number)+'/3', flush=True)
+        self.run_task()
+        return json.loads((self.folder/('round_%02d_result.json' % number)).read_text())
+
+    def run_task(self):
+        command = self.task_command()
         print('开始真实运动；Ctrl+C请求停止。物理遥控急停保持可用。', flush=True)
         task = subprocess.Popen(self.shell(shlex.join(command)))
         try:
@@ -800,7 +828,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                 while task.poll() is None:
                     # The cancelled coordinator still needs its finally/resume ack.
                     if self.args.mode == 'full':
-                        service_requests(self.folder/'camera_handoff',
+                        service_requests(self.camera_handoff_directory,
                                          reject_new_pause, self.resume_front_camera)
                     if not warned and time.monotonic() > deadline:
                         print('任务未退出：立即物理急停；保留定位和S1，等待原任务退出。', flush=True)
@@ -840,7 +868,7 @@ def main():
     parser.add_argument('--execute', action='store_true',
                         help='确认路线空旷、急停在手、S1初始位和支撑已核对；执行真实运动')
     parser.add_argument('--mode', choices=['full', 'dock'], default='full')
-    parser.add_argument('--grasp-side', choices=['right','left'], default='right')
+    parser.add_argument('--grasp-side', choices=['right','left','auto'], default=None)
     parser.add_argument('--detector', choices=['yolo','hsv'], default='yolo')
     parser.add_argument('--view', action='store_true')
     parser.add_argument('--model-path', type=Path)
@@ -854,8 +882,7 @@ def main():
     parser.add_argument('--startup-check', action='store_true',
                         help='read-only stage timing/status; never zero/enable/move')
     args = parser.parse_args()
-    if args.grasp_side=='left' and args.mode=='full' and args.execute and not args.left_geometry_verified:
-        raise RuntimeError('左侧完整抓取需先验证导航停靠及支撑外参；先运行左侧dock测试')
+    args.grasp_side = args.grasp_side or ('auto' if args.mode == 'full' else 'right')
     if args.forward_response_check and args.mode != 'dock':
         parser.error('--forward-response-check requires --mode dock, never full')
     if not .10 <= args.response_distance_limit <= .50:
@@ -874,9 +901,9 @@ def main():
         print('离线计划（未连接硬件、未写文件）：\n'
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
-              '检测器='+args.detector+' → SEARCH 5m/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
+              '检测器='+args.detector+' → SEARCH（full持续探索，dock保留5m）/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
               (' → 停止并释放D435 → 趴下 → D455采图/S1抓取 → ZERO_HOLD → 起立'
-               ' → 确认D455释放 → 恢复D435' if args.mode == 'full' else '') +
+               ' → 确认D455释放 → 恢复D435 → 继续探索；第3轮起立后停止' if args.mode == 'full' else '') +
               '\n真实执行：bash go2_test.sh --execute\n'
               '无自动避障；退出保留S1保持服务。完整流程真机验收：NOT VERIFIED。')
         return

@@ -32,6 +32,55 @@ def test_unknown_upstream_layout_is_preserved():
         replace_once('changed upstream', 'expected source', 'replacement')
 
 
+@pytest.mark.parametrize('side', ['right', 'left'])
+def test_side_selection_reuses_service_parameters_and_original_side_resources(payload, side):
+    import argparse
+    source = ast.parse(payload['scripts/run_arm_integration.py'])
+    function = next(n for n in source.body if isinstance(n, ast.FunctionDef)
+                    and n.name == 'selected_grasp_arguments')
+    namespace = dict(argparse=argparse)
+    exec(compile(ast.Module(body=[function], type_ignores=[]), '<side-dispatch>', 'exec'), namespace)
+    args = argparse.Namespace(speed=1.5, descent_speed=.75, dev='/dev/ttyUSB1',
+                              non_interactive=True, config='original', search_plan=[])
+    selected = namespace['selected_grasp_arguments'](args, side)
+    assert selected.speed == args.speed and selected.descent_speed == args.descent_speed
+    assert selected.dev == args.dev and selected.non_interactive == args.non_interactive
+    assert ('left' in selected.config) == (side == 'left')
+    assert all(side in value for value in selected.search_plan)
+    assert args.config == 'original'
+
+
+def test_existing_default_side_retains_custom_resource_arguments(payload):
+    import argparse
+    function = next(n for n in ast.parse(payload['scripts/run_arm_integration.py']).body
+                    if isinstance(n, ast.FunctionDef) and n.name == 'selected_grasp_arguments')
+    namespace = dict(argparse=argparse)
+    exec(compile(ast.Module(body=[function], type_ignores=[]), '<side-default>', 'exec'), namespace)
+    args = argparse.Namespace(config='custom_right.json', search_plan=['custom_a', 'custom_b'],
+                              speed=1.5)
+    chosen = namespace['selected_grasp_arguments'](args, 'right')
+    assert vars(chosen) == vars(args) and chosen is not args
+
+
+def test_grasp_side_is_latched_with_the_queued_job_and_cannot_change_while_busy(payload):
+    import queue
+    import threading
+    source = ast.parse(payload['s1_control/integration.py'])
+    cls = next(n for n in source.body if isinstance(n, ast.ClassDef))
+    function = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'request_grasp')
+    scope = {}
+    exec(compile(ast.Module(body=[function], type_ignores=[]), '<side-request>', 'exec'), scope)
+    session = SimpleNamespace(_lock=threading.Lock(), jobs=queue.Queue(),
+                              _state=dict(state='ZERO_HOLD', grasp_side='right'))
+    session.snapshot = lambda: dict(readiness_state='ZERO_HOLD')
+    call = scope['request_grasp']
+    assert not call(session, 'invalid')['accepted']
+    assert call(session, 'left')['accepted'] and session.jobs.qsize() == 1
+    assert session._state['grasp_side'] == 'left'
+    assert not call(session, 'right')['accepted']
+    assert session._state['grasp_side'] == 'left' and session.jobs.qsize() == 1
+
+
 @pytest.mark.parametrize('at_zero', [True, False])
 def test_startup_uses_original_return_only_when_needed(payload, at_zero):
     source = payload['scripts/run_arm_integration.py']
@@ -127,7 +176,8 @@ def test_upgrade_accepts_exact_deployed_previous_adapter():
     with zipfile.ZipFile(path) as bundle:
         meta = compatibility_payload(ROOT, bundle)['s1_control/integration.py']
     assert meta['accepted_previous_sha256'] == [
-        'b98a9881893686af2e998d3cf60874c616c1de6290dd426a0a6822d2bce52d87']
+        'b98a9881893686af2e998d3cf60874c616c1de6290dd426a0a6822d2bce52d87',
+        '384dea03626da4634821ab79fddf327fd0d476beb895284ae1a50e0d7d63d6d6']
     assert meta['sha256'] != meta['accepted_previous_sha256'][0]
 
 
@@ -145,7 +195,8 @@ def test_video_removal_restores_original_capture_and_direct_grasp_callback():
     assert 'run_recorded_flow' not in entry and 'grasp_video' not in entry
     assert 'session.run_task(lambda active: flow.main(' in entry
     assert payload['scripts/run_arm_integration.py']['accepted_previous_sha256'] == [
-        '035fd4e6d73946b38e0c06ef0eaa6d3e571cb9b5b784206d7f4f0a79a06755b7']
+        '035fd4e6d73946b38e0c06ef0eaa6d3e571cb9b5b784206d7f4f0a79a06755b7',
+        '7abc5219e43b944667e6a867e256a5dc0e640f1b926ee7769255bc9d209642e7']
     assert payload['demo_grasp/capture_rgbd.py']['accepted_previous_sha256'] == [
         '8c8150066467e09bd4ae5520b0409d9559be4f0ef55e8c09f4aef10fcaf5de81']
 
@@ -232,3 +283,35 @@ def test_video3_upgrade_restores_sources_and_retires_only_verified_helper(tmp_pa
     digest = delivery.RETIRED_VIDEO_FILES['s1_control/grasp_video.py']
     backup = installed/'.v2-compat-backups'/digest/'s1_control/grasp_video.py'
     assert hashlib.sha256(backup.read_bytes()).hexdigest() == digest
+
+
+def test_no_video4_upgrade_enables_side_dispatch_without_changing_capture(tmp_path, monkeypatch):
+    import shlex
+    import subprocess
+    import s1_v2_delivery as delivery
+    path = os.environ.get('GO2_S1_V2_ARCHIVE')
+    if not path:
+        pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
+    with zipfile.ZipFile(path) as archive:
+        previous = compatibility_payload(ROOT, archive, dual_side=False)
+        for name, meta in previous.items():
+            target = tmp_path/name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(base64.b64decode(meta['content']))
+        original_capture = archive.read('s1-arm-control/demo_grasp/capture_rgbd.py')
+    metadata = dict(version='v2_usb01_feedback_no_video_4', files={
+        name: {k: v for k, v in meta.items() if k != 'content'} for name, meta in previous.items()})
+    (tmp_path/'S1_V2_COMPAT.json').write_text(json.dumps(metadata))
+    original_run = subprocess.run
+
+    def run(argv, **kwargs):
+        command = shlex.split(argv[-1])
+        command[3] = str(tmp_path)
+        return original_run(command, **kwargs)
+
+    monkeypatch.setattr(delivery.subprocess, 'run', run)
+    ensure_v2_compat(ROOT, ['ssh'], 'host', running=False, archive=path)
+    current = json.loads((tmp_path/'S1_V2_COMPAT.json').read_text())
+    assert current['version'] == delivery.COMPAT_VERSION
+    assert 'selected_grasp_arguments' in (tmp_path/'scripts/run_arm_integration.py').read_text()
+    assert (tmp_path/'demo_grasp/capture_rgbd.py').read_bytes() == original_capture

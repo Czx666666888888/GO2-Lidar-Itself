@@ -149,3 +149,12 @@ Point-LIO message headers, odometry frame IDs and any dynamic TF broadcasts requ
 - Stop helper: `bash code/scripts/nav_stop.sh`
 
 These commands are sourced from repository scripts. Their success on a clean host is currently `NOT VERIFIED`.
+
+## full三目标监督与相机/侧别交接（2026-11-15源码）
+
+父监督器保持现有感知定位会话，串行启动3轮原停靠/抓取协调器。每轮控制器启用持续SEARCH及共参左右停车位评分，
+锁定目标和侧别后仍走原STOP_CONFIRM、停靠及控制权释放。父进程暂停D435并确认释放后，
+姿态适配器向现有S1 socket发送含grasp_side的grasp请求；唯一S1 Arm会话调用原侧别配置/轨迹。
+原抓取/起立任务完成、D455释放和D435恢复确认后，协调器写round结果；父进程记录完成位置供下轮访问过滤。
+第3轮后不再启动控制器；S1保持服务和恢复后的D435按原策略保留。three_grasps.json为软件任务计数，placement_confirmed仍null。
+旧S1进程需正常退出后加载dual_side_5，不热修改串口所有者。完整实机流程NOT VERIFIED。

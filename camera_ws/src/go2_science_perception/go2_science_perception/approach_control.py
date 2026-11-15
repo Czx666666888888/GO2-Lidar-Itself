@@ -45,6 +45,7 @@ class Settings:
     odom_max_time: float = 1.0
     odom_max_distance: float = 0.15
     search_enabled: bool = False
+    search_continuous: bool = False
     search_speed: float = 0.20
     search_distance: float = 1.0
     search_timeout: float = 20.0
@@ -62,7 +63,7 @@ class Settings:
     def __post_init__(self):
         """Reject invalid limits rather than silently weakening safety bounds."""
         for name, value in vars(self).items():
-            if (name not in ('allow_odom', 'stop_reference', 'search_enabled') and
+            if (name not in ('allow_odom', 'stop_reference', 'search_enabled', 'search_continuous') and
                     (not math.isfinite(value) or value <= 0)):
                 raise ValueError(f'{name} must be finite and positive')
         if self.max_linear_speed > 0.3 or self.max_angular_speed > 0.3:
@@ -97,10 +98,11 @@ def angle(value):
 class ApproachControl:
     """Lock one ID on confirmation; STOP/FAULT require reset and confirmation."""
 
-    def __init__(self, settings=None, docking=None):
+    def __init__(self, settings=None, docking=None, docking_options=None):
         """Initialize without a target or motion permission."""
         self.p = settings or Settings()
         self.docking = docking
+        self.docking_options = docking_options or {}
         self.reset()
 
     def reset(self):
@@ -152,6 +154,31 @@ class ApproachControl:
         self.stop_request_range_m = self.stop_stable_range_m = None
         self.stopped_after_sec = self.stationary_confirmation_sec = None
         self.visual_loss_count = 0
+        self.grasp_side = ('right' if self.docking and self.docking.p.target_s1_y > 0 else 'left')
+        self.side_candidates = []
+
+    def _search_candidates(self, valid):
+        """Rank target/side pairs by actual planar travel to their docking poses."""
+        if not self.docking_options or self.robot is None:
+            return valid
+        from .grasp_pose_geometry import docking_goal
+        heading = self.search_origin[2] if self.search_origin else self.robot[2]
+        ranked = []
+        for track in valid:
+            point = track.get('latest_observation', track['position'])[:2]
+            for side, settings in self.docking_options.items():
+                goal = docking_goal(point, heading, settings)
+                ranked.append(dict(target_id=track['id'], side=side, goal=list(goal),
+                                   distance_m=math.dist(self.robot[:2], goal[:2])))
+        self.side_candidates = sorted(ranked, key=lambda r: (r['distance_m'], r['side'] != 'right',
+                                                           r['target_id']))
+        if not self.side_candidates:
+            return []
+        choice = self.side_candidates[0]
+        if choice['side'] != self.grasp_side:
+            self.trigger_history.clear()
+        self.grasp_side = choice['side']
+        return [t for t in valid if t['id'] == choice['target_id']]
 
     def fault(self, reason):
         """Latch a fault; never restart on data recovery."""
@@ -380,6 +407,7 @@ class ApproachControl:
         """Keep moving hints separate from new, post-settle confirmation measurements."""
         valid = self._near_detections(now)
         if self.state == 'SEARCH':
+            valid = self._search_candidates(valid)
             if self.first_seen is None:
                 hints = [t for t in tracks if t['state'] in ('CANDIDATE', 'CONFIRMED')
                          and not t['visited'] and 0 <= t['age'] <= self.p.visual_timeout
@@ -446,7 +474,7 @@ class ApproachControl:
         self.stop_confirm_reason = 'collecting new stationary observations'
 
     def _begin_stop_confirm(self, now):
-        valid = self._near_detections(now)
+        valid = self._search_candidates(self._near_detections(now))
         if len(valid) != 1:
             return False
         t = valid[0]
@@ -458,6 +486,10 @@ class ApproachControl:
         self.stop_candidate = dict(
             id=t['id'], map=tuple(median(s[2][i] for s in history) for i in (0, 1)),
             trigger_stamp_ns=history[-1][1])
+        if self.docking_options:
+            self.docking.p = self.docking_options[self.grasp_side]
+            self.docking.reset()
+            self.stop_candidate['grasp_side'] = self.grasp_side
         self.stop_request_range_m = t['camera_range_m']
         self.stop_stable_range_m = None
         self.stopped_after_sec = self.stationary_confirmation_sec = None
@@ -637,6 +669,7 @@ class ApproachControl:
                   now-self.started > self.p.max_run_time):
                 self.fault('run timeout')
         out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'vy': 0.0, 'wz': 0.0,
+               'grasp_side': self.grasp_side, 'side_candidates': self.side_candidates,
                'target_id': self.lock_id, 'target': self.target, 'robot': self.robot,
                'actual_speed': self.actual_speed, 'camera_speed': self.camera_speed,
                'camera': self.camera, 'target_map_anchor': self.target,
@@ -683,9 +716,9 @@ class ApproachControl:
             out.update(search_progress=progress, search_cross_track=cross)
             if abs(cross) > self.p.search_cross_track_limit:
                 self.fault('search cross-track limit')
-            elif now-self.search_started >= self.p.search_timeout:
+            elif not self.p.search_continuous and now-self.search_started >= self.p.search_timeout:
                 self.state, self.reason = 'STOP', 'search timeout without target'
-            elif progress >= self.p.search_distance:
+            elif not self.p.search_continuous and progress >= self.p.search_distance:
                 self.state, self.reason = 'STOP', 'search route ended without target'
             else:
                 if self.state == 'STOP_CONFIRM':
@@ -698,8 +731,8 @@ class ApproachControl:
                     return out
                 error = angle(heading-self.robot[2])
                 remaining = max(0.0, self.p.search_distance-progress)
-                desired = min(self.p.search_speed, math.sqrt(
-                    2*self.p.max_deceleration*remaining))
+                desired = (self.p.search_speed if self.p.search_continuous else
+                           min(self.p.search_speed, math.sqrt(2*self.p.max_deceleration*remaining)))
                 self.vx = min(desired, self.vx+self.p.max_acceleration*dt)
                 out.update(vx=self.vx, wz=max(-self.p.max_angular_speed, min(
                     self.p.max_angular_speed, self.p.kp_angular*error-0.5*cross)))

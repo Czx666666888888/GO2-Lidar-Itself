@@ -176,6 +176,9 @@ class Experiment:
             *(['--params-file', str(share / ('config/science_grasp_docking_left.yaml' if
                 getattr(self.args, 'grasp_side', 'right') == 'left' else 'config/science_grasp_docking.yaml'))]
               if getattr(self.args, 'grasp_pose', False) else []),
+            '-p', 'search_continuous:='+str(getattr(self.args, 'continuous_search', False)).lower(),
+            '-p', 'dock_auto_side_enabled:='+str(getattr(self.args, 'grasp_side', '') == 'auto').lower(),
+            '-p', 'completed_targets_json:='+json.dumps(getattr(self.args, 'completed_targets_json', '[]')),
             *(['-p', 'dock_forward_response_check:=true',
                '-p', f'response_gate_log_file:={gate_log}',
                '-p', 'dock_forward_response_max_distance:='+
