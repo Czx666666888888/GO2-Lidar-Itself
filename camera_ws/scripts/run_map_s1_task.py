@@ -6,8 +6,12 @@ import json
 from pathlib import Path
 import shlex
 import subprocess
+import sys
 import time
 from full_video_evidence import save_front_evidence
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]/"scripts"))
+from go2_camera_handoff import CameraHandoff
 
 
 def arm_command(args, command):
@@ -28,6 +32,8 @@ def parser():
     p.add_argument('--full', action='store_true', help='after docking: StandDown/grasp/StandUp')
     p.add_argument('--evidence-directory', type=Path,
                    help='full session directory for front video and retrieved wrist video')
+    p.add_argument('--camera-handoff-directory', type=Path,
+                   help='per-run camera switch channel owned by go2_test full supervisor')
     p.add_argument('--grasp-side', choices=('right','left'), default='right')
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
@@ -65,6 +71,8 @@ def parser():
 def main():
     p = parser()
     args = p.parse_args()
+    if args.execute and args.full and args.camera_handoff_directory is None:
+        p.error("Full camera switching requires the go2_test.sh --execute --mode full entry")
     if args.full and args.grasp_side == 'left' and not args.left_geometry_verified:
         p.error('Left full grasp requires a verified left dock/support geometry; test dock first')
     if not .10 <= args.response_distance_limit <= .50:
@@ -89,6 +97,8 @@ def main():
                 'feedback modes; do not guess them')
     plan = dict(base_commit='e15c66ce2beb998ef9c73464b0bff72cbd4e2266',
                 mode='full' if args.full else 'dock_only', grasp_side=args.grasp_side,
+                camera_policy=('D435 release -> D455 arm capture -> D455 release -> D435 restore'
+                               if args.full else 'unchanged'),
                 stages=['SEARCH', 'STOP_CONFIRM', 'APPROACH_TO_GRASP_POSE', 'STOP'] +
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
                 s1_base_vehicle_xy_m=[-.06, 0],
@@ -170,49 +180,50 @@ def main():
     if args.arm_host != 'local':
         command = ['ssh', '-i', args.ssh_key, '-o', 'BatchMode=yes',
                    '-o', 'ConnectTimeout=3', args.arm_host, shlex.join(command)]
-    log = experiment.folder / ('s1_task_' +
-                               datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.jsonl')
-    from std_msgs.msg import Int8
-    supervisor = rclpy.create_node('s1_posture_task_supervisor')
-    stopped = [False]
-    supervisor.create_subscription(Int8, '/stop',
-                                   lambda m: stopped.__setitem__(0, stopped[0] or m.data != 0), 1)
-    process = None
-    try:
-        with log.open('x') as stream:
-            process = subprocess.Popen(command, stdin=subprocess.PIPE,
-                                       stdout=stream, stderr=subprocess.STDOUT, text=True)
-            experiment.event('POSTURE_HOST_STARTED')
-            deadline = time.monotonic()+args.arm_timeout+90
-            next_heartbeat = 0.0
-            while process.poll() is None:
-                rclpy.spin_once(supervisor, timeout_sec=0.05)
-                if stopped[0] or time.monotonic() > deadline:
-                    process.stdin.write('{"stop":true}\n')
-                    process.stdin.flush()
-                    raise RuntimeError('Posture task stopped/timed out; no automatic StandUp')
-                if time.monotonic() >= next_heartbeat:
-                    process.stdin.write('{"heartbeat":true}\n')
-                    process.stdin.flush()
-                    next_heartbeat = time.monotonic()+0.5
-            completed = process
-    finally:
-        if process is not None:
-            if process.stdin:
-                process.stdin.close()
-            if process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=4)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=2)
-        supervisor.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
-    if completed.returncode:
-        raise RuntimeError('Posture/arm task failed; no automatic recovery. See '+str(log))
-    print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))
+    with CameraHandoff(args.camera_handoff_directory, experiment.event):
+        log = experiment.folder / ('s1_task_' +
+                                   datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.jsonl')
+        from std_msgs.msg import Int8
+        supervisor = rclpy.create_node('s1_posture_task_supervisor')
+        stopped = [False]
+        supervisor.create_subscription(Int8, '/stop',
+                                       lambda m: stopped.__setitem__(0, stopped[0] or m.data != 0), 1)
+        process = None
+        try:
+            with log.open('x') as stream:
+                process = subprocess.Popen(command, stdin=subprocess.PIPE,
+                                           stdout=stream, stderr=subprocess.STDOUT, text=True)
+                experiment.event('POSTURE_HOST_STARTED')
+                deadline = time.monotonic()+args.arm_timeout+90
+                next_heartbeat = 0.0
+                while process.poll() is None:
+                    rclpy.spin_once(supervisor, timeout_sec=0.05)
+                    if stopped[0] or time.monotonic() > deadline:
+                        process.stdin.write('{"stop":true}\n')
+                        process.stdin.flush()
+                        raise RuntimeError('Posture task stopped/timed out; no automatic StandUp')
+                    if time.monotonic() >= next_heartbeat:
+                        process.stdin.write('{"heartbeat":true}\n')
+                        process.stdin.flush()
+                        next_heartbeat = time.monotonic()+0.5
+                completed = process
+        finally:
+            if process is not None:
+                if process.stdin:
+                    process.stdin.close()
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=4)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=2)
+            supervisor.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+        if completed.returncode:
+            raise RuntimeError('Posture/arm task failed; no automatic recovery. See '+str(log))
+        print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))
 
 
 if __name__ == '__main__':

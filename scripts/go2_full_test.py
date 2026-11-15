@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 from go2_build_fingerprint import fingerprint
 from s1_v2_delivery import ensure_v2_package
+from go2_camera_handoff import RELEASE_CHECK, service_requests
 import fcntl
 import json
 import os
@@ -274,6 +275,7 @@ class Workflow:
         self.env_prefix = ''
         self.stages = []
         self.timing_lock = threading.Lock()
+        self.camera_paused = False
 
     @contextmanager
     def stage(self, name):
@@ -367,6 +369,7 @@ class Workflow:
             profile = self.work/'camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json'
             command += ['--full', '--posture-profile', str(profile)]
             command += ['--evidence-directory', str(self.folder)]
+            command += ['--camera-handoff-directory', str(self.folder/'camera_handoff')]
             if getattr(self.args, 'left_geometry_verified', False):
                 command.append('--left-geometry-verified')
         return command
@@ -476,10 +479,58 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
 
     def wait_job(self, p):
         while p.poll() is None:
+            if self.args.mode == 'full':
+                service_requests(self.folder/'camera_handoff',
+                                 self.pause_front_camera, self.resume_front_camera)
             self.healthy()
             time.sleep(0.2)
         if p.returncode:
             raise RuntimeError(f'子步骤失败 exit={p.returncode}，查看 {self.folder}')
+
+    def cameras_released(self, products):
+        script = 'PRODUCTS='+repr(products)+'\n'+RELEASE_CHECK
+        remote(shlex.join(['/usr/bin/python3', '-c', script]),
+               capture_output=True, text=True, timeout=8)
+
+    def pause_front_camera(self):
+        if self.camera_paused:
+            return
+        self.camera_paused = True  # Even partial teardown needs a restoration attempt.
+        for child, stream, label in list(self.children):
+            if label != 'camera':
+                continue
+            if child.poll() is None:
+                child.stdin.close()  # Original owner shuts down its own process group.
+                child.wait(timeout=15)
+            stream.close()
+            self.children.remove((child, stream, label))
+        # Reused drivers are also paused, but only when explicitly bound to D435.
+        self.stop_invalid_camera()
+        self.cameras_released({'0b07', '0b5c'})
+        print('D435_PAUSED_AND_RELEASED: D455 may now capture', flush=True)
+
+    def resume_front_camera(self):
+        if not self.camera_paused:
+            return
+        state = self.status()
+        if state.get('busy') is not False or state.get('state') in (
+                'STARTING', 'QUEUED', 'GRASPING', 'RETURNING_ZERO'):
+            raise RuntimeError('S1 still active/unknown; keep D435 paused: '+str(state))
+        self.cameras_released({'0b5c'})
+        # Fail closed if any existing D435 owner survived an incomplete pause.
+        self.cameras_released({'0b07'})
+        stamp = str(time.time_ns())
+        argv = ['env', 'GO2_D435_SERIAL=213622070598',
+                'bash', REMOTE+'/launch_go2_d435_foxy.sh']
+        script = detached_launcher(argv, REMOTE, REMOTE+'/d435_restored_'+stamp+'.log')
+        remote(shlex.join(['/usr/bin/python3', '-c', script]),
+               capture_output=True, text=True)
+        # Preserve the restored driver for the next run, as for a reused session.
+        self.camera_paused = False
+        report = self.probe('post_arm_camera_'+stamp, timeout=12, scope='chain')
+        if not report.get('camera_ok'):
+            raise RuntimeError('D435 restarted but fresh RGB/depth not verified; see camera probe')
+        print('D455_RELEASED_D435_RESTORED: fresh RGB/depth verified; driver retained', flush=True)
 
     def shell(self, command):
         return ['bash', '-c', self.env_prefix + command]
@@ -720,6 +771,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                 remote('mkdir -p '+REMOTE)
                 run(['scp','-i',KEY,'-o','BatchMode=yes',
                      self.work/'camera_ws/scripts/s1_task_host.py',
+                     self.work/'camera_ws/scripts/launch_go2_d435_foxy.sh',
                      self.work/'camera_ws/src/go2_science_perception/go2_science_perception/s1_task_sequence.py',
                      HOST+':'+REMOTE+'/'])
         if not zero_hold(self.status()):
@@ -735,15 +787,28 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         finally:
             if task.poll() is None:
                 task.send_signal(signal.SIGINT)
-                try:
-                    task.wait(timeout=20)
-                except subprocess.TimeoutExpired:
-                    # Keep support nodes alive rather than tearing out localization
-                    # under a controller which has not acknowledged shutdown.
-                    print('任务未退出：立即物理急停；保留定位和S1，等待原任务退出。', flush=True)
-                    task.wait()
+                deadline = time.monotonic()+20
+                warned = False
+
+                def reject_new_pause():
+                    raise RuntimeError('Full task cancelled; no new arm handoff')
+
+                while task.poll() is None:
+                    # The cancelled coordinator still needs its finally/resume ack.
+                    if self.args.mode == 'full':
+                        service_requests(self.folder/'camera_handoff',
+                                         reject_new_pause, self.resume_front_camera)
+                    if not warned and time.monotonic() > deadline:
+                        print('任务未退出：立即物理急停；保留定位和S1，等待原任务退出。', flush=True)
+                        warned = True
+                    time.sleep(.1)
 
     def close(self):
+        if self.camera_paused:
+            try:
+                self.resume_front_camera()
+            except Exception as exc:
+                print('D435_RESTORE_BLOCKED: '+str(exc), flush=True)
         for p, stream, label in reversed(self.children):
             try:
                 if p.poll() is None:
@@ -806,7 +871,8 @@ def main():
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
               '检测器='+args.detector+' → SEARCH 5m/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
-              (' → 趴下 → S1抓取 → ZERO_HOLD → 起立' if args.mode == 'full' else '') +
+              (' → 停止并释放D435 → 趴下 → D455采图/S1抓取 → ZERO_HOLD → 起立'
+               ' → 确认D455释放 → 恢复D435' if args.mode == 'full' else '') +
               '\n真实执行：bash go2_test.sh --execute\n'
               '无自动避障；退出保留S1保持服务。完整流程真机验收：NOT VERIFIED。')
         return

@@ -1,5 +1,15 @@
 # GO2 实机测试命令手册（中文，从接线到关闭）
 
+## 2026-11-15 full改为相机顺序采集（当前）
+
+继续使用唯一入口 `bash go2_test.sh --execute --mode full --view`（此命令含真实动作，需现场条件及本次授权）。
+停靠完成后自动停止D435并确认设备释放，然后执行趴下及D455视觉抓取；原任务退出后，
+确认S1空闲和D455已释放，再恢复D435并确认RGB/Depth新帧。恢复后的D435保留供下一轮复用。
+抓取失败也按上述条件尝试恢复；S1仍忙、相机占用或恢复无新帧会报错，不因此自动重试抓取。
+日志含CAMERA_HANDOFF_PAUSE/RESUME；每轮camera_handoff目录保存请求和确认，post_arm_camera探针记录恢复数据。
+旧的直接run_map_s1_task --full --execute入口必须由该full监督器提供相机切换通道；无通道会在动作前拒绝。
+本轮86项离线检查通过，完整真机切换/抓取NOT VERIFIED。
+
 ## 2026-11-15 恢复停靠vx自动修正（当前）
 
 左右停靠配置fine_forward_correction_enabled=true，进入15cm后继续按前后误差输出vx；
