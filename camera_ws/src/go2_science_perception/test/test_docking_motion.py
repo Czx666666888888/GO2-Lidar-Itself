@@ -72,9 +72,135 @@ def test_actual_dock_profiles_disable_only_disagreement_stop(name):
         for field in fields(DockSettings) if 'dock_'+field.name in params})
     assert settings.motion_disagreement_stop_enabled is False
     assert settings.motion_window_sec == settings.stable_window_sec == .5
-    assert settings.position_tolerance == .08
+    assert settings.position_tolerance == .10
+    assert settings.settle_exit_tolerance == .12
     assert settings.settled_sec == .5
     assert DockSettings().motion_disagreement_stop_enabled is True
+
+
+@pytest.mark.parametrize('name', ['science_grasp_docking.yaml', 'science_grasp_docking_left.yaml'])
+@pytest.mark.parametrize('distance,completed', [(.099, True), (.10, True), (.101, False)])
+def test_ten_cm_actual_profiles_preserve_stopped_confirmation(name, distance, completed):
+    from pathlib import Path
+    from dataclasses import fields
+    import yaml
+    from go2_science_perception.approach_control import ApproachControl, Settings
+    from go2_science_perception.grasp_pose_geometry import docking_goal
+    params = yaml.safe_load((Path(__file__).resolve().parents[1]/'config'/name).read_text())[
+        'science_target_approach']['ros__parameters']
+    settings = DockSettings(**{f.name: params['dock_'+f.name]
+        for f in fields(DockSettings) if 'dock_'+f.name in params})
+    c = ApproachControl(Settings(stop_reference='camera_origin', allow_odom=True),
+                        GraspDocking(settings))
+    c.target = c.anchor_initial = (1., 0.)
+    c.lock_id, c.search_origin, c.state, c.started = 1, (0., 0., 0.), 'LOCK_TARGET', 10.
+    goal = docking_goal(c.target, 0., settings)
+    # Both components are nonzero: the criterion is the combined planar norm.
+    point = (goal[0]-.6*distance, goal[1]-.8*distance)
+    for i in range(6):
+        tick(c, 10.+i*.1, point)
+    c.visual_time = 10.5
+    first = c.step(10.5)
+    assert first['state'] != 'STOP'
+    for i in range(1, 8):
+        now = 10.5+i*.1
+        c.visual_time = now
+        tick(c, now, point)
+        out = c.step(now)
+    assert (out['state'] == 'STOP') is completed
+    assert out['grasp_docking_complete'] is completed
+
+
+def remembered_arrival_core(distance=.09):
+    c = dock_core((distance, 0.))
+    c.docking = GraspDocking(DockSettings(position_tolerance=.10,
+        settle_exit_tolerance=.12, arrival_latch_enabled=True,
+        stable_window_sec=.5, stationary_reset_sec=1.))
+    return c
+
+
+def test_enter_once_then_drift_outside_still_completes_only_after_stop():
+    c = remembered_arrival_core()
+    first = c.step(10.5)
+    assert first['docking_arrival_latched'] and first['state'] != 'STOP'
+    original_sample = first['docking_arrival_sample']
+    x, y, _ = c.robot
+    for i in range(1, 20):
+        now = 10.5+i*.1
+        c.visual_time = now
+        tick(c, now, (x-.07, y))  # Live error is 16cm after one 9cm sample.
+        out = c.step(now)
+        assert out['vx'] == out['vy'] == 0.
+        if i < 5:
+            assert out['state'] != 'STOP'  # Drift is not called stopped motion.
+        if out['state'] == 'STOP':
+            break
+    assert out['state'] == 'STOP' and out['grasp_docking_complete']
+    assert out['distance'] == pytest.approx(.16)
+    assert out['docking_arrival_sample'] == original_sample
+    assert not out['docking_pose_in_tolerance']
+    assert out['docking_stationary_good_sec'] >= .5-1e-9
+
+
+def test_stopped_without_ever_entering_range_does_not_complete():
+    c = remembered_arrival_core(.101)
+    for i in range(20):
+        now = 10.5+i*.1
+        c.visual_time = now
+        tick(c, now+.001, c.robot[:2])
+        out = c.step(now+.001)
+    assert out['state'] != 'STOP' and not out['docking_arrival_latched']
+
+
+def test_arrival_does_not_replace_measured_stop():
+    c = remembered_arrival_core()
+    for i in range(20):
+        now = 10.5+i*.1
+        c.visual_time = now
+        tick(c, now+.001, c.robot[:2])
+        c.feedback_speed = .12
+        out = c.step(now+.001)
+    assert out['docking_arrival_latched'] and out['state'] != 'STOP'
+    assert 'sport_still_moving' in out['docking_stationary_blockers']
+
+
+def test_arrival_memory_keeps_current_heading_requirement():
+    c = remembered_arrival_core()
+    assert c.step(10.5)['docking_arrival_latched']
+    point = c.robot[:2]
+    for i in range(1, 25):
+        now = 10.5+i*.1
+        c.visual_time = now
+        tick(c, now, point, yaw=min(.24, i*.04))
+        out = c.step(now)
+        assert out['state'] not in ('STOP', 'FAULT')
+        assert out['vx'] == out['vy'] == 0.
+    assert out['docking_arrival_latched']
+    assert abs(out['grasp_docking']['yaw_error_rad']) > c.docking.p.yaw_tolerance
+
+
+@pytest.mark.parametrize('guard', ['stale', 'manual', 'budget', 'reset'])
+def test_arrival_memory_cannot_bypass_faults_or_survive_task_reset(guard):
+    from dataclasses import replace
+    c = remembered_arrival_core()
+    assert c.step(10.5)['docking_arrival_latched']
+    if guard == 'reset':
+        c.reset()
+        assert c.docking.arrival_sample is None
+        return
+    if guard == 'stale':
+        out = c.step(11.1)
+    elif guard == 'manual':
+        c.fault('manual emergency stop')
+        out = c.step(10.6)
+    else:
+        c.p = replace(c.p, odom_max_distance=.1)
+        c.visual_time = 9.
+        c.lost_at, c.odom_travel = 10., .2
+        out = c.step(10.6)
+    assert out['state'] == 'FAULT' and not out['grasp_docking_complete']
+    assert not out['docking_arrival_latched']
+    assert c.docking.arrival_sample is None
 
 
 @pytest.mark.parametrize('guard', ['stale', 'budget'])

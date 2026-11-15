@@ -25,6 +25,7 @@ class DockSettings:
     yaw_tolerance: float = math.radians(10)
     settled_sec: float = 0.5
     stationary_reset_sec: float = 0.0  # Zero preserves immediate-reset compatibility.
+    arrival_latch_enabled: bool = False  # Current task may remember one in-range pose.
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     fine_distance: float = 0.15
     fine_forward_correction_enabled: bool = True

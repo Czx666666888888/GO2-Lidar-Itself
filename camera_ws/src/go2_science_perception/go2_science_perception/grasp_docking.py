@@ -19,6 +19,7 @@ class GraspDocking:
         self.stationary_good_sec = 0.0
         self.stationary_last_good = None
         self.stationary_bad_since = None
+        self.arrival_sample = None
         self.stop_wait_started = None
         self.exit_candidate_since = None
         self.visual_settle_started = None
@@ -159,7 +160,13 @@ class GraspDocking:
                    distance=report['position_error_m'], docking_fixed_timeout_sec=None,
                    camera_distance_xy=math.dist(core.target, core.camera)
                    if core.camera is not None else None)
+        out.update(docking_arrival_latch_enabled=self.p.arrival_latch_enabled,
+                   docking_arrival_latched=self.arrival_sample is not None,
+                   docking_arrival_sample=self.arrival_sample)
         if not active:
+            if core.state != 'STOP':
+                self.arrival_sample = None
+                out.update(docking_arrival_latched=False, docking_arrival_sample=None)
             self.forward.reset()
             self.stop_wait_started = self.stationary_since = None
             self.reset_stationary()
@@ -171,6 +178,15 @@ class GraspDocking:
             self.lateral_only = True
         position_ok = distance <= self.p.position_tolerance+1e-12
         yaw_ok = abs(yaw_error) <= self.p.yaw_tolerance+1e-12
+        if self.p.arrival_latch_enabled and position_ok and self.arrival_sample is None:
+            self.arrival_sample = dict(monotonic=now, odom_monotonic=core.odom_time,
+                                       position_error_m=distance,
+                                       yaw_error_rad=yaw_error, target_map_xy=list(core.target),
+                                       vehicle_map_pose=list(core.robot))
+        arrival_latched = self.p.arrival_latch_enabled and self.arrival_sample is not None
+        arrival_ok = position_ok or arrival_latched
+        out.update(docking_arrival_latched=arrival_latched,
+                   docking_arrival_sample=self.arrival_sample)
         if now-core.visual_time > core.p.visual_timeout:
             if core.lost_at is None:
                 core.lost_at = now
@@ -192,7 +208,7 @@ class GraspDocking:
                         core.fault('visual observation expired: stop and reconfirm target')
             if core.odom_travel >= core.p.odom_max_distance:
                 core.fault('odometry continuation limit')
-            elif max(0.0, distance-self.p.position_tolerance) > (
+            elif not arrival_latched and max(0.0, distance-self.p.position_tolerance) > (
                     core.p.odom_max_distance-core.odom_travel):
                 core.fault('remaining docking distance exceeds odometry budget')
         if self.visual_settle_started is not None:
@@ -223,6 +239,8 @@ class GraspDocking:
         out['docking_progress_timeout_enabled'] = False
         self.forward.observe(core, now)
         if core.state == 'FAULT':
+            self.arrival_sample = None
+            out.update(docking_arrival_latched=False, docking_arrival_sample=None)
             self.stop_wait_started = self.stationary_since = None
             self.reset_stationary()
             self.velocity_map = (0.0, 0.0)
@@ -236,8 +254,8 @@ class GraspDocking:
         dx, dy = goal[0]-core.robot[0], goal[1]-core.robot[1]
         ex, ey = rotate_xy(-core.robot[2], (dx, dy))
         out['docking_body_error_xy'] = [ex, ey]
-        # Hold a zero request across small position fluctuations while feedback
-        # settles. The final position/yaw tolerance is still checked continuously.
+        # Optional arrival memory keeps translation at zero after entering range.
+        # Current heading and stopped feedback remain required for completion.
         exit_reason = None
         if self.stop_wait_started is not None:
             self.forward.stop(core, now, 'entered final stop wait')
@@ -253,11 +271,13 @@ class GraspDocking:
                            (self.stationary_bad_since is not None and
                             now-self.stationary_bad_since >= self.p.stationary_reset_sec))
             exit_confirm = max(self.p.settle_exit_confirm_sec, self.p.stationary_reset_sec)
-            if (outside and now-self.exit_candidate_since >= exit_confirm):
+            if (not arrival_latched and outside and
+                    now-self.exit_candidate_since >= exit_confirm):
                 exit_reason = 'position_outside_exit_band_persisted'
             elif not yaw_ok and reset_ready:
                 exit_reason = 'heading_outside_tolerance'
-            elif (not position_ok and window_distance > self.p.position_tolerance and
+            elif (not arrival_latched and not position_ok and
+                  window_distance > self.p.position_tolerance and
                   now-self.stop_wait_started >= self.p.settle_wait_sec and reset_ready):
                 exit_reason = 'outside_position_tolerance_after_wait'
             if exit_reason:
@@ -273,7 +293,7 @@ class GraspDocking:
                 self.reset_stationary()
                 self.exit_candidate_since = None
         out['docking_stop_wait_exit_reason'] = exit_reason
-        if self.stop_wait_started is None and position_ok and yaw_ok:
+        if self.stop_wait_started is None and arrival_ok and yaw_ok:
             self.stop_wait_started = now
         if self.stop_wait_started is not None:
             # The unchanged safety gate applies its own deceleration limit.
@@ -281,13 +301,13 @@ class GraspDocking:
             core.vx = core.vy = 0.0
             evidence = core.docking_stop_evidence(now)
             blockers = list(evidence['blockers'])
-            if not position_ok:
+            if not arrival_ok:
                 blockers.append('position_outside_tolerance')
             if not yaw_ok:
                 blockers.append('heading_outside_tolerance')
             out['docking_stop_evidence'] = evidence
             out['docking_stationary_blockers'] = blockers
-            qualified = position_ok and yaw_ok and evidence['stopped']
+            qualified = arrival_ok and yaw_ok and evidence['stopped']
             had_timer = self.stationary_since is not None
             if self.settle_clock(now, qualified):
                 core.state, core.reason = 'STOP', 'grasp docking pose reached and stopped'
@@ -313,7 +333,7 @@ class GraspDocking:
         # Latch until the task resets: pose noise must not restart fore/aft
         # motion after entering the lateral-only final approach.
         fine = fine or self.lateral_only
-        if not position_ok:
+        if not arrival_ok:
             a, latency = core.p.max_deceleration, core.p.braking_latency
             clearance = max(0.0, distance-self.p.position_tolerance/2)
             safe = math.sqrt((a*latency)**2+2*a*clearance)-a*latency

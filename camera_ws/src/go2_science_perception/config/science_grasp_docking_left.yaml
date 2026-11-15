@@ -13,7 +13,7 @@ science_target_approach:
     dock_fine_forward_correction_enabled: false  # Brake fore/aft; lateral/yaw corrections remain.
     dock_fine_min_linear_speed: 0.18  # Braking/measured-speed/slew limits still take priority.
     dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
-    dock_settle_exit_tolerance: 0.10  # Zero hold outer band; success remains <=0.08m.
+    dock_settle_exit_tolerance: 0.12  # Retain 2cm hysteresis outside the 10cm goal.
     dock_settle_wait_sec: 2.0  # Resume lateral correction only outside the 8cm goal.
     dock_forward_step_enabled: false  # User disabled fore/aft fine correction.
     forward_step_profile_file: 'forward_step_estimated_trial.json'
@@ -26,7 +26,8 @@ science_target_approach:
     dock_stable_window_sec: 0.5
     dock_settle_exit_confirm_sec: 0.3
     dock_visual_loss_stop_sec: 0.0  # Locked MAP docking: retain 5m budget, no visual-age fault.
-    dock_position_tolerance: 0.08  # User-approved 8cm final planar error; still requires actual stop.
+    dock_position_tolerance: 0.10  # User-approved 10cm combined planar error; still requires stop.
+    dock_arrival_latch_enabled: true  # Remember entry; later position drift does not cancel arrival.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_stationary_reset_sec: 1.0  # Pause glitches; reset only after 1s continuously invalid.
     dock_settled_sec: 0.5
