@@ -484,3 +484,35 @@ def test_eight_cm_outlier_pauses_without_claiming_success_or_resetting_immediate
     assert out['docking_stationary_since'] == initial
     assert out['docking_stationary_good_sec'] == pytest.approx(.2)
     assert out['vx'] == out['vy'] == out['wz'] == 0.
+
+
+@pytest.mark.parametrize('name', ['science_grasp_docking.yaml', 'science_grasp_docking_left.yaml'])
+@pytest.mark.parametrize('sign', [1, -1])
+def test_actual_profiles_keep_vx_after_entering_fine_range_and_drifting(name, sign):
+    from pathlib import Path
+    from dataclasses import fields
+    import yaml
+    from go2_science_perception.grasp_pose_geometry import docking_goal
+    params = yaml.safe_load((Path(__file__).parents[1]/'config'/name).read_text())[
+        'science_target_approach']['ros__parameters']
+    settings = DockSettings(**{f.name: params['dock_'+f.name]
+        for f in fields(DockSettings) if 'dock_'+f.name in params})
+    from go2_science_perception.approach_control import ApproachControl, Settings
+    c = ApproachControl(Settings(stop_reference='camera_origin', allow_odom=True),
+                        GraspDocking(settings))
+    c.target = c.anchor_initial = (1., 0.)
+    c.lock_id, c.search_origin, c.state, c.started = 1, (0., 0., 0.), 'LOCK_TARGET', 10.
+    goal = docking_goal(c.target, 0., settings)
+    for i in range(6):
+        tick(c, 10.+i*.1, (goal[0]-sign*.12, goal[1]-.0255))
+    for index in range(11):
+        error = .12+.0543*index/10
+        now = 10.6+index*.1
+        c.visual_time = now
+        tick(c, now, (goal[0]-sign*error, goal[1]-.0255))
+        out = c.step(now)
+        assert out['vx']*sign > 0, (index, out)
+        assert out['vy'] > 0
+        assert not out['docking_arrival_latched']
+        assert not c.docking.lateral_only
+        assert out['state'] == 'APPROACH_TO_GRASP_POSE'
