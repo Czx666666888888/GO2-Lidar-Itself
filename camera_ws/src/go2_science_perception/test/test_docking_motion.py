@@ -72,15 +72,15 @@ def test_actual_dock_profiles_disable_only_disagreement_stop(name):
         for field in fields(DockSettings) if 'dock_'+field.name in params})
     assert settings.motion_disagreement_stop_enabled is False
     assert settings.motion_window_sec == settings.stable_window_sec == .5
-    assert settings.position_tolerance == .10
-    assert settings.settle_exit_tolerance == .12
+    assert settings.position_tolerance == .08
+    assert settings.settle_exit_tolerance == .10
     assert settings.settled_sec == .5
     assert DockSettings().motion_disagreement_stop_enabled is True
 
 
 @pytest.mark.parametrize('name', ['science_grasp_docking.yaml', 'science_grasp_docking_left.yaml'])
-@pytest.mark.parametrize('distance,completed', [(.099, True), (.10, True), (.101, False)])
-def test_ten_cm_actual_profiles_preserve_stopped_confirmation(name, distance, completed):
+@pytest.mark.parametrize('distance,completed', [(.079, True), (.08, True), (.081, False)])
+def test_eight_cm_actual_profiles_preserve_stopped_confirmation(name, distance, completed):
     from pathlib import Path
     from dataclasses import fields
     import yaml
