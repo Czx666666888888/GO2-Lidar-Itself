@@ -92,7 +92,7 @@ def main():
                 stages=['SEARCH', 'STOP_CONFIRM', 'APPROACH_TO_GRASP_POSE', 'STOP'] +
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
                 s1_base_vehicle_xy_m=[-.06, 0],
-                desired_target_s1_xy_m=[0, .41 if args.grasp_side=='right' else -.41],
+                desired_target_s1_xy_m=[0, .35 if args.grasp_side=='right' else -.41],
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),
                 posture_profile=str(args.posture_profile) if args.posture_profile else None,
