@@ -64,7 +64,27 @@ def service_requests(directory, pause, resume):
 # Check both V4L nodes and direct libusb descriptors without enumerating/opening cameras.
 RELEASE_CHECK = r'''
 from pathlib import Path
-import os, json
+import os, json, pwd
+
+def systemd_session_helper(proc):
+    # PAM and sshd session helpers retain root-owned, non-dumpable fd directories.
+    # Recognize these by their role and parent; arbitrary unreadable apps still fail.
+    try:
+        name=(proc/'comm').read_text().strip()
+        if name not in ('(sd-pam)', 'sshd'): return False
+        status=dict(line.split(':',1) for line in (proc/'status').read_text().splitlines()
+                    if ':' in line)
+        parent=proc.parent/status['PPid'].strip()
+        if name=='sshd':
+            title=(proc/'cmdline').read_bytes().split(b'\0')[0].decode()
+            return ((parent/'comm').read_text().strip()=='sshd' and
+                    parent.stat().st_uid==0 and title.startswith(
+                        'sshd: '+pwd.getpwuid(os.getuid()).pw_name+'@'))
+        args=(parent/'cmdline').read_bytes().split(b'\0')
+        return (parent/'comm').read_text().strip()=='systemd' and (
+            Path(args[0].decode()).name=='systemd' and b'--user' in args)
+    except (FileNotFoundError, PermissionError, KeyError): return False
+
 devices=set()
 for usb in Path('/sys/bus/usb/devices').iterdir():
     try:
@@ -91,7 +111,9 @@ for proc in Path('/proc').glob('[0-9]*'):
     except PermissionError:
         # Camera processes on this deployment run as the SSH user. An unseen process
         # of that same user must not be treated as evidence of release.
-        if proc.stat().st_uid==os.getuid(): raise
+        try: same_user=proc.stat().st_uid==os.getuid()
+        except FileNotFoundError: continue
+        if same_user and not systemd_session_helper(proc): raise
 if owners: raise RuntimeError('Camera still owned: '+json.dumps(owners))
 print(json.dumps(dict(released=True, devices=sorted(devices))))
 '''

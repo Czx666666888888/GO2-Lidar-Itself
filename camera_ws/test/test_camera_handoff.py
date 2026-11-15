@@ -1,16 +1,19 @@
 """Camera lifecycle checks with simulated process ownership; no ROS or hardware."""
 import json
+import ast
 from pathlib import Path
 import sys
 import subprocess
 import threading
+import os
+import pwd
 from types import SimpleNamespace
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'scripts'))
-from go2_camera_handoff import CameraHandoff, service_requests, atomic_json
+from go2_camera_handoff import CameraHandoff, service_requests, atomic_json, RELEASE_CHECK
 from go2_full_test import Workflow
 
 
@@ -177,3 +180,68 @@ def test_direct_full_without_supervisor_is_rejected_before_ros_or_hardware():
                              '--execute', '--full'], capture_output=True, text=True)
     assert result.returncode == 2
     assert 'Full camera switching requires' in result.stderr
+
+
+@pytest.mark.parametrize('name,parent_command,expected', [
+    ('(sd-pam)', b'/lib/systemd/systemd\0--user\0', True),
+    ('python3', b'/lib/systemd/systemd\0--user\0', False),
+    ('(sd-pam)', b'/usr/bin/python3\0--user\0', False),
+    ('(sd-pam)', b'/lib/systemd/systemd\0', False),
+])
+def test_only_known_systemd_session_helper_can_be_excluded(tmp_path, name, parent_command,
+                                                         expected):
+    helper = tmp_path/'2257'
+    parent = tmp_path/'2256'
+    helper.mkdir()
+    parent.mkdir()
+    (helper/'comm').write_text(name)
+    (helper/'status').write_text('PPid:\t2256\n')
+    (parent/'comm').write_text('systemd')
+    (parent/'cmdline').write_bytes(parent_command)
+    node = next(n for n in ast.parse(RELEASE_CHECK).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'systemd_session_helper')
+    scope = dict(Path=Path)
+    exec(compile(ast.Module(body=[node], type_ignores=[]), '<release-check>', 'exec'), scope)
+    assert scope['systemd_session_helper'](helper) is expected
+
+
+def test_release_check_error_preserves_remote_stderr_without_embedded_script(tmp_path, monkeypatch):
+    import go2_full_test
+    w = workflow(tmp_path)
+
+    def failure(*a, **kw):
+        raise subprocess.CalledProcessError(1, ['ssh', 'long script'], stderr='Permission denied')
+
+    monkeypatch.setattr(go2_full_test, 'remote', failure)
+    with pytest.raises(RuntimeError, match='Camera release check failed: Permission denied') as exc:
+        w.cameras_released({'0b5c'})
+    assert 'long script' not in str(exc.value)
+
+
+@pytest.mark.parametrize('parent_uid,parent_name,child_name,expected', [
+    (0, 'sshd', 'sshd', True),
+    (1000, 'sshd', 'sshd', False),
+    (0, 'python3', 'sshd', False),
+    (0, 'sshd', 'python3', False),
+])
+def test_unreadable_ssh_session_requires_privileged_sshd_parent(
+        tmp_path, monkeypatch, parent_uid, parent_name, child_name, expected):
+    helper, parent = tmp_path/'10', tmp_path/'9'
+    helper.mkdir()
+    parent.mkdir()
+    (helper/'comm').write_text(child_name)
+    (helper/'status').write_text('PPid:\t9\n')
+    (helper/'cmdline').write_bytes(('sshd: '+pwd.getpwuid(os.getuid()).pw_name+'@notty\0').encode())
+    (parent/'comm').write_text(parent_name)
+    original_stat = Path.stat
+
+    def stat(path, *a, **kw):
+        return (SimpleNamespace(st_uid=parent_uid) if path == parent else
+                original_stat(path, *a, **kw))
+
+    monkeypatch.setattr(Path, 'stat', stat)
+    node = next(n for n in ast.parse(RELEASE_CHECK).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'systemd_session_helper')
+    scope = dict(Path=Path, os=os, pwd=pwd)
+    exec(compile(ast.Module(body=[node], type_ignores=[]), '<release-check>', 'exec'), scope)
+    assert scope['systemd_session_helper'](helper) is expected

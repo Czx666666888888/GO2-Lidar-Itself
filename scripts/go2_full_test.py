@@ -489,8 +489,12 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
 
     def cameras_released(self, products):
         script = 'PRODUCTS='+repr(products)+'\n'+RELEASE_CHECK
-        remote(shlex.join(['/usr/bin/python3', '-c', script]),
-               capture_output=True, text=True, timeout=8)
+        try:
+            remote(shlex.join(['/usr/bin/python3', '-c', script]),
+                   capture_output=True, text=True, timeout=8)
+        except subprocess.CalledProcessError as exc:
+            detail = (exc.stderr or exc.stdout or str(exc)).strip()
+            raise RuntimeError('Camera release check failed: '+detail) from exc
 
     def pause_front_camera(self):
         if self.camera_paused:
