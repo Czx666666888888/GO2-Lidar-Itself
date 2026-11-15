@@ -1,0 +1,77 @@
+{
+  "batches": [
+    {
+      "batch": 1,
+      "images": 153,
+      "positive": 127,
+      "negative": 26,
+      "original_sha256": "b48ec09e8a3e310caf4803dbb998e02cd380bed9d90ef270236eec972231eeee",
+      "source_sha256": "b48ec09e8a3e310caf4803dbb998e02cd380bed9d90ef270236eec972231eeee",
+      "normalized_sha256": "6ee73bafeebba246af6b979e0adc92a261f6d124affaa02d58f96695b20f87ca",
+      "class_mapping": {
+        "0": 0,
+        "1": 1,
+        "2": 2
+      },
+      "multi_object_images": 39,
+      "boxes": 246
+    },
+    {
+      "batch": 2,
+      "images": 152,
+      "positive": 132,
+      "negative": 20,
+      "original_sha256": "5ae87b7a816f470094d7f9c18798e53c06870f0f012981bba7b0236f191944bb",
+      "source_sha256": "5ae87b7a816f470094d7f9c18798e53c06870f0f012981bba7b0236f191944bb",
+      "normalized_sha256": "3a1fbb2b433b8af70c92bfacd70db165c151746c2897ef2b16b7cdbb27d4059d",
+      "class_mapping": {
+        "0": 0,
+        "1": 1,
+        "2": 2
+      },
+      "multi_object_images": 40,
+      "boxes": 259
+    }
+  ],
+  "imported": 305,
+  "positive": 259,
+  "user_confirmed_negative": 46,
+  "new_boxes": {
+    "color_block": 365,
+    "rock_compact": 0,
+    "rock_spiky": 140
+  },
+  "split_counts": {
+    "train": {
+      "images": 1063,
+      "boxes": {
+        "color_block": 830,
+        "rock_compact": 292,
+        "rock_spiky": 652
+      },
+      "sources": {
+        "synthetic": 480,
+        "phone_real": 458,
+        "d435_real": 125
+      }
+    },
+    "val": {
+      "images": 177,
+      "boxes": {
+        "color_block": 314,
+        "rock_compact": 109,
+        "rock_spiky": 148
+      },
+      "sources": {
+        "synthetic": 120,
+        "phone_real": 57
+      }
+    }
+  },
+  "legacy20_added": 0,
+  "legacy20_reason": "Not in V2; single-class labels lack full three-class review; retained separately, no duplicate import",
+  "held_out_new3": 50,
+  "held_out_new4": 86,
+  "pending_round2": 19,
+  "continuity_scope": "Historical GO2 laboratory group enters training. Same-group video evaluation is diagnostic, not independent generalization."
+}

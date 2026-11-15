@@ -545,3 +545,12 @@ conf0.05：V2 best train14/1/0、val5/0/1；last14/1/0、6/0/0。上述均TP/FP/
 - 新训练视频模型提示compact18张/spiky128张，真实类别数量Unknown待人工确认；预测小目标17张/边缘93张也不是GT。第3/4段136图不推理、不送当前优先包；旧B57仍是开发验证非最终test。
 - 446张原视频重新解码/hash/尺寸核验、ZIP完整性及9项针对性检查通过；9708个保护文件未变，不改600合成、335真实、19pending、旧20标签或V1/V2模型。
 - 代码/统计/少量预览见vision_training/reports/science_targets_round3/README.md；原视频、批量图和ZIP留本机。本轮无训练、部署、ROS/运动/抓取；新GT类别/正式划分/V3性能NOT VERIFIED。
+
+## 2026-11-15 第三轮305张人工标签与YOLO11n V3
+
+- 来源：用户CVAT及明确确认46张negative；305图=259positive/46negative，新增框365/0/140，原ZIP保留、规范化副本补空，按名称映射。
+- 独立V3 1063train/177val，原600合成、V2数据及同57张B保留；新视频3/4不入train，历史GO2同lab组，旧20图未重复追加。
+- RTX4060完成100轮640训练（V2 best初始化），43.35分钟；best SHA256 db74e03e4073574fb91b9fe3cb404c0f256b13c6451c014639818471e186e391。
+- 同B开发验证block P/R/AP50=0.7646/0.8702/0.8736，spiky P/R/AP50=0.8231/0.3000/0.4664；完整三版本、AP50-95及TP/FP/FN见vision_training/reports/science_targets_mixed_v3/README.md。
+- 历史10段3117帧三版本预测保留原RGB时间戳；90张连续片段审核包已建，用户选择稍后人工补标。预测空档不是GT漏检；真实最长漏检/恢复、留出新场景和独立GO2泛化NOT VERIFIED。
+- 真实compact训练仍0框；不替换现有V2，不启动ROS或运动，不改MAP/Manager/Approach/抓取。54项视觉检查通过，旧6173文件hash不变。

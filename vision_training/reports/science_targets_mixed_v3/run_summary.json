@@ -1,0 +1,12 @@
+{
+  "epochs": 100,
+  "train_call_seconds": 2600.7054582150013,
+  "runtime": {
+    "batches": 13300,
+    "optimizer_steps": 1729
+  },
+  "best_sha256": "db74e03e4073574fb91b9fe3cb404c0f256b13c6451c014639818471e186e391",
+  "best_selection": "Ultralytics best validation fitness on mixed val, see best_epoch.json",
+  "gpu": "NVIDIA GeForce RTX4060 Laptop",
+  "verification": "Offline GPU only; no ROS, no deployment, no robot movement"
+}

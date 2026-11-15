@@ -1,0 +1,49 @@
+{
+  "groups": {
+    "phone_round3_scene_1": {
+      "positive": 83,
+      "negative": 7
+    },
+    "phone_round3_scene_2": {
+      "positive": 78,
+      "negative": 12
+    },
+    "lab_floor_20261108_09": {
+      "positive": 98,
+      "negative": 27
+    }
+  },
+  "sizes": {
+    "phone_round3_scene_1": {
+      "color_block": {
+        "boxes": 264,
+        "short_side_lt16": 19,
+        "median_short_side_at640": 38.849909333333336
+      },
+      "rock_spiky": {
+        "boxes": 65,
+        "short_side_lt16": 7,
+        "median_short_side_at640": 25.86688
+      }
+    },
+    "phone_round3_scene_2": {
+      "rock_spiky": {
+        "boxes": 75,
+        "short_side_lt16": 4,
+        "median_short_side_at640": 25.864960000000004
+      },
+      "color_block": {
+        "boxes": 3,
+        "short_side_lt16": 1,
+        "median_short_side_at640": 22.49024
+      }
+    },
+    "lab_floor_20261108_09": {
+      "color_block": {
+        "boxes": 98,
+        "short_side_lt16": 5,
+        "median_short_side_at640": 31.5
+      }
+    }
+  }
+}

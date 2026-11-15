@@ -1,0 +1,14 @@
+{
+  "epoch": 99,
+  "source": "Best checkpoint train_metrics matched to results.csv (CSV rounded to five decimals)",
+  "checkpoint_train_metrics": {
+    "metrics/precision(B)": 0.91576,
+    "metrics/recall(B)": 0.77309,
+    "metrics/mAP50(B)": 0.8619,
+    "metrics/mAP50-95(B)": 0.74777,
+    "val/box_loss": 0.65386,
+    "val/cls_loss": 0.45302,
+    "val/dfl_loss": 0.87302,
+    "fitness": 0.75918
+  }
+}

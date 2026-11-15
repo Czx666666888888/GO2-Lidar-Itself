@@ -159,3 +159,13 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 446图独立源帧重解码/JPEG/hash/原尺寸、ZIP完整性、9708原文件保护及9项针对性检查通过；原视频和权重未改。
 - 数据/预览/说明：vision_training/reports/science_targets_round3/README.md；完整抽帧/时间线/矿选记录在datasets/science_targets_round3_candidates。第3/4段独立性来自用户确认会话，背景相似限制仍记载。
 - 证据等级：源文件实际解码、离线预测、图片质量目视审查和用户来源确认；不是GT框/负样本审核。没有训练、正式split或机器人操作，V3效果NOT VERIFIED。
+
+
+## 2026-11-15：第三轮CVAT正式导入与V3离线GPU实验
+
+- 来源：用户CVAT及明确确认46张negative；305图=259positive/46negative，新增框365/0/140，原ZIP保留、规范化副本补空，按名称映射。
+- 独立V3 1063train/177val，原600合成、V2数据及同57张B保留；新视频3/4不入train，历史GO2同lab组，旧20图未重复追加。
+- RTX4060完成100轮640训练（V2 best初始化），43.35分钟；best SHA256 db74e03e4073574fb91b9fe3cb404c0f256b13c6451c014639818471e186e391。
+- 同B开发验证block P/R/AP50=0.7646/0.8702/0.8736，spiky P/R/AP50=0.8231/0.3000/0.4664；完整三版本、AP50-95及TP/FP/FN见vision_training/reports/science_targets_mixed_v3/README.md。
+- 历史10段3117帧三版本预测保留原RGB时间戳；90张连续片段审核包已建，用户选择稍后人工补标。预测空档不是GT漏检；真实最长漏检/恢复、留出新场景和独立GO2泛化NOT VERIFIED。
+- 真实compact训练仍0框；不替换现有V2，不启动ROS或运动，不改MAP/Manager/Approach/抓取。54项视觉检查通过，旧6173文件hash不变。

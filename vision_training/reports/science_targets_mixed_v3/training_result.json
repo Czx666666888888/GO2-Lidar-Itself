@@ -1,0 +1,21 @@
+{
+  "metrics": {
+    "metrics/precision(B)": 0.9159187536196227,
+    "metrics/recall(B)": 0.7752190115489185,
+    "metrics/mAP50(B)": 0.861942564907869,
+    "metrics/mAP50-95(B)": 0.7475752233268953,
+    "fitness": 0.7590119574849927
+  },
+  "dataset_fingerprint": "5726dbdcac65f5d64b11aa403241b14d11115ede1bfa200c27f88c9723f10687",
+  "names": {
+    "0": "color_block",
+    "1": "rock_compact",
+    "2": "rock_spiky"
+  },
+  "train_call_seconds": 2600.7054582150013,
+  "monitor_every": 0,
+  "weights": {
+    "best.pt": "db74e03e4073574fb91b9fe3cb404c0f256b13c6451c014639818471e186e391",
+    "last.pt": "8b341364968c1a633392f0a629c370f3294883f4d0fdde61825665daab728c10"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "visual_tests_passed": 54,
+  "all_labels_coordinates_and_class_mapping_equal_normalized": true,
+  "positive": 259,
+  "user_confirmed_negative": 46,
+  "source_batch_membership_matches": true,
+  "old_source_frame_duplicates": 0,
+  "original_zip_entries_unchanged": true,
+  "old_protected_files_unchanged": 6173,
+  "py_compile": "passed",
+  "training_dry_run": "passed",
+  "flake8": "NOT RUN: not installed",
+  "ros_build": "NOT RUN: offline visual scope, no ROS changes",
+  "robot_motion": "NOT RUN: not authorized or required"
+}

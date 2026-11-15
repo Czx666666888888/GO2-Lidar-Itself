@@ -43,3 +43,10 @@ datasets/science_targets_round2_reviewed_v2/
 datasets/science_targets_round3_candidates/
 reports/science_targets_round3/local_audit_previews/
 !reports/science_targets_round3/review.csv
+
+# V3 datasets and weights are local; publish compact audit reports only.
+datasets/science_targets_mixed_v3/
+datasets/science_targets_round3_reviewed_v3/
+!reports/science_targets_mixed_v3/batch_001_review.csv
+!reports/science_targets_mixed_v3/batch_002_review.csv
+!reports/science_targets_mixed_v3/results.csv
