@@ -1,5 +1,12 @@
 # Project Status
 
+## 2026-11-15 移除新增D455录像（当前）
+
+- 用户明确要求删除新增腕部录像：删除grasp_video模块、抓取前首帧门禁、共享pipeline和PC腕部视频取回，恢复原抓取回调与原始capture_rgbd.py；保留前侧D435原始/叠加录像与本轮full目录索引。
+- no_video_4兼容层允许video_3无运行所有者时按hash恢复原件，备份并移除旧录像模块；不停止/热替换现有S1服务，不自动解除FAULT_HOLD或重试动作。既有故障日志和视频不删。
+- 最新HSV full日志已显示停靠/趴下反馈通过，抓取排队后新增录像0帧超时阻断；对应内核有D455 UVC -32/-71及断连重枚举，移除录像不等于相机底层恢复。
+- 72项离线检查（含原ZIP对照及模拟video_3升级）、静态编译/lint/离线计划通过。本轮无部署/动作，实机NOT VERIFIED；说明见camera_ws/docs/full_video_recording.md。
+
 ## 2026-11-15 暂停抓取停靠的LIO/Sport不一致停车
 
 - 用户明确要求暂时注释该项保护；左右抓取配置设置 `dock_motion_disagreement_stop_enabled=false`。采用可恢复开关，仅绕过该项FAULT调用，不删除WindowedTravel路径/差值/不一致诊断；默认设置true保留其他使用方式的原行为。

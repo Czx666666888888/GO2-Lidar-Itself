@@ -131,7 +131,7 @@ def test_upgrade_accepts_exact_deployed_previous_adapter():
     assert meta['sha256'] != meta['accepted_previous_sha256'][0]
 
 
-def test_video_upgrade_preserves_capture_algorithm_and_accepts_previous_entry():
+def test_video_removal_restores_original_capture_and_direct_grasp_callback():
     path = os.environ.get('GO2_S1_V2_ARCHIVE')
     if not path:
         pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
@@ -139,13 +139,15 @@ def test_video_upgrade_preserves_capture_algorithm_and_accepts_previous_entry():
         payload = compatibility_payload(ROOT, bundle)
         upstream = bundle.read('s1-arm-control/demo_grasp/capture_rgbd.py').decode()
     capture = base64.b64decode(payload['demo_grasp/capture_rgbd.py']['content']).decode()
-    restored = capture.replace(
-        '    from s1_control.grasp_video import capture_pipeline\n'
-        '    pipeline = capture_pipeline(rs, context, api_serial, width, height, fps)',
-        '    pipeline = rs.pipeline(context)')
-    assert restored == upstream
+    assert capture == upstream
+    assert 's1_control/grasp_video.py' not in payload
+    entry = base64.b64decode(payload['scripts/run_arm_integration.py']['content']).decode()
+    assert 'run_recorded_flow' not in entry and 'grasp_video' not in entry
+    assert 'session.run_task(lambda active: flow.main(' in entry
     assert payload['scripts/run_arm_integration.py']['accepted_previous_sha256'] == [
-        '7abc5219e43b944667e6a867e256a5dc0e640f1b926ee7769255bc9d209642e7']
+        '035fd4e6d73946b38e0c06ef0eaa6d3e571cb9b5b784206d7f4f0a79a06755b7']
+    assert payload['demo_grasp/capture_rgbd.py']['accepted_previous_sha256'] == [
+        '8c8150066467e09bd4ae5520b0409d9559be4f0ef55e8c09f4aef10fcaf5de81']
 
 
 def test_upgrade_recovers_hash_verified_installed_originals(tmp_path, monkeypatch):
@@ -177,3 +179,56 @@ def test_upgrade_recovers_hash_verified_installed_originals(tmp_path, monkeypatc
     (tmp_path/'.v2-compat-upstream'/names[0]).write_text('modified')
     with pytest.raises(subprocess.CalledProcessError):
         delivery.installed_source_bundle(['ssh'],'host')
+
+
+def test_video3_upgrade_restores_sources_and_retires_only_verified_helper(tmp_path, monkeypatch):
+    import hashlib
+    import shlex
+    import subprocess
+    import s1_v2_delivery as delivery
+    path = os.environ.get('GO2_S1_V2_ARCHIVE')
+    if not path:
+        pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
+    source_root = tmp_path/'old-source'
+    for name in ('grasp_video.py', 'startup_status.py'):
+        content = subprocess.check_output(['git','show',
+            '65ff2b5:camera_ws/s1_service/s1_control/'+name],cwd=ROOT)
+        target = source_root/'camera_ws/s1_service/s1_control'/name
+        target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(content)
+    old_module = ModuleType('old_video3_payload')
+    exec(subprocess.check_output(['git','show','65ff2b5:scripts/s1_v2_compat.py'],cwd=ROOT),
+         old_module.__dict__)
+    installed = tmp_path/'installed'
+    installed.mkdir()
+    with zipfile.ZipFile(path) as bundle:
+        previous = old_module.compatibility_payload(source_root,bundle)
+        for name,meta in previous.items():
+            target = installed/name
+            target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(base64.b64decode(meta['content']))
+        originals = ['scripts/run_arm_integration.py','s1_control/integration.py',
+                     'scripts/arm_task_client.py','scripts/verify_handoff.py',
+                     'demo_grasp/capture_rgbd.py']
+        for name in originals:
+            backup = installed/'.v2-compat-upstream'/name
+            backup.parent.mkdir(parents=True,exist_ok=True)
+            backup.write_bytes(bundle.read('s1-arm-control/'+name))
+        (installed/'SHA256SUMS').write_bytes(bundle.read('s1-arm-control/SHA256SUMS'))
+        original_capture = bundle.read('s1-arm-control/demo_grasp/capture_rgbd.py')
+    manifest = dict(version='v2_usb01_feedback_video_3',files={
+        name:{k:v for k,v in meta.items() if k!='content'} for name,meta in previous.items()})
+    (installed/'S1_V2_COMPAT.json').write_text(json.dumps(manifest))
+    original_run = subprocess.run
+    def run(argv, **kwargs):
+        command = shlex.split(argv[-1]);command[3]=str(installed)
+        return original_run(command,**kwargs)
+    monkeypatch.setattr(delivery.subprocess,'run',run)
+    ensure_v2_compat(ROOT,['ssh'],'host',running=False,archive=path)
+    current = json.loads((installed/'S1_V2_COMPAT.json').read_text())
+    assert current['version'] == delivery.COMPAT_VERSION
+    assert (installed/'demo_grasp/capture_rgbd.py').read_bytes() == original_capture
+    assert 'run_recorded_flow' not in (installed/'scripts/run_arm_integration.py').read_text()
+    assert not (installed/'s1_control/grasp_video.py').exists()
+    digest = delivery.RETIRED_VIDEO_FILES['s1_control/grasp_video.py']
+    backup = installed/'.v2-compat-backups'/digest/'s1_control/grasp_video.py'
+    assert hashlib.sha256(backup.read_bytes()).hexdigest() == digest

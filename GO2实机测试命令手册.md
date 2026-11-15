@@ -1,5 +1,13 @@
 # GO2 实机测试命令手册（中文，从接线到关闭）
 
+## 2026-11-15 移除D455录像（取代下方双相机录像说明）
+
+按用户要求删除新增D455录像及抓取前首帧检查，原S1抓取直接运行，D455恢复原抓取采集方式。
+前侧D435原始/叠加录像仍存放在本轮full目录，recordings.json中wrist.status=DISABLED。
+旧日志/视频保留；运行中的旧S1不热替换，须在机器人停稳且机械臂支撑后正常退出，
+下次原入口应用no_video_4兼容层，不自动清除故障或重新抓取。
+72项离线检查通过，本轮无部署/运动，实机NOT VERIFIED；见camera_ws/docs/full_video_recording.md。
+
 ## 2026-11-15 临时关闭LIO/Sport不一致FAULT
 
 按用户明确要求，左右抓取停靠配置 `dock_motion_disagreement_stop_enabled=false`。

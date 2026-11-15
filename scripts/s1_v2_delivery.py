@@ -12,7 +12,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import zipfile
-from s1_v2_compat import COMPAT_VERSION, compatibility_payload
+from s1_v2_compat import COMPAT_VERSION, RETIRED_VIDEO_FILES, compatibility_payload
 
 PACKAGE_VERSION = 'v2_auto_integration'
 DEFAULT_ARCHIVE = 'S1_arm_integration_20261114_auto_v2.zip'
@@ -52,7 +52,8 @@ import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]);p=root/'S1_V2_COMPAT.json'
 if not p.exists(): print('MISSING');raise SystemExit(0)
 d=json.loads(p.read_text())
-if d['version'] not in (sys.argv[2], 'v2_usb01_feedback_1', 'v2_usb01_feedback_2'):
+if d['version'] not in (sys.argv[2], 'v2_usb01_feedback_1', 'v2_usb01_feedback_2',
+                       'v2_usb01_feedback_video_3'):
     raise SystemExit('Unknown S1 v2 compatibility version; preserve')
 for name,meta in d['files'].items():
     if hashlib.sha256((root/name).read_bytes()).hexdigest()!=meta['sha256']:
@@ -76,6 +77,10 @@ root=pathlib.Path(sys.argv[1]);d=json.loads(sys.stdin.read());files=d['files']
 active=subprocess.run(['pgrep','-f','[r]un_arm_integration.py|[r]un_go2_left_grasp.py'],
                       stdout=subprocess.DEVNULL)
 if active.returncode!=1:raise SystemExit('Existing S1 owner; preserve, no patch')
+for name,digest in d.get('retired_files',{}).items():
+    p=root/name
+    if p.exists() and hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
+        raise SystemExit('Modified retired video source; preserve: '+name)
 for name,meta in files.items():
     p=root/name
     if p.exists() and hashlib.sha256(p.read_bytes()).hexdigest() not in (
@@ -93,12 +98,20 @@ for name,meta in files.items():
         if not backup.exists():shutil.copy2(p,backup)
     p.parent.mkdir(parents=True,exist_ok=True)
     temp=p.with_suffix(p.suffix+'.compat-tmp');temp.write_bytes(content);temp.replace(p)
+for name,digest in d.get('retired_files',{}).items():
+    p=root/name
+    if p.exists():
+        backup=root/'.v2-compat-backups'/digest/name
+        backup.parent.mkdir(parents=True,exist_ok=True)
+        if not backup.exists():shutil.copy2(p,backup)
+        p.unlink()
 meta={name:{k:v for k,v in values.items() if k!='content'} for name,values in files.items()}
 (root/'S1_V2_COMPAT.json').write_text(json.dumps(dict(version=d['version'],files=meta),indent=2)+'\n')
 print('S1_V2_USB01_COMPAT_READY')
 '''
     subprocess.run([*ssh,host,shlex.join(['/usr/bin/python3','-c',script,REMOTE_PACKAGE])],
-                   input=json.dumps(dict(version=COMPAT_VERSION,files=payload)),
+                   input=json.dumps(dict(version=COMPAT_VERSION,files=payload,
+                                         retired_files=RETIRED_VIDEO_FILES)),
                    text=True,timeout=30,check=True)
 
 

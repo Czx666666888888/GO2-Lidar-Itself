@@ -7,7 +7,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import time
-from full_video_evidence import save_front_evidence, save_video_evidence
+from full_video_evidence import save_front_evidence
 
 
 def arm_command(args, command):
@@ -172,7 +172,6 @@ def main():
                    '-o', 'ConnectTimeout=3', args.arm_host, shlex.join(command)]
     log = experiment.folder / ('s1_task_' +
                                datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.jsonl')
-    previous_recording = arm_command(args, 'status').get('last_recording')
     from std_msgs.msg import Int8
     supervisor = rclpy.create_node('s1_posture_task_supervisor')
     stopped = [False]
@@ -211,8 +210,6 @@ def main():
         supervisor.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
-        save_video_evidence(args, experiment.folder, experiment.recording,
-                            previous_recording, arm_command)
     if completed.returncode:
         raise RuntimeError('Posture/arm task failed; no automatic recovery. See '+str(log))
     print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))
