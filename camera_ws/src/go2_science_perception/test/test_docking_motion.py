@@ -37,6 +37,65 @@ def test_pose_motion_is_not_discarded_when_sport_says_zero():
     assert m.conflict
 
 
+@pytest.mark.parametrize('enabled', [True, False])
+def test_disagreement_stop_can_be_disabled_without_hiding_evidence(enabled):
+    c = dock_core((1., 0.))
+    c.docking = GraspDocking(DockSettings(motion_window_sec=.5,
+        motion_disagreement_stop_enabled=enabled))
+    c.loss_motion = WindowedTravel(.5, .02)
+    c.lost_at = 10.5
+    x, y = c.robot[:2]
+    for i in range(1, 51):
+        tick(c, 10.5+i*.1, (x+i*.02, y))
+    assert c.loss_motion.conflict
+    out = c.step(15.5)
+    evidence = out['odometry_evidence']
+    assert evidence['localization_untrusted'] is True
+    assert evidence['disagreement_stop_enabled'] is enabled
+    assert evidence['disagreement_distance_m'] > .08
+    assert (out['state'] == 'FAULT') is enabled
+    if enabled:
+        assert out['reason'] == 'localization untrusted: sustained LIO/Sport motion disagreement'
+    else:
+        c.pose(float('nan'), y, 0., 15.6)
+        assert c.state == 'FAULT' and c.reason == 'nonfinite localization'
+
+
+@pytest.mark.parametrize('name', ['science_grasp_docking.yaml', 'science_grasp_docking_left.yaml'])
+def test_actual_dock_profiles_disable_only_disagreement_stop(name):
+    from pathlib import Path
+    import yaml
+    from dataclasses import fields
+    config = yaml.safe_load((Path(__file__).resolve().parents[1]/'config'/name).read_text())
+    params = config['science_target_approach']['ros__parameters']
+    settings = DockSettings(**{field.name: params['dock_'+field.name]
+        for field in fields(DockSettings) if 'dock_'+field.name in params})
+    assert settings.motion_disagreement_stop_enabled is False
+    assert settings.motion_window_sec == settings.stable_window_sec == .5
+    assert settings.position_tolerance == .08
+    assert settings.settled_sec == .5
+    assert DockSettings().motion_disagreement_stop_enabled is True
+
+
+@pytest.mark.parametrize('guard', ['stale', 'budget'])
+def test_disabling_disagreement_stop_keeps_other_guards(guard):
+    from dataclasses import replace
+    c = dock_core((.5, 0.))
+    c.docking = GraspDocking(DockSettings(motion_window_sec=.5,
+        motion_disagreement_stop_enabled=False))
+    if guard == 'stale':
+        out = c.step(11.1)
+        assert out['state'] == 'FAULT' and 'timeout' in out['reason']
+    else:
+        c.step(10.5)
+        c.p = replace(c.p, odom_max_distance=.1)
+        c.visual_time = 9.
+        c.lost_at = 10.
+        c.odom_travel = .02
+        out = c.step(10.6)
+        assert out['state'] == 'FAULT' and 'budget' in out['reason']
+
+
 def test_motion_window_distinguishes_trend_from_one_endpoint_jitter():
     stopped = [(i*.1, .005*(-1)**i, 0.) for i in range(6)]
     moving = [(i*.1, i*.01, 0.) for i in range(6)]

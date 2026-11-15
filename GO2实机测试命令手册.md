@@ -1,5 +1,15 @@
 # GO2 实机测试命令手册（中文，从接线到关闭）
 
+## 2026-11-15 临时关闭LIO/Sport不一致FAULT
+
+按用户明确要求，左右抓取停靠配置 `dock_motion_disagreement_stop_enabled=false`。
+不再因累计路径比较连续超限独立触发FAULT；差值、窗口次数及localization_untrusted仍记录，
+并在JSONL附上disagreement_stop_enabled=false，避免把“继续运行”当作定位恢复。
+8cm/10°/合格停稳累计0.5秒、定位与反馈超时/异常、失视觉路径预算、急停和趴下交接不变。
+关闭后不能靠这项保护拦截真实LIO/Sport矛盾，根因未修复；不保证因此能通过停稳或趴下。
+需要恢复时，将左右 `science_grasp_docking*.yaml` 中该参数改为true；通用默认仍true。
+113项针对性离线检查、单包构建通过，无硬件动作，真机效果NOT VERIFIED。
+
 ## 2026-11-15 full自动保存双相机录像
 
 仍用 `bash go2_test.sh --execute --mode full --view`；不加view也保存。

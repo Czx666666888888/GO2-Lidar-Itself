@@ -114,9 +114,9 @@ class ApproachControl:
         self.odom_time = self.feedback_time = self.visual_time = -math.inf
         self.last_tick = self.started = self.lost_at = None
         self.odom_travel = 0.0
-        self.loss_motion = (WindowedTravel(self.docking.p.motion_window_sec,
-                                          self.docking.p.motion_noise_m)
-                            if self.docking and self.docking.p.motion_window_sec > 0 else None)
+        self.loss_motion = (
+            WindowedTravel(self.docking.p.motion_window_sec, self.docking.p.motion_noise_m)
+            if self.docking and self.docking.p.motion_window_sec > 0 else None)
         self.loss_motion_epoch = None
         self.actual_speed = self.closing_speed = self.vx = 0.0
         self.vy = 0.0
@@ -187,8 +187,10 @@ class ApproachControl:
                         self.loss_motion_epoch = self.lost_at
                     self.loss_motion.add(now, x, y, sport)
                     self.odom_travel = self.loss_motion.distance
-                    if self.loss_motion.conflict:
-                        self.fault('localization untrusted: sustained LIO/Sport motion disagreement')
+                    if (self.loss_motion.conflict and
+                            self.docking.p.motion_disagreement_stop_enabled):
+                        self.fault('localization untrusted: '
+                                   'sustained LIO/Sport motion disagreement')
         self.pose_history.append((now, x, y))
         while (len(self.pose_history) > 2 and
                self.pose_history[1][0] <= now - self.p.speed_window_sec):
@@ -649,6 +651,8 @@ class ApproachControl:
                'candidate': self.candidate(now) if self.state in ('IDLE', 'SEARCH') else None}
         if self.loss_motion is not None:
             out['odometry_evidence'] = self.loss_motion.report()
+            out['odometry_evidence']['disagreement_stop_enabled'] = (
+                self.docking.p.motion_disagreement_stop_enabled)
         out.update(search_origin=self.search_origin, search_started=self.search_started,
                    search_observations=[{
                        'id': t['id'], 'map': t.get('latest_observation', t['position']),

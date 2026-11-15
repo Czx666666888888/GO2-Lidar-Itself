@@ -1,5 +1,12 @@
 # Project Status
 
+## 2026-11-15 暂停抓取停靠的LIO/Sport不一致停车
+
+- 用户明确要求暂时注释该项保护；左右抓取配置设置 `dock_motion_disagreement_stop_enabled=false`。采用可恢复开关，仅绕过该项FAULT调用，不删除WindowedTravel路径/差值/不一致诊断；默认设置true保留其他使用方式的原行为。
+- JSONL `odometry_evidence.disagreement_stop_enabled`标明生效状态；`localization_untrusted=true`仍表示估计矛盾，不冒充已修复。关闭后即使定位与Sport矛盾也会继续由现有停靠逻辑处理，真实定位偏差仍未解决。
+- 急停、定位异常/超时、反馈新鲜度、失视觉路径预算以及8cm/10°/累计0.5s停稳、S1/SDK交接条件不改。
+- 113项针对性离线检查、单包构建通过；本轮未部署/启动/运动，真机效果NOT VERIFIED。恢复只需左右配置将该参数设true。
+
 ## 2026-11-15 full 自动双相机录像
 
 - 源码/离线证据：full将原前侧D435原始/叠加录像与日志集中至本轮full目录；实际抓取时原S1服务内单pipeline持续录D455，原RGB-D快照复用新帧；不创建第二机械臂/相机所有者。

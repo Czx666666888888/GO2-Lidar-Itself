@@ -1,5 +1,16 @@
 # D435 Experiment Record
 
+## 2026-11-15 临时绕过抓取停靠LIO/Sport不一致FAULT（无动作）
+
+用户查看full_1794737564166868040的0.309885m差值与停靠门槛后，明确要求先注释该保护。
+实现为左右抓取配置 `dock_motion_disagreement_stop_enabled=false`，默认true，
+只在ApproachControl.pose内绕过该项fault调用；窗口路程、Sport积分及冲突锁存仍完整计算，
+输出disagreement_stop_enabled供日志区分。未关闭停稳证据、数据超时/跳变、急停或5m路径预算。
+关闭保护不解决哪路估计错误的问题；没有独立位置真值，不把差值视为物理偏移或修复成果。
+113项离线检查覆盖默认仍触发、关闭后保留诊断、非有限定位/超时/预算仍触发，以及左右配置。
+go2_science_perception单包colcon构建通过，静态lint/安装读回见本轮输出；不代表ROS或真机运行通过。
+本轮未启动硬件或运动，NOT VERIFIED；后续运行仍需新授权与现场条件。
+
 ## 2026-11-15 full双相机自动录像：仅离线验证
 
 用户要求后续full自动保留前侧目标识别录像，并在实际执行机械臂时保存腕部D455录像。

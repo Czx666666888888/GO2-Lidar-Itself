@@ -34,6 +34,7 @@ class DockSettings:
     settle_wait_sec: float = 2.0
     motion_window_sec: float = 0.0  # Dock overlay only; ordinary MAP/search unchanged.
     motion_noise_m: float = 0.02
+    motion_disagreement_stop_enabled: bool = True
     stable_window_sec: float = 0.0
     settle_exit_confirm_sec: float = 0.0
     visual_loss_stop_sec: float = 0.0
