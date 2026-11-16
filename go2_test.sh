@@ -18,4 +18,8 @@ for go2_test_argument in "$@"; do
   fi
   go2_test_previous="$go2_test_argument"
 done
+# Guard PC time before handing off to the independently updated integration clone.
+if [ "${1:-}" = --execute ] && [ "${GO2_PC_TIME_HELD:-}" != 1 ] && [ "${GO2_RUNTIME_PROFILE:-}" != local ] && [ "$(uname -m)" != aarch64 ]; then
+  exec /usr/bin/python3 -u "$go2_test_root/camera_ws/scripts/pc_time_check.py" "$@"
+fi
 exec /usr/bin/python3 "$go2_test_root/scripts/go2_full_test.py" "$@"

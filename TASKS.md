@@ -1,5 +1,12 @@
 # Tasks
 
+## 2026-11-16 PC校时故障阻断修复
+
+- [x] 主入口接入有界PC校时包装器，查询错误不再当作inactive，计时覆盖初始查询并保存异常。
+- [x] 15项离线检查通过：D-Bus错误、3秒超时、无动作启动、监测失败停止顺序、stop超时恢复、恢复失败报告及真实shell转交。
+- [ ] 本机systemd/D-Bus超时根因与修复后现场验证：NOT VERIFIED；未启动full或重启系统服务。
+- 证据：docs/go2_pc_time_guard_fix_20261116.md。
+
 当前工作包含导航基线、D435 搜索接近实验与独立 YOLO 小样本工作流；以下按阶段保留历史任务与验证边界。最新状态见 `PROJECT_STATUS.md`。
 
 ## P0 — Baseline Understanding
