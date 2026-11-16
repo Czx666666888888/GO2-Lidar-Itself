@@ -65,3 +65,29 @@ def test_round_reset_discards_queued_frame_and_rejects_replayed_old_rgb():
     param.value = '[]'
     assert not node._completed_round([param]).successful
     assert node.selection.initial == (2., 0., 0.)
+
+
+def test_multi_mode_maps_all_valid_blocks_with_one_source_stamp():
+    node = ColorBlockTargetAdapter.__new__(ColorBlockTargetAdapter)
+    node.multi_target_memory = True
+    node.map_frame, node.last_published, node.input_count = 'map', 0, 0
+    node.selection = BlockSelection()
+    node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=1_100_000_000))
+    node.get_parameter = lambda _: NS(value=.3)
+    node.get_name = lambda: 'camera_target_to_map'
+    node.get_publishers_info_by_topic = lambda _: [NS(node_name=node.get_name())]
+    node.count_publishers = lambda _: 1
+    tf = TransformStamped();tf.transform.rotation.w = 1.
+    node.tf_buffer = NS(lookup_transform=lambda *args: tf)
+    node.camera_point, node.selection_debug = NS(publish=Mock()), NS(publish=Mock())
+    node._transform_and_publish = Mock()
+    def detection(x, valid):
+        return dict(class_id=0,class_name='color_block',depth={'valid':valid},xyz_m=[x,0.,1.])
+    node.latest = dict(rgb_stamp_ns=1_000_000_000,status='OK',frame_id='camera_color_optical_frame',
+                       detections=[detection(1.,True),detection(2.,True),detection(3.,False)])
+    node._process()
+    assert node._transform_and_publish.call_count == 2
+    points = [call.args[0] for call in node._transform_and_publish.call_args_list]
+    assert [p.point.x for p in points] == [1.,2.]
+    assert all(p.header.stamp.sec == 1 and p.header.stamp.nanosec == 0 for p in points)
+    assert node.selection.initial is None and node.last_published == 1_000_000_000

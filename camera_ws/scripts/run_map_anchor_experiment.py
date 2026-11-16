@@ -179,6 +179,9 @@ class Experiment:
             '-p', 'search_continuous:='+str(getattr(self.args, 'continuous_search', False)).lower(),
             '-p', 'dock_auto_side_enabled:='+str(getattr(self.args, 'grasp_side', '') == 'auto').lower(),
             '-p', 'completed_targets_json:='+json.dumps(getattr(self.args, 'completed_targets_json', '[]')),
+            '-p', 'multi_target_memory:='+str(getattr(self.args, 'multi_target_memory', False)).lower(),
+            '-p', 'resume_memory:='+str(getattr(self.args, 'multi_target_memory', False) and
+                bool(json.loads(getattr(self.args, 'completed_targets_json', '[]')))).lower(),
             *(['-p', 'dock_forward_response_check:=true',
                '-p', f'response_gate_log_file:={gate_log}',
                '-p', 'dock_forward_response_max_distance:='+

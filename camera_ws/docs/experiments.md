@@ -2345,3 +2345,9 @@ final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open
 16项定向测试通过（成功/超时/KeyboardInterrupt/异常快照及已有日志/检测入口回归），
 静态编译/新测试lint/diff检查通过；无需ROS包构建。本轮无节点/相机启动、远端动作或运动。
 当前连续RGB-D/TF阻塞及诊断实机效果NOT VERIFIED。详细说明startup_probe_reporting_20261116.md。
+
+
+## 2026-11-16：YOLO多目标MAP记忆与连续处理（离线）
+
+基线fetch HEAD/FETCH_HEAD=7c17021，原始诊断full_1794834675902500879。YOLO/full启用多目标原Tracker记忆、轮间最近停车位接近及明确安全MISSED处理；细节、源码边界、原S1 ZIP来源/保护及验证见multi_target_memory_20261116.md。
+单包构建和安装源码哈希一致、定向离线检查；无真实运动/相机采流/远端升级。物理验收NOT VERIFIED。用户本轮补充明确推迟障碍接口，本轮未实现避障。

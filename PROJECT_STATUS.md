@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-11-16 YOLO多目标MAP记忆与连续处理
+
+基线远端7c17021。YOLO/full送全部有效方块到原Tracker，保留确认记忆；首轮原SEARCH/STOP_CONFIRM，后续按左右停车位距离选未处理记忆直接MAP接近，3份新源观测唯一复核；无视觉保留锚点，定位/TF/反馈/运动预算保护不变。明确D455无目标且原安全返回、原contact_miss/secure_lost可在回零反馈通过后标MISSED起立跳过，硬件/姿态FAULT仍中止。默认处理3个不同目标，区分完成/漏失计数；终端结果先保存，恢复完整chain ready失败保留计数不续跑。用户明确延期障碍接口，本轮无避障。S1兼容v6仅离线生成，旧运行服务不热替换。单包构建及定向检查通过，实机NOT VERIFIED；见camera_ws/docs/multi_target_memory_20261116.md。
+
 ## 2026-11-16 YOLO成功轮次解除旧锁
 
 成功轮次累计列表经现有参数原子服务确认后，第二/三轮才启动SEARCH。adapter排除已完成15cm位置、清旧锁/排队帧并提升源时间水位；重复请求幂等、非法推进拒绝，单轮唯一关联不变。50项定向离线检查通过；在线效果NOT VERIFIED，无相机/ROS图/机器人动作。证据camera_ws/docs/yolo_round_reset_20261116.md。

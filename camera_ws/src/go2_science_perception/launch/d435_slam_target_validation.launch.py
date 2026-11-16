@@ -9,6 +9,7 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch_ros.actions import Node, SetParameter
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def static_tf(name, parent, child, xyz):
@@ -85,7 +86,8 @@ def generate_launch_description():
         name="science_target_manager",
         parameters=[os.path.join(
             package_share, "config", "science_target_manager.yaml"
-        )],
+        ), {"remember_confirmed": ParameterValue(LaunchConfiguration("multi_target_memory"), value_type=bool),
+              "memory_path": LaunchConfiguration("target_memory_path")}],
         output="screen",
     )
     rviz = Node(
@@ -103,6 +105,8 @@ def generate_launch_description():
         SetParameter(name="use_sim_time", value=False),
         DeclareLaunchArgument("detector", default_value="hsv", choices=["hsv", "yolo"]),
         DeclareLaunchArgument("yolo_python", default_value="/usr/bin/python3"),
+        DeclareLaunchArgument("target_memory_path", default_value=""),
+        DeclareLaunchArgument("multi_target_memory", default_value="false"),
         DeclareLaunchArgument("yolo_model", default_value=""),
         DeclareLaunchArgument("remote_camera", default_value="false"),
         DeclareLaunchArgument("use_rviz", default_value="true"),
@@ -124,7 +128,8 @@ def generate_launch_description():
              name="camera_target_to_map",
              condition=IfCondition(PythonExpression(["'", LaunchConfiguration("detector"), "' == 'yolo'"])),
              parameters=[os.path.join(package_share, "config", "camera_target_to_map.yaml"),
-                         {"input_topic": "/science/yolo/unused_point"}], output="screen"),
+                         {"input_topic": "/science/yolo/unused_point",
+                          "multi_target_memory": ParameterValue(LaunchConfiguration("multi_target_memory"), value_type=bool)}], output="screen"),
         base_odom,
         target_manager,
         rviz,

@@ -26,6 +26,7 @@ def main():
     p.add_argument('--posture-timeout', type=float, default=20.0)
     p.add_argument('--stable-sec', type=float, default=1.0)
     p.add_argument('--arm-timeout', type=float, default=300.0)
+    p.add_argument('--allow-missed', action='store_true')
     p.add_argument('--grasp-side', choices=('right', 'left'))
     args = p.parse_args()
     if not (0 < args.down_max_body_height_m < args.up_min_body_height_m and
@@ -146,8 +147,9 @@ def main():
             result = arm_status()
         else:
             arm_cache[1] = -math.inf
-            result = (client.request(command, args.socket, grasp_side=args.grasp_side)
-                      if command == 'grasp' and args.grasp_side else
+            result = (client.request(command, args.socket, grasp_side=args.grasp_side,
+                                      **({'allow_missed': True} if args.allow_missed else {}))
+                      if command == 'grasp' and (args.grasp_side or args.allow_missed) else
                       client.request(command, args.socket))
         if command == 'status' and result.get('readiness_state') in ('COMMUNICATION_ERROR','FAULT'):
             raise RuntimeError('S1 feedback fault; no subsequent action: '+str(result))
@@ -204,7 +206,7 @@ def main():
             time.sleep(0.05)
         raise RuntimeError('Posture feedback timeout; no subsequent action')
 
-    result = finish_docked_task(request, posture, log, timeout=args.arm_timeout)
+    result = finish_docked_task(request, posture, log, timeout=args.arm_timeout, allow_missed=args.allow_missed)
     log('RESULT', result)
     def elapsed(start, end):
         return (event_times[end]-event_times[start]

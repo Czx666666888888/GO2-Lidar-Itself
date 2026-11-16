@@ -20,6 +20,8 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
         super().__init__()
         self.declare_parameter('max_observation_age_sec', .3)
         self.selection = BlockSelection()
+        self.declare_parameter('multi_target_memory', False)
+        self.multi_target_memory = self.get_parameter('multi_target_memory').value
         self.latest = None
         self.last_published = 0
         self.declare_parameter('completed_targets_json', '[]')
@@ -89,6 +91,12 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
                 reason = 'no_color_block'
                 return
             # An unmeasurable visible block could be nearer or be the locked block.
+            if getattr(self, 'multi_target_memory', False):
+                detections = [d for d in detections if d.get('depth', {}).get('valid')
+                              and 'xyz_m' in d]
+                if not detections:
+                    reason = 'no_valid_block_depth'
+                    return
             if any(not d.get('depth', {}).get('valid') or 'xyz_m' not in d for d in detections):
                 reason = 'color_block_depth_invalid'
                 return
@@ -112,6 +120,16 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
                 points.append(point)
                 mapped.append((result.point.x, result.point.y, result.point.z))
             camera = camera_tf.transform.translation
+            if getattr(self, 'multi_target_memory', False):
+                # One complete source frame reaches the existing manager batcher.
+                for point in points:
+                    self.input_count += 1
+                    self._transform_and_publish(point, 0.0)
+                    self.camera_point.publish(point)
+                self.last_published, self.latest = stamp, None
+                diagnostic.update(candidates_map=mapped, published_count=len(points))
+                reason = 'all_valid_blocks_to_map'
+                return
             index, reason = self.selection.choose(mapped, (camera.x, camera.y))
             diagnostic.update(camera_map_xy=[camera.x, camera.y], candidates_map=mapped)
             if index is None:

@@ -44,6 +44,9 @@ class Settings:
     allow_odom: bool = False
     odom_max_time: float = 1.0
     odom_max_distance: float = 0.15
+    multi_target_memory: bool = False
+    resume_memory: bool = False
+    memory_max_age_sec: float = 300.0
     search_enabled: bool = False
     search_continuous: bool = False
     search_speed: float = 0.20
@@ -69,7 +72,8 @@ class Settings:
         """Reject invalid limits rather than silently weakening safety bounds."""
         for name, value in vars(self).items():
             if (name not in ('allow_odom', 'stop_reference', 'search_enabled', 'search_continuous',
-                             'stop_confirm_require_stationary', 'stop_confirm_fast_enabled') and
+                             'stop_confirm_require_stationary', 'stop_confirm_fast_enabled',
+                             'multi_target_memory', 'resume_memory') and
                     (not math.isfinite(value) or value <= 0)):
                 raise ValueError(f'{name} must be finite and positive')
         if (self.stop_confirm_fast_observations not in (2, 3) or
@@ -167,17 +171,30 @@ class ApproachControl:
         self.visual_loss_count = 0
         self.grasp_side = ('right' if self.docking and self.docking.p.target_s1_y > 0 else 'left')
         self.side_candidates = []
+        self.memory_goal = False
+        self.memory_recheck = deque(maxlen=3)
+        self.memory_reconfirmed = 0
 
     def _search_candidates(self, valid):
         """Rank target/side pairs by actual planar travel to their docking poses."""
-        if not self.docking_options or self.robot is None:
+        if self.robot is None:
             return valid
+        options = self.docking_options
+        if not options and self.p.multi_target_memory and self.docking:
+            options = {self.grasp_side: self.docking.p}
+        if not options:
+            return valid
+        if self.p.multi_target_memory:
+            # Close independent tracks cannot supply a unique physical lock.
+            valid = [t for t in valid if not any(
+                u['id'] != t['id'] and math.dist(t['position'][:2], u['position'][:2]) <
+                2*self.p.anchor_association_radius for u in valid)]
         from .grasp_pose_geometry import docking_goal
         heading = self.search_origin[2] if self.search_origin else self.robot[2]
         ranked = []
         for track in valid:
             point = track.get('latest_observation', track['position'])[:2]
-            for side, settings in self.docking_options.items():
+            for side, settings in options.items():
                 goal = docking_goal(point, heading, settings)
                 ranked.append(dict(target_id=track['id'], side=side, goal=list(goal),
                                    distance_m=math.dist(self.robot[:2], goal[:2])))
@@ -353,6 +370,23 @@ class ApproachControl:
         if observed <= self.anchor_stamp + 0.001:
             diagnostic(t, 'REJECT', 'not_new_observation')
             return
+        if self.memory_goal:
+            if self.memory_recheck and t['observed_ns'] <= self.memory_recheck[-1][0]:
+                diagnostic(t, 'REJECT', 'memory_recheck_duplicate_stamp')
+                return
+            if (self.memory_recheck and (t['observed_ns']-self.memory_recheck[-1][0])*1e-9 >
+                    self.p.stop_confirm_fast_gap_sec):
+                self.memory_recheck.clear()
+            if (not self.memory_recheck or t['observed_ns'] > self.memory_recheck[-1][0]):
+                self.memory_recheck.append((t['observed_ns'], tuple(t['position'][:2])))
+            if len(self.memory_recheck) < 3:
+                diagnostic(t, 'REJECT', 'memory_recheck_collecting_new_frames')
+                return
+            if max(math.dist(a[1], b[1]) for a in self.memory_recheck
+                   for b in self.memory_recheck) >= self.p.anchor_max_spread:
+                diagnostic(t, 'REJECT', 'memory_recheck_spread')
+                return
+            self.memory_reconfirmed += 1
         diagnostic(t, 'ACCEPT', 'unique_fresh_spatial_match')
         alpha = self.p.anchor_alpha
         self.target = tuple((1-alpha)*old + alpha*new
@@ -717,6 +751,30 @@ class ApproachControl:
                                            self.target[1] - reference[1])
         return True
 
+    def start_memory_target(self, now):
+        """Use only historically confirmed, bounded MAP memory; no invented RGB sample."""
+        candidates = [dict(t, latest_observation=t['position']) for t in self.tracks
+                      if t.get('memory_confirmed') and not t['visited']
+                      and 0 <= t['age']+now-self.snapshot_time <= self.p.memory_max_age_sec
+                      and t.get('memory_spread_m', math.inf) < self.p.anchor_max_spread
+                      and math.dist(self.robot[:2], t['position'][:2]) <= self.p.max_target_range]
+        selected = self._search_candidates(candidates)
+        if len(selected) != 1:
+            return False
+        t = selected[0]
+        if self.docking_options:
+            self.docking.p = self.docking_options[self.grasp_side]
+        self.lock_id, self.target = t['id'], tuple(t['position'][:2])
+        self.anchor_initial, self.anchor_lock_camera = self.target, self.camera
+        self.anchor_stamp = self.visual_time = self.snapshot_time-t['age']
+        self.initial_distance = math.dist(self.target, self.camera)
+        self.memory_goal = True
+        self.confirmed_at = self.started = now
+        self.confirmation_count = t.get('observation_count')
+        self.confirmation_spread = t['memory_spread_m']
+        self.state, self.reason = 'LOCK_TARGET', 'confirmed MAP memory'
+        return True
+
     def start(self, now):
         """Start a previously reviewed camera anchor only on a second manual command."""
         if self.p.search_enabled and self.state == 'IDLE':
@@ -729,6 +787,8 @@ class ApproachControl:
             self.search_origin = self.robot
             self.search_started = self.started = now
             self.state = 'SEARCH'
+            if self.p.multi_target_memory and self.p.resume_memory:
+                self.start_memory_target(now)
             return True
         if (self.state != 'LOCK_TARGET' or self.started is not None or
                 now-self.odom_time > self.p.odom_timeout or
@@ -758,6 +818,9 @@ class ApproachControl:
                 self.fault('run timeout')
         out = {'state': self.state, 'reason': self.reason, 'vx': 0.0, 'vy': 0.0, 'wz': 0.0,
                'grasp_side': self.grasp_side, 'side_candidates': self.side_candidates,
+               'memory_goal': self.memory_goal, 'memory_reconfirmed': self.memory_reconfirmed,
+               'memory_target_count': sum(t.get('memory_confirmed', False) and not t['visited']
+                                          for t in self.tracks),
                'target_id': self.lock_id, 'target': self.target, 'robot': self.robot,
                'actual_speed': self.actual_speed, 'camera_speed': self.camera_speed,
                'camera': self.camera, 'target_map_anchor': self.target,

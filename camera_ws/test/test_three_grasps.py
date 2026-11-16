@@ -92,3 +92,32 @@ def test_reset_failure_never_starts_next_search(tmp_path, monkeypatch):
     monkeypatch.setattr(w, 'run_task', lambda: pytest.fail('must not start controller'))
     with pytest.raises(RuntimeError, match='not acknowledged'):
         w.run_full_round(2, [[1., 0.]])
+
+
+def test_missed_target_counts_as_processed_and_is_excluded_from_next_round():
+    calls = []
+    def run_round(number, processed):
+        calls.append(list(processed))
+        return dict(task_motion_complete=True, target_map_xy=[number, 0],
+                    target_id=number, outcome='MISSED' if number == 1 else 'COMPLETED')
+    results = run_three_grasps(run_round, lambda rows: None)
+    assert calls == [[], [[1,0]], [[1,0],[2,0]]]
+    assert [row['outcome'] for row in results] == ['MISSED', 'COMPLETED', 'COMPLETED']
+
+
+def test_completed_standup_is_persisted_if_camera_restore_then_fails(tmp_path, monkeypatch):
+    import json
+    w = Workflow(SimpleNamespace(work_dir=ROOT, mode='full', grasp_side='auto', detector='yolo'))
+    w.folder, w.multi_memory_session, w.processed_results = tmp_path, True, []
+    monkeypatch.setattr(w, 'status', lambda: dict(state='ZERO_HOLD', busy=False, navigation_allowed=True))
+    result = dict(task_motion_complete=True, target_map_xy=[1.,0.], target_id=1,
+                  outcome='MISSED', handoff_ready=False)
+    def failed_restore():
+        (tmp_path/'round_01_result.json').write_text(json.dumps(result))
+        raise RuntimeError('chain not ready')
+    monkeypatch.setattr(w, 'run_task', failed_restore)
+    with pytest.raises(RuntimeError, match='chain not ready'):
+        w.run_full_round(1, [])
+    progress = json.loads((tmp_path/'three_grasps.json').read_text())
+    assert progress['processed_count'] == 1 and progress['completed_count'] == 0
+    assert progress['missed_count'] == 1
