@@ -5,7 +5,7 @@ science_target_approach:
     dock_s1_base_x: -0.06  # User-measured 0.36m behind nominal lidar +0.30m.
     dock_s1_base_y: 0.0
     dock_target_s1_x: 0.0
-    dock_target_s1_y: 0.37  # User-requested right-side target distance from S1 base.
+    dock_target_s1_y: 0.36  # User-requested right-side target distance from S1 base.
     dock_min_linear_speed: 0.20  # Far approach only; fine control/braking take priority.
     dock_fine_distance: 0.15
     dock_fine_forward_correction_enabled: true  # Correct fore/aft alongside lateral/yaw until arrival.

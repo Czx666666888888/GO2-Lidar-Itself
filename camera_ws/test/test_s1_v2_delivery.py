@@ -175,7 +175,7 @@ def test_upgrade_accepts_exact_deployed_previous_adapter():
         pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
     with zipfile.ZipFile(path) as bundle:
         meta = compatibility_payload(ROOT, bundle)['s1_control/integration.py']
-    assert meta['accepted_previous_sha256'] == [
+    assert meta['accepted_previous_sha256'][:2] == [
         'b98a9881893686af2e998d3cf60874c616c1de6290dd426a0a6822d2bce52d87',
         '384dea03626da4634821ab79fddf327fd0d476beb895284ae1a50e0d7d63d6d6']
     assert meta['sha256'] != meta['accepted_previous_sha256'][0]
@@ -194,7 +194,7 @@ def test_video_removal_restores_original_capture_and_direct_grasp_callback():
     entry = base64.b64decode(payload['scripts/run_arm_integration.py']['content']).decode()
     assert 'run_recorded_flow' not in entry and 'grasp_video' not in entry
     assert 'session.run_task(lambda active: flow.main(' in entry
-    assert payload['scripts/run_arm_integration.py']['accepted_previous_sha256'] == [
+    assert payload['scripts/run_arm_integration.py']['accepted_previous_sha256'][:2] == [
         '035fd4e6d73946b38e0c06ef0eaa6d3e571cb9b5b784206d7f4f0a79a06755b7',
         '7abc5219e43b944667e6a867e256a5dc0e640f1b926ee7769255bc9d209642e7']
     assert payload['demo_grasp/capture_rgbd.py']['accepted_previous_sha256'] == [
@@ -211,7 +211,8 @@ def test_upgrade_recovers_hash_verified_installed_originals(tmp_path, monkeypatc
         pytest.skip('Set GO2_S1_V2_ARCHIVE to verify upstream version')
     with zipfile.ZipFile(path) as archive:
         names = ['scripts/run_arm_integration.py','s1_control/integration.py',
-                 'scripts/arm_task_client.py','scripts/verify_handoff.py','demo_grasp/capture_rgbd.py']
+                 'scripts/arm_task_client.py','scripts/verify_handoff.py','demo_grasp/capture_rgbd.py',
+                 'scripts/run_go2_visual_alignment.py']
         hashes = []
         for name in names:
             content = archive.read('s1-arm-control/'+name)
@@ -269,6 +270,12 @@ def test_video3_upgrade_restores_sources_and_retires_only_verified_helper(tmp_pa
     manifest = dict(version='v2_usb01_feedback_video_3',files={
         name:{k:v for k,v in meta.items() if k!='content'} for name,meta in previous.items()})
     (installed/'S1_V2_COMPAT.json').write_text(json.dumps(manifest))
+    # This fixture runs the remote installer locally; never inspect real host owners.
+    bin_path = tmp_path/'mock_bin'
+    bin_path.mkdir()
+    pgrep = bin_path/'pgrep'
+    pgrep.write_text('#!/bin/sh\nexit 1\n');pgrep.chmod(0o755)
+    monkeypatch.setenv('PATH', str(bin_path)+os.pathsep+os.environ['PATH'])
     original_run = subprocess.run
     def run(argv, **kwargs):
         command = shlex.split(argv[-1]);command[3]=str(installed)
@@ -302,6 +309,11 @@ def test_no_video4_upgrade_enables_side_dispatch_without_changing_capture(tmp_pa
     metadata = dict(version='v2_usb01_feedback_no_video_4', files={
         name: {k: v for k, v in meta.items() if k != 'content'} for name, meta in previous.items()})
     (tmp_path/'S1_V2_COMPAT.json').write_text(json.dumps(metadata))
+    bin_path = tmp_path/'mock_bin'
+    bin_path.mkdir()
+    pgrep = bin_path/'pgrep'
+    pgrep.write_text('#!/bin/sh\nexit 1\n');pgrep.chmod(0o755)
+    monkeypatch.setenv('PATH', str(bin_path)+os.pathsep+os.environ['PATH'])
     original_run = subprocess.run
 
     def run(argv, **kwargs):
@@ -315,3 +327,25 @@ def test_no_video4_upgrade_enables_side_dispatch_without_changing_capture(tmp_pa
     assert current['version'] == delivery.COMPAT_VERSION
     assert 'selected_grasp_arguments' in (tmp_path/'scripts/run_arm_integration.py').read_text()
     assert (tmp_path/'demo_grasp/capture_rgbd.py').read_bytes() == original_capture
+
+
+@pytest.mark.parametrize('allow,status,plane,miss', [
+    (True,'NO_TARGET',True,True), (False,'NO_TARGET',True,False),
+    (True,'NO_TARGET',False,False), (True,'DETECTED_CAMERA_FRAME_ONLY',True,False),
+    (True,'CAMERA_ERROR',True,False)])
+def test_safe_no_target_dispatch_is_explicit_and_requires_valid_plane(payload, allow, status, plane, miss):
+    source = ast.parse(payload['scripts/run_go2_visual_alignment.py'])
+    cls = next(n for n in source.body if isinstance(n, ast.ClassDef) and n.name == 'MemoryTargetMiss')
+    condition = next(n for n in ast.walk(source) if isinstance(n, ast.If)
+                     and any(isinstance(child, ast.Raise) and isinstance(child.exc, ast.Call)
+                             and isinstance(child.exc.func, ast.Name)
+                             and child.exc.func.id == 'MemoryTargetMiss' for child in n.body))
+    namespace = dict(arm_session=SimpleNamespace(allow_missed=allow),
+                     initial_capture={'detection':{'status':status,'plane':{'quality_pass':plane}}})
+    exec(compile(ast.Module(body=[cls], type_ignores=[]), '<miss-type>', 'exec'), namespace)
+    code = compile(ast.Module(body=[condition], type_ignores=[]), '<miss-branch>', 'exec')
+    if miss:
+        with pytest.raises(namespace['MemoryTargetMiss']):
+            exec(code, namespace)
+    else:
+        exec(code, namespace)

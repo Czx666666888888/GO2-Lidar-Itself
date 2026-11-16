@@ -28,7 +28,8 @@ expected={}
 for line in (root/'SHA256SUMS').read_text().splitlines():
     digest,name=line.split('  ',1);expected[name]=digest
 names=('scripts/run_arm_integration.py','s1_control/integration.py',
-       'scripts/arm_task_client.py','scripts/verify_handoff.py','demo_grasp/capture_rgbd.py')
+       'scripts/arm_task_client.py','scripts/verify_handoff.py','demo_grasp/capture_rgbd.py',
+       'scripts/run_go2_visual_alignment.py')
 data=io.BytesIO()
 with zipfile.ZipFile(data,'w') as archive:
     for name in names:
@@ -53,7 +54,7 @@ root=pathlib.Path(sys.argv[1]);p=root/'S1_V2_COMPAT.json'
 if not p.exists(): print('MISSING');raise SystemExit(0)
 d=json.loads(p.read_text())
 if d['version'] not in (sys.argv[2], 'v2_usb01_feedback_1', 'v2_usb01_feedback_2',
-                       'v2_usb01_feedback_video_3', 'v2_usb01_feedback_no_video_4'):
+                       'v2_usb01_feedback_video_3', 'v2_usb01_feedback_no_video_4', 'v2_usb01_feedback_dual_side_5'):
     raise SystemExit('Unknown S1 v2 compatibility version; preserve')
 for name,meta in d['files'].items():
     if hashlib.sha256((root/name).read_bytes()).hexdigest()!=meta['sha256']:

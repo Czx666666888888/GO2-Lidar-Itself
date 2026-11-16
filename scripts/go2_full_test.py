@@ -8,7 +8,7 @@ import threading
 from go2_build_fingerprint import fingerprint
 from s1_v2_delivery import ensure_v2_package
 from go2_camera_handoff import RELEASE_CHECK, service_requests, atomic_json
-from go2_three_grasps import run_three_grasps
+from go2_three_grasps import run_three_grasps, progress_snapshot
 import fcntl
 import json
 import os
@@ -361,6 +361,9 @@ class Workflow:
                    'd435_slam_target_validation.launch.py', 'remote_camera:=true',
                    'use_rviz:=false', 'detector:='+self.detector]
         if self.detector == 'yolo':
+            if self.args.mode == 'full':
+                command += ['multi_target_memory:=true',
+                            'target_memory_path:='+str(self.folder/'target_memory.json')]
             command += ['yolo_model:='+str(self.vision_model),
                         'yolo_python:='+str(self.vision_python)]
         return command
@@ -383,6 +386,8 @@ class Workflow:
         if self.args.mode == 'full':
             profile = self.work/'camera_ws/src/go2_science_perception/config/science_s1_posture_go2_20261112.json'
             command += ['--full', '--posture-profile', str(profile)]
+            if self.detector == 'yolo':
+                command.append('--multi-target-memory')
             command += ['--evidence-directory', str(self.folder), '--continuous-search',
                         '--completed-targets-json', json.dumps(self.completed_targets),
                         '--round-result', str(self.folder/('round_%02d_result.json' % self.current_round))]
@@ -560,8 +565,8 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         # Preserve the restored driver for the next run, as for a reused session.
         self.camera_paused = False
         report = self.probe('post_arm_camera_'+stamp, timeout=12, scope='chain')
-        if not report.get('camera_ok'):
-            raise RuntimeError('D435 restarted but fresh RGB/depth not verified; see camera probe')
+        if not report.get('ready'):
+            raise RuntimeError('D435 restored but full RGB-D/localization/TF chain not ready; see camera probe')
         print('D455_RELEASED_D435_RESTORED: fresh RGB/depth verified; driver retained', flush=True)
 
     def shell(self, command):
@@ -812,10 +817,11 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             self.spawn(self.shell('ros2 run rqt_image_view rqt_image_view '
                                   '/science/approach/debug_image'), 'viewer')
         if self.args.mode == 'full':
+            self.multi_memory_session = self.detector == 'yolo'
+            self.processed_results = []
             run_three_grasps(self.run_full_round, lambda completed: atomic_json(
-                self.folder/'three_grasps.json', dict(completed_count=len(completed),
-                goal_count=3, completed=completed, placement_confirmed=None)))
-            print('THREE_GRASP_CYCLES_COMPLETE: third StandUp confirmed; exploration stopped', flush=True)
+                self.folder/'three_grasps.json', progress_snapshot(completed)))
+            print('THREE_TARGETS_PROCESSED: third StandUp confirmed; exploration stopped', flush=True)
         else:
             self.run_task()
 
@@ -824,7 +830,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         self.completed_targets = completed_targets
         if not zero_hold(self.status()):
             raise RuntimeError('S1 not ready before next exploration round')
-        if self.detector == 'yolo' and completed_targets:
+        if self.detector == 'yolo' and completed_targets and not getattr(self, 'multi_memory_session', False):
             # Only run_three_grasps supplies prior grasp+StandUp successes here.
             # An acknowledgement is required before creating the next controller.
             with self.stage('advance_yolo_round_'+str(number)):
@@ -832,13 +838,26 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                     str(self.work/'camera_ws/scripts/advance_yolo_round.py'),
                     json.dumps(completed_targets)])), timeout=12)
         print('GRASP_ROUND_START '+str(number)+'/3', flush=True)
-        self.run_task()
-        return json.loads((self.folder/('round_%02d_result.json' % number)).read_text())
+        result_path = self.folder/('round_%02d_result.json' % number)
+        try:
+            self.run_task()
+        except BaseException:
+            # A confirmed StandUp remains a processed target even if restoration fails.
+            if result_path.exists():
+                result = json.loads(result_path.read_text())
+                if result.get('task_motion_complete') is True:
+                    atomic_json(self.folder/'three_grasps.json', progress_snapshot(
+                        getattr(self, 'processed_results', [])+[result]))
+            raise
+        result = json.loads(result_path.read_text())
+        self.processed_results = getattr(self, 'processed_results', [])+[result]
+        return result
 
     def run_task(self):
         command = self.task_command()
         print('开始真实运动；Ctrl+C请求停止。物理遥控急停保持可用。', flush=True)
-        task = subprocess.Popen(self.shell(shlex.join(command)))
+        task_log = (self.folder/('round_%02d_coordinator.log' % self.current_round)).open('x')
+        task = subprocess.Popen(self.shell(shlex.join(command)), stdout=task_log, stderr=subprocess.STDOUT)
         try:
             self.wait_job(task)
         finally:
@@ -859,6 +878,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                         print('任务未退出：立即物理急停；保留定位和S1，等待原任务退出。', flush=True)
                         warned = True
                     time.sleep(.1)
+            task_log.close()
 
     def close(self):
         if self.camera_paused:

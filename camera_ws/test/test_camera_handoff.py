@@ -131,7 +131,7 @@ def test_restore_verifies_fresh_rgb_depth_and_retains_driver(tmp_path, monkeypat
     events = []
     w.cameras_released = lambda products: events.append(products)
     monkeypatch.setattr(go2_full_test, 'remote', lambda *a, **kw: events.append('launch'))
-    w.probe = lambda *a, **kw: dict(camera_ok=True)
+    w.probe = lambda *a, **kw: dict(camera_ok=True, ready=True)
     w.resume_front_camera()
     assert events == [{'0b5c'}, {'0b07'}, 'launch']
     assert not w.camera_paused and not w.children
@@ -146,7 +146,7 @@ def test_restored_camera_without_frames_is_not_reported_ready(tmp_path, monkeypa
     launches = []
     monkeypatch.setattr(go2_full_test, 'remote', lambda *a, **kw: launches.append('launch'))
     w.probe = lambda *a, **kw: dict(camera_ok=False)
-    with pytest.raises(RuntimeError, match='fresh RGB/depth not verified'):
+    with pytest.raises(RuntimeError, match='full RGB-D/localization/TF chain not ready'):
         w.resume_front_camera()
     w.resume_front_camera()  # No duplicate launch after a successful process start.
     assert launches == ['launch']
@@ -245,3 +245,15 @@ def test_unreadable_ssh_session_requires_privileged_sshd_parent(
     scope = dict(Path=Path, os=os, pwd=pwd)
     exec(compile(ast.Module(body=[node], type_ignores=[]), '<release-check>', 'exec'), scope)
     assert scope['systemd_session_helper'](helper) is expected
+
+
+def test_camera_only_recovery_cannot_start_memory_round(tmp_path, monkeypatch):
+    w = workflow(tmp_path)
+    w.camera_paused = True
+    monkeypatch.setattr(w, 'status', lambda: dict(state='ZERO_HOLD', busy=False))
+    monkeypatch.setattr(w, 'cameras_released', lambda _: None)
+    monkeypatch.setattr(w, 'probe', lambda *a, **kw: dict(camera_ok=True, ready=False))
+    import go2_full_test as full
+    monkeypatch.setattr(full, 'remote', lambda *a, **kw: None)
+    with pytest.raises(RuntimeError, match='full RGB-D/localization/TF chain not ready'):
+        w.resume_front_camera()

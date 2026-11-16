@@ -6,7 +6,10 @@
 故障发生于第一轮抓取之前，three_grasps.completed_count=0，不是轮间解锁问题。
 2026-11-16 fetch/ls-remote核对远端集成最新Push为7c170210fbe1968e9dc22d0e899879f3edd62073，
 与该轮manifest一致。主视觉远端为1785c9a416ae8c2df1fcb94e8a9d54a5243ce4df。
-既有/tmp/go2_onekey_s1内有另一项未提交的多目标记忆工作，本次使用独立干净clone，未覆盖或提交它。
+初查时/tmp/go2_onekey_s1内有另一项未提交的多目标记忆工作，本次使用独立干净clone，未覆盖它。
+推送前远端并发新增4cb3579（多目标记忆）及5a3d367（左右停靠±36cm）；正常推送被拒绝后，
+使用普通merge保留这两项更新，无强推或历史改写。与最新远端相比本次仍仅增加诊断/审计。
+旧录像的运行行为仍以7c17021为准，不能把后来多目标旁路已启用追溯到这份录像。
 不以最新时间目录中的另一轮替代本轮证据。
 
 ## 六项核对结果
@@ -66,7 +69,7 @@ CANDIDATE需要3帧，已CONFIRMED的快速路径可以2帧。
 
 ## 验证与待办
 
-111项定向离线回归通过，覆盖selector/adapter、SEARCH与快速确认、停靠、左右连续抓取、三轮计数、
+初始基线111项定向离线回归通过；合并最新Push后含多目标记忆回归共122项通过，覆盖selector/adapter、SEARCH与快速确认、停靠、左右连续抓取、三轮计数、
 新证据保存和audit缺失/重试计数。首次测试因未source Unitree消息overlay有1项导入失败，
 补齐已有overlay后全部通过。单包colcon build成功（2分钟），3个修改模块的源码与独立install
 SHA256一致。新增工具/测试flake8通过，三个修改模块严重错误检查与py_compile/diff检查通过。

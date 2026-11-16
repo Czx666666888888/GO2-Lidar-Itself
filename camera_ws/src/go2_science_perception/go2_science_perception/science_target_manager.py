@@ -3,6 +3,7 @@
 
 import math
 import json
+from pathlib import Path
 from collections import deque
 from dataclasses import dataclass, field
 from statistics import median
@@ -110,7 +111,7 @@ class TargetTracker:
                  remove_timeout_sec: float = 10.0,
                  merge_radius: float = 0.10,
                  merge_confirmation_count: int = 5,
-                 visited_radius: float = 0.15) -> None:
+                 visited_radius: float = 0.15, remember_confirmed: bool = False) -> None:
         if association_radius <= 0.0:
             raise ValueError("association_radius must be positive")
         if confirmation_count <= 0 or recent_window <= 0:
@@ -123,6 +124,8 @@ class TargetTracker:
             raise ValueError("merge settings must be positive")
         if visited_radius <= 0.0:
             raise ValueError("visited_radius must be positive")
+        self.remember_confirmed = remember_confirmed
+        self.last_frame_stamp_ns = -1
         self.association_radius = float(association_radius)
         self.confirmation_count = int(confirmation_count)
         self.recent_window = int(recent_window)
@@ -140,6 +143,9 @@ class TargetTracker:
 
     def update_frame(self, points: Iterable[Point3], stamp_ns: int) -> List[str]:
         """Associate all observations from one frame without track reuse."""
+        if stamp_ns <= self.last_frame_stamp_ns:
+            return ['REJECTED duplicate_or_regressing_frame']
+        self.last_frame_stamp_ns = stamp_ns
         events = self.expire(stamp_ns)
         observations = list(points)
         self.association_diagnostics = []
@@ -208,7 +214,8 @@ class TargetTracker:
             if track.state == CONFIRMED and age_ns >= self.confirmed_stale_timeout_ns:
                 track.state = STALE
                 events.append(f"STALE id={track.target_id}")
-            if track.state == STALE and age_ns >= self.remove_timeout_ns:
+            if (track.state == STALE and age_ns >= self.remove_timeout_ns
+                    and not self.remember_confirmed):
                 events.append(f"REMOVED id={track.target_id} state={STALE}")
                 continue
             kept.append(track)
@@ -321,6 +328,8 @@ class ScienceTargetManager(Node):
             "standoff_goal_topic": "/science/standoff_goal",
             "standoff_marker_topic": "/science/standoff_goal_marker",
             "map_frame": "map",
+            "remember_confirmed": False,
+            "memory_path": "",
             "association_radius": 0.20,
             "confirmation_count": 5,
             "recent_window": 15,
@@ -348,6 +357,7 @@ class ScienceTargetManager(Node):
             float(self.get_parameter("merge_radius").value),
             int(self.get_parameter("merge_confirmation_count").value),
             float(self.get_parameter("visited_radius").value),
+            bool(self.get_parameter("remember_confirmed").value),
         )
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -356,6 +366,7 @@ class ScienceTargetManager(Node):
         self.batch_stamp_ns: Optional[int] = None
         self.batch_points: List[Point3] = []
         self.batch_updated_ns = 0
+        self.memory_saved_ns = 0
         self.selected_id: Optional[int] = None
         self.logged_visited_matches = set()
 
@@ -522,7 +533,7 @@ class ScienceTargetManager(Node):
         return deletion_markers(self.map_frame, [namespace])
 
     def _publish_outputs(self) -> None:
-        self.track_states.publish(String(data=json.dumps({
+        snapshot = {
             "frame": self.map_frame,
             "association_diagnostics": self.tracker.association_diagnostics,
             "tracks": [{"id": t.target_id, "state": t.state,
@@ -530,9 +541,22 @@ class ScienceTargetManager(Node):
                         "latest_observation": list(t.observations[-1]),
                         "observed_ns": t.last_stamp_ns,
                         "first_seen_ns": t.first_seen,
+                        "observation_count": t.observation_count,
+                        "memory_confirmed": t.observation_count >= self.tracker.confirmation_count,
+                        "memory_spread_m": max(xy_distance(p, t.position) for p in t.observations),
                         "visited": self.tracker.visited_match(t.position) is not None}
                        for t in self.tracker.tracks],
-        })))
+        }
+        self.track_states.publish(String(data=json.dumps(snapshot)))
+        now_ns = self.get_clock().now().nanoseconds
+        memory_path = self.get_parameter('memory_path').value
+        if memory_path and now_ns-self.memory_saved_ns >= 500_000_000:
+            path = Path(memory_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = path.with_suffix('.tmp')
+            temporary.write_text(json.dumps(snapshot)+'\n')
+            temporary.replace(path)
+            self.memory_saved_ns = now_ns
         scale = float(self.get_parameter("marker_scale_m").value)
         confirmed = [track for track in self.tracker.tracks
                      if track.state == CONFIRMED]

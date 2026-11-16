@@ -3,7 +3,7 @@ import base64
 import hashlib
 from pathlib import Path
 
-COMPAT_VERSION = 'v2_usb01_feedback_dual_side_5'
+COMPAT_VERSION = 'v2_multitarget_safe_miss_6'
 VIDEO3_SHA256 = {
     'scripts/run_arm_integration.py':
         '035fd4e6d73946b38e0c06ef0eaa6d3e571cb9b5b784206d7f4f0a79a06755b7',
@@ -172,6 +172,48 @@ def compatibility_payload(root, bundle, *, dual_side=True):
                              'request(args.command, args.socket, args.grasp_side)')
         changed.update({names[0]: entry.encode(), names[1]: integration.encode(),
                         names[2]: client.encode()})
+    if dual_side:
+        previous5 = dict(changed)
+        flow_name = 'scripts/run_go2_visual_alignment.py'
+        originals[flow_name] = bundle.read('s1-arm-control/'+flow_name)
+        flow = originals[flow_name].decode()
+        flow = replace_once(flow, 'def main(argv=None, *, arm_session=None) -> int:',
+            'class MemoryTargetMiss(RuntimeError):\n    pass\n\ndef main(argv=None, *, arm_session=None) -> int:')
+        flow = replace_once(flow, '        observation_record = None\n        prepared_alignment = None',
+            '        if (getattr(arm_session, "allow_missed", False) and\n'
+            '                initial_capture["detection"]["status"] == "NO_TARGET" and\n'
+            '                initial_capture["detection"].get("plane", {}).get("quality_pass") is True):\n'
+            '            raise MemoryTargetMiss("D455 valid capture has no target")\n'
+            '        observation_record = None\n        prepared_alignment = None')
+        flow = replace_once(flow, '                print("SAFE_RETURN_AFTER_REJECT = True")',
+            '                if isinstance(exc, MemoryTargetMiss):\n'
+            '                    result = "VISUAL_NO_TARGET_SAFE_RETURN"\n'
+            '                print("SAFE_RETURN_AFTER_REJECT = True")')
+        # The exception recovery already performs collision-checked reverse deployment.
+        # Only its proved empty-target return receives a nonfault terminal code.
+        flow = replace_once(flow, '        return 1\n    finally:\n        if arm is not None:',
+            '        return 3 if result == "VISUAL_NO_TARGET_SAFE_RETURN" and not deployed else 1\n'
+            '    finally:\n        if arm is not None:')
+        changed[flow_name] = flow.encode()
+        entry = changed[names[0]].decode()
+        entry = replace_once(entry, 'response = session.request_grasp(request.get("grasp_side", '
+            '"left" if "left" in args.config else "right"))',
+            'response = session.request_grasp(request.get("grasp_side", '
+            '"left" if "left" in args.config else "right"), allow_missed=request.get("allow_missed", False))')
+        integration = changed[names[1]].decode()
+        integration = replace_once(integration, 'def request_grasp(self, side=None):',
+                                   'def request_grasp(self, side=None, allow_missed=False):')
+        integration = replace_once(integration,
+            '            if side is not None: self._state["grasp_side"] = side',
+            '            self.allow_missed = allow_missed is True\n'
+            '            if side is not None: self._state["grasp_side"] = side')
+        client = changed[names[2]].decode()
+        client = replace_once(client, 'def request(command, socket_path=DEFAULT_SOCKET, grasp_side=None):',
+            'def request(command, socket_path=DEFAULT_SOCKET, grasp_side=None, allow_missed=False):')
+        client = replace_once(client, '        payload = {"command": command}',
+            '        payload = {"command": command}\n'
+            '        if allow_missed: payload["allow_missed"] = True')
+        changed.update({names[0]: entry.encode(), names[1]: integration.encode(), names[2]: client.encode()})
     for name, content in changed.items():
         compile(content, name, 'exec')
     return {name: dict(original_sha256=hashlib.sha256(originals[name]).hexdigest()
@@ -181,7 +223,9 @@ def compatibility_payload(root, bundle, *, dual_side=True):
                            if name == names[1] else []) + (
                            [VIDEO3_SHA256[name]] if name in VIDEO3_SHA256 else []) + (
                            [hashlib.sha256(previous4[name]).hexdigest()]
-                           if dual_side and previous4[name] != content else []),
+                           if dual_side and name in previous4 and previous4[name] != content else []) + (
+                           [hashlib.sha256(previous5[name]).hexdigest()]
+                           if dual_side and name in previous5 and previous5[name] != content else []),
                        sha256=hashlib.sha256(content).hexdigest(),
                        content=base64.b64encode(content).decode())
             for name, content in changed.items()}

@@ -35,6 +35,7 @@ def parser():
     p.add_argument('--camera-handoff-directory', type=Path,
                    help='per-run camera switch channel owned by go2_test full supervisor')
     p.add_argument('--grasp-side', choices=('right','left','auto'), default='right')
+    p.add_argument('--multi-target-memory', action='store_true')
     p.add_argument('--continuous-search', action='store_true')
     p.add_argument('--completed-targets-json', default='[]')
     p.add_argument('--round-result', type=Path)
@@ -104,7 +105,7 @@ def main():
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
                 s1_base_vehicle_xy_m=[-.06, 0],
                 desired_target_s1_xy_m=(None if args.grasp_side == 'auto' else
-                                       [0, .37 if args.grasp_side=='right' else -.37]),
+                                       [0, .36 if args.grasp_side=='right' else -.36]),
                 search_continuous=args.continuous_search,
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),
@@ -181,6 +182,9 @@ def main():
                '--down-mode', str(args.down_mode), '--up-mode', str(args.up_mode),
                '--arm-timeout', str(args.arm_timeout)]
     command += ['--grasp-side', final.get('grasp_side', args.grasp_side)]
+    if args.multi_target_memory and (final.get('memory_goal') or
+                                     final.get('memory_target_count', 0) > 1):
+        command.append('--allow-missed')
     if args.arm_host != 'local':
         command = ['ssh', '-i', args.ssh_key, '-o', 'BatchMode=yes',
                    '-o', 'ConnectTimeout=3', args.arm_host, shlex.join(command)]
@@ -207,14 +211,20 @@ def main():
                         process.stdin.flush()
                         raise RuntimeError('Posture task stopped/timed out; no automatic StandUp')
                     if time.monotonic() >= next_heartbeat:
-                        process.stdin.write('{"heartbeat":true}\n')
-                        process.stdin.flush()
+                        try:
+                            process.stdin.write('{"heartbeat":true}\n')
+                            process.stdin.flush()
+                        except BrokenPipeError:
+                            process.wait(timeout=4)
                         next_heartbeat = time.monotonic()+0.5
                 completed = process
         finally:
             if process is not None:
                 if process.stdin:
-                    process.stdin.close()
+                    try:
+                        process.stdin.close()
+                    except BrokenPipeError:
+                        pass
                 if process.poll() is None:
                     process.terminate()
                     try:
@@ -225,23 +235,28 @@ def main():
             supervisor.destroy_node()
             if rclpy.ok():
                 rclpy.shutdown()
+        completion = None
+        for line in log.read_text().splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if row.get('event') == 'RESULT':
+                completion = row.get('data')
+        if not completion or not completion.get('task_motion_complete') or not (
+                completion.get('stand_up', {}).get('confirmed')):
+            raise RuntimeError('No new completed grasp/confirmed StandUp result; do not count round')
+        if args.round_result:
+            atomic_json(args.round_result, dict(target_map_xy=final['target'],
+                        target_id=final['target_id'], grasp_side=final['grasp_side'],
+                        task_motion_complete=True, handoff_ready=False, outcome=completion.get('outcome', 'COMPLETED'),
+                        placement_confirmed=None, arm_log=str(log)))
         if completed.returncode:
-            raise RuntimeError('Posture/arm task failed; no automatic recovery. See '+str(log))
-    completion = None
-    for line in log.read_text().splitlines():
-        try:
-            row = json.loads(line)
-        except ValueError:
-            continue
-        if row.get('event') == 'RESULT':
-            completion = row.get('data')
-    if not completion or not completion.get('task_motion_complete') or not (
-            completion.get('stand_up', {}).get('confirmed')):
-        raise RuntimeError('No new completed grasp/confirmed StandUp result; do not count round')
+            raise RuntimeError('Posture transport exited nonzero after confirmed result; no next round. See '+str(log))
     if args.round_result:
-        atomic_json(args.round_result, dict(target_map_xy=final['target'],
-                    target_id=final['target_id'], grasp_side=final['grasp_side'],
-                    task_motion_complete=True, placement_confirmed=None, arm_log=str(log)))
+        result = json.loads(args.round_result.read_text())
+        result['handoff_ready'] = True
+        atomic_json(args.round_result, result)
     print('FULL_TASK_MOTION_COMPLETE; placement remains unverified. Log: '+str(log))
 
 
