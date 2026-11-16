@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-11-16 YOLO成功轮次解除旧锁
+
+成功轮次累计列表经现有参数原子服务确认后，第二/三轮才启动SEARCH。adapter排除已完成15cm位置、清旧锁/排队帧并提升源时间水位；重复请求幂等、非法推进拒绝，单轮唯一关联不变。50项定向离线检查通过；在线效果NOT VERIFIED，无相机/ROS图/机器人动作。证据camera_ws/docs/yolo_round_reset_20261116.md。
+
 ## 2026-11-16 YOLO V3默认接入
 
 用户指定V3，默认权重改V3且manifest/所有链路probe按选中模型校验；保留显式V2哈希回退，未知模型阻断。640/.25及原class0适配、深度/MAP/关联/S1/三轮链未改。53项定向离线测试、真实V3加载和1帧历史RGB CPU推理、静态检查/离线计划通过；无相机/ROS/机器人动作，在线效果及物理抓取NOT VERIFIED。PC原推理路径未迁移NX。证据camera_ws/docs/yolo_v3_integration_20261116.md。

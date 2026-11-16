@@ -824,6 +824,13 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         self.completed_targets = completed_targets
         if not zero_hold(self.status()):
             raise RuntimeError('S1 not ready before next exploration round')
+        if self.detector == 'yolo' and completed_targets:
+            # Only run_three_grasps supplies prior grasp+StandUp successes here.
+            # An acknowledgement is required before creating the next controller.
+            with self.stage('advance_yolo_round_'+str(number)):
+                run(self.shell(shlex.join(['/usr/bin/python3',
+                    str(self.work/'camera_ws/scripts/advance_yolo_round.py'),
+                    json.dumps(completed_targets)])), timeout=12)
         print('GRASP_ROUND_START '+str(number)+'/3', flush=True)
         self.run_task()
         return json.loads((self.folder/('round_%02d_result.json' % number)).read_text())

@@ -59,3 +59,36 @@ def test_each_round_has_new_camera_ack_channel_and_passes_completed_positions(tm
             '[[1.0, 2.0]]' if number > 1 else '[]')
         assert 'round_%02d_result.json' % number in command[command.index('--round-result')+1]
     assert len(set(channels)) == 3
+
+
+@pytest.mark.parametrize('detector,completed,reset', [
+    ('yolo', [], False), ('yolo', [[1., 0.]], True), ('hsv', [[1., 0.]], False)])
+def test_yolo_reset_ack_before_next_controller(tmp_path, monkeypatch, detector, completed, reset):
+    import go2_full_test as entry
+    import json
+    w = Workflow(SimpleNamespace(work_dir=ROOT, mode='full', grasp_side='auto', detector=detector))
+    w.folder = tmp_path
+    monkeypatch.setattr(w, 'status', lambda: dict(state='ZERO_HOLD', busy=False, navigation_allowed=True))
+    monkeypatch.setattr(w, 'shell', lambda command: command)
+    calls = []
+    monkeypatch.setattr(entry, 'run', lambda *a, **kw: calls.append('reset'))
+    def task():
+        calls.append('task')
+        (tmp_path/'round_02_result.json').write_text(json.dumps({'task_motion_complete': True}))
+    monkeypatch.setattr(w, 'run_task', task)
+    w.run_full_round(2, completed)
+    assert calls == (['reset', 'task'] if reset else ['task'])
+
+
+def test_reset_failure_never_starts_next_search(tmp_path, monkeypatch):
+    import go2_full_test as entry
+    w = Workflow(SimpleNamespace(work_dir=ROOT, mode='full', grasp_side='auto', detector='yolo'))
+    w.folder = tmp_path
+    monkeypatch.setattr(w, 'status', lambda: dict(state='ZERO_HOLD', busy=False, navigation_allowed=True))
+    monkeypatch.setattr(w, 'shell', lambda command: command)
+    def fail(*a, **kw):
+        raise RuntimeError('reset not acknowledged')
+    monkeypatch.setattr(entry, 'run', fail)
+    monkeypatch.setattr(w, 'run_task', lambda: pytest.fail('must not start controller'))
+    with pytest.raises(RuntimeError, match='not acknowledged'):
+        w.run_full_round(2, [[1., 0.]])

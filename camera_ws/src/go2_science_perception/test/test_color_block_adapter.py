@@ -40,3 +40,28 @@ def test_complete_frames_publish_one_latched_block_and_reject_invalid_depth():
     assert node.camera_point.publish.call_count==1
     frame(1_060_000_000,[detection(1.02)])
     assert node.camera_point.publish.call_count==2
+
+
+def test_round_reset_discards_queued_frame_and_rejects_replayed_old_rgb():
+    import json
+    from std_msgs.msg import String
+    node = ColorBlockTargetAdapter.__new__(ColorBlockTargetAdapter)
+    node.selection = BlockSelection()
+    node.selection.commit((1., 0., 0.))
+    node.latest = {'rgb_stamp_ns': 900}
+    node.last_published = 800
+    node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=1000))
+    node.get_logger = lambda: NS(info=Mock())
+    param = NS(name='completed_targets_json', value=json.dumps([[1., 0.]]))
+    assert node._completed_round([param]).successful
+    assert node.latest is None and node.last_published == 1000
+    node._frame(String(data=json.dumps({'rgb_stamp_ns': 999})))
+    assert node.latest is None
+    node._frame(String(data=json.dumps({'rgb_stamp_ns': 1001})))
+    assert node.latest['rgb_stamp_ns'] == 1001
+    node.selection.commit((2., 0., 0.))
+    assert node._completed_round([param]).successful
+    assert node.selection.initial == (2., 0., 0.) and node.latest is not None
+    param.value = '[]'
+    assert not node._completed_round([param]).successful
+    assert node.selection.initial == (2., 0., 0.)

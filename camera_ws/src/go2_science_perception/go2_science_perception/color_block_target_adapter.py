@@ -3,6 +3,7 @@ import json
 import math
 
 from geometry_msgs.msg import PointStamped
+from rcl_interfaces.msg import SetParametersResult
 import rclpy
 from std_msgs.msg import String
 from tf2_geometry_msgs import do_transform_point
@@ -21,10 +22,29 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
         self.selection = BlockSelection()
         self.latest = None
         self.last_published = 0
+        self.declare_parameter('completed_targets_json', '[]')
+        self.add_on_set_parameters_callback(self._completed_round)
         self.camera_point = self.create_publisher(PointStamped, '/science/target_coarse_point', 10)
         self.selection_debug = self.create_publisher(String, '/science/color_block/selection', 10)
         self.create_subscription(String, '/science/yolo/detections', self._frame, 10)
         self.create_timer(.02, self._process)
+
+    def _completed_round(self, parameters):
+        """Reset only on acknowledged task completion, discarding queued old RGB."""
+        updates = [p for p in parameters if p.name == 'completed_targets_json']
+        if not updates:
+            return SetParametersResult(successful=True)
+        if len(updates) != 1:
+            return SetParametersResult(successful=False, reason='duplicate completed targets')
+        try:
+            changed = self.selection.complete_round(json.loads(updates[0].value))
+        except (ValueError, TypeError) as exc:
+            return SetParametersResult(successful=False, reason=str(exc))
+        if changed:
+            self.latest = None
+            self.last_published = max(self.last_published, self.get_clock().now().nanoseconds)
+            self.get_logger().info('YOLO_ROUND_ADVANCED completed='+str(len(self.selection.completed)))
+        return SetParametersResult(successful=True)
 
     def _point_callback(self, _message):
         # Base point subscription is deliberately inert: only complete YOLO frames enter.
