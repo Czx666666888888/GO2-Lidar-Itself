@@ -59,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', help='run real motion; full also performs posture/grasp')
     parser.add_argument('--mode', choices=('dock', 'full', 'approach'), default='full')
-    parser.add_argument('--grasp-side', choices=('right','left'), default='right')
+    parser.add_argument('--grasp-side', choices=('right', 'left', 'auto'), default=None)
     parser.add_argument('--left-geometry-verified', action='store_true')
     parser.add_argument('--clock-diagnostic', action='store_true',
                         help='explicit full 20s online + 20s paused clock sampling')
@@ -73,6 +73,7 @@ def main():
     parser.add_argument('--model-path', type=Path)
     parser.add_argument('--python-executable', type=Path)
     args = parser.parse_args()
+    args.grasp_side = args.grasp_side or ('auto' if args.mode == 'full' else 'right')
     if args.mode == 'approach' and (args.work_dir or args.left_geometry_verified):
         parser.error('approach mode does not use S1 geometry or work-dir')
     if not .10 <= args.response_distance_limit <= .50:

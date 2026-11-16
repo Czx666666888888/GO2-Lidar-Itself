@@ -174,3 +174,28 @@ def test_main_shell_uses_guard_before_integration_handoff(tmp_path):
                             env={'PATH': '/usr/bin:/bin'})
     assert str(tmp_path/'camera_ws/scripts/pc_time_check.py') in result.stdout
     assert '--view' in result.stdout
+
+
+@pytest.mark.parametrize('mode,side,expected', [
+    ('full', None, 'auto'), ('full', 'auto', 'auto'), ('full', 'left', 'left'),
+    ('full', 'right', 'right'), ('dock', None, 'right'), ('dock', 'auto', 'auto'),
+    ('dock', 'left', 'left'), ('dock', 'right', 'right'),
+])
+def test_grasp_side_is_forwarded_without_overriding_full_auto(
+        monkeypatch, tmp_path, mode, side, expected):
+    runner, launch = setup_main(monkeypatch, tmp_path)
+    argv = ['pc_time_check', '--execute', '--mode', mode, '--detector', 'hsv', '--view']
+    if side is not None:
+        argv += ['--grasp-side', side]
+    monkeypatch.setattr(sys, 'argv', argv)
+    runner.side_effect = None
+    runner.return_value = SimpleNamespace(returncode=3, stdout='inactive\n', stderr='')
+    launch.side_effect = None
+    launch.return_value = SimpleNamespace(poll=lambda: 0, wait=lambda: 0)
+    with pytest.raises(SystemExit) as exc:
+        clock.main()
+    assert exc.value.code == 0
+    command = launch.call_args.args[0]
+    assert command[command.index('--grasp-side')+1] == expected
+    assert command[command.index('--detector')+1] == 'hsv' and '--view' in command
+    assert launch.call_args.kwargs['env']['GO2_PC_TIME_HELD'] == '1'
