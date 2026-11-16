@@ -2313,3 +2313,19 @@ run新增phase_seconds及明确的停车位误差字段，camera距离不作为�
 可复现统计：`python3 camera_ws/scripts/analyze_stop_confirmation.py --records camera_ws/records --output /tmp/stop_confirm_fast_summary.json`。
 源日志路径/哈希及逐次结果：camera_ws/analysis/stop_confirm_fast_20261116/summary.json。
 详细条件、回退和唯一下一次full命令：camera_ws/docs/stop_confirm_fast_20261116.md。
+
+
+## 2026-11-16 17:50 定位重建被slam.log重复创建阻断
+
+来源：用户报错、full_1794822629924990770原记录、00983d0入口源码和本轮离线测试。
+首次预检约31.710秒返回ready=false/slam_ok=false，相机Depth1/检测0、body/camera TF false。
+final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open('x')创建slam.log，
+因该日志仍存在触发Errno17；pre_motion_reinitialized未生成，第二轮定位未启动。
+
+本轮入口修复：原日志保留，新启动原子排他创建下一个可用序号日志；逻辑标签仍slam，
+原停止/进程所有权检查保持，同标签活进程显式阻断。Popen异常关闭句柄并保留失败日志。
+57项小范围入口/相机交接/启动接口测试通过，包括真实短Python子进程的退出→停止清理→再启动、
+多编号保留、启动失败句柄关闭和活进程重复拒绝；静态编译/新测试lint/离线计划通过。
+只改Python入口，无ROS包构建需要；未执行运动、远端部署/重启/采流。
+修复不表示RGB-D或TF已恢复，后续实机重建及完整流程NOT VERIFIED。
+详见camera_ws/docs/startup_log_retry_20261116.md。

@@ -471,7 +471,18 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         raise RuntimeError('S1 v2初始化或回零超时: '+str(last)+' log='+arm_log)
 
     def spawn(self, argv, label, **kwargs):
-        stream = (self.folder / (label+'.log')).open('x')
+        if any(name == label and child.poll() is None for child, _, name in self.children):
+            raise RuntimeError(f'{label} 仍在运行，拒绝启动重复进程')
+        # A stopped child keeps its evidence; retries retain the logical label
+        # used by lifecycle checks, but reserve a distinct log atomically.
+        attempt = 1
+        while True:
+            name = label+'.log' if attempt == 1 else f'{label}_{attempt}.log'
+            try:
+                stream = (self.folder / name).open('x')
+                break
+            except FileExistsError:
+                attempt += 1
         try:
             p = subprocess.Popen(argv, stdout=stream, stderr=subprocess.STDOUT,
                                  start_new_session=True, **kwargs)
