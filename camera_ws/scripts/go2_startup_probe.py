@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import statistics
 import time
+import traceback
 
 
 def detector_kind(names):
@@ -16,7 +17,8 @@ def detector_kind(names):
     return 'mixed' if len(kinds) > 1 else kinds[0] if kinds else None
 
 
-def probe(timeout=8., scope='all', require_target=False, expected_detector=None, model_sha256=None):
+def probe(timeout=8., scope='all', require_target=False, expected_detector=None,
+          model_sha256=None, progress=None):
     import rclpy
     from rclpy.qos import qos_profile_sensor_data
     from sensor_msgs.msg import PointCloud2, Imu, Image
@@ -162,15 +164,52 @@ def probe(timeout=8., scope='all', require_target=False, expected_detector=None,
                         body_tf=body_tf,camera_tf=camera_tf,target_ok=target_ok,use_sim_time_false=wall_clock,
                         errors=list(dict.fromkeys(bad)), sample_counts={k:len(v) for k,v in samples.items()},
                         elapsed_sec=now-begin)
+            report['stream_status'] = {
+                key: dict(count=len(samples[key]),
+                          fresh=fresh(key, .5 if key == 'detector' else .4,
+                                      .05 if key in ('rgb', 'depth', 'detector') else .15),
+                          received_age_sec=now-samples[key][-1][0] if samples[key] else None,
+                          source_age_sec=time.time()-samples[key][-1][1] if samples[key] else None)
+                for key in ('rgb', 'depth', 'cloud', 'imu', 'odom', 'base', 'detector')
+                if scope != 'native'}
             report['ready']=((native_ok or scope=='chain') and not bad and (scope=='native' or
                 (slam_ok and camera_ok and camera_tf and detector_ready and
                  (target_ok or not require_target))))
+            if progress is not None:
+                progress(report)
             if report['ready'] or ((scope=='chain' or native_ok) and
                     (bad or mapped.get('fault'))):
                 break
         return report
     finally:
         n.destroy_node();rclpy.shutdown()
+
+
+def readiness_blockers(report, scope='all', require_target=False, expected_detector=None):
+    """Describe existing readiness gates without changing their decisions."""
+    blockers = list(report.get('errors', []))
+    if scope != 'chain' and not report.get('native_ok'):
+        blockers.append('native_lidar')
+    if scope != 'native':
+        streams = report.get('stream_status', {})
+        for key in ('rgb', 'depth', 'cloud', 'imu', 'odom', 'base'):
+            if key in streams and not streams[key]['fresh']:
+                blockers.append(key+'_missing_or_stale')
+        for key in ('camera_ok', 'slam_ok', 'body_tf', 'camera_tf', 'use_sim_time_false'):
+            if not report.get(key):
+                blockers.append(key)
+        if expected_detector and not report.get('detector_ready'):
+            blockers.append('detector_not_ready')
+        if require_target and not report.get('target_ok'):
+            blockers.append('target_not_ready')
+    return blockers
+
+
+def save_snapshot(path, value):
+    """Replace a complete JSON snapshot atomically during the existing probe."""
+    temporary = path.with_name(path.name+'.tmp')
+    temporary.write_text(json.dumps(value, indent=2)+'\n')
+    temporary.replace(path)
 
 
 def main():
@@ -183,8 +222,35 @@ def main():
     p.add_argument('--report',type=Path,required=True)
     a=p.parse_args()
     if not 0<a.timeout<=60:p.error('timeout must be in (0,60]')
-    result=probe(a.timeout,a.scope,a.require_target,a.detector,a.model_sha256)
-    a.report.write_text(json.dumps(result,indent=2)+'\n')
+    latest = dict(ready=False, probe_state='initializing', elapsed_sec=0., sample_counts={})
+    last_saved = [-math.inf]
+    save_snapshot(a.report, latest)
+
+    def progress(value, force=False):
+        latest.update(value)
+        latest['blockers'] = readiness_blockers(latest, a.scope, a.require_target, a.detector)
+        now = time.monotonic()
+        if force or now-last_saved[0] >= 1.0 or value.get('ready'):
+            save_snapshot(a.report, latest)
+            last_saved[0] = now
+            print('STARTUP_WAIT '+json.dumps(dict(
+                elapsed_sec=round(latest.get('elapsed_sec', 0.), 1),
+                sample_counts=latest.get('sample_counts', {}), blockers=latest['blockers'],
+                probe_state=latest['probe_state'])), flush=True)
+
+    try:
+        latest['probe_state'] = 'sampling'
+        result = probe(a.timeout, a.scope, a.require_target, a.detector, a.model_sha256,
+                       progress=progress)
+    except BaseException as exc:
+        latest.update(ready=False, probe_state=('interrupted' if isinstance(exc, KeyboardInterrupt)
+                                               else 'error'),
+                      exception=type(exc).__name__+': '+str(exc),
+                      exception_traceback=traceback.format_exc())
+        progress(latest, force=True)
+        raise
+    result['probe_state'] = 'complete'
+    progress(result, force=True)
     print('STARTUP_PROBE '+json.dumps(result),flush=True)
     return 0 if result.get('ready') else 2
 

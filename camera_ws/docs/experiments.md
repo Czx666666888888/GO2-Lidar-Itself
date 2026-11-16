@@ -2329,3 +2329,19 @@ final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open
 只改Python入口，无ROS包构建需要；未执行运动、远端部署/重启/采流。
 修复不表示RGB-D或TF已恢复，后续实机重建及完整流程NOT VERIFIED。
 详见camera_ws/docs/startup_log_retry_20261116.md。
+
+
+## 2026-11-16 17:55最新启动在就绪探针中被中断
+
+来源full_1794822914408730480、pc_time_1794822914338620647、4c72fa8源码及进程快照。
+最新已使用修复提交，prepare1.669秒、设备0.414秒、S1复用0.195秒、existing探针3.920秒、
+相机/定位启动0.275秒通过；pre_motion等待26.970秒FAILED，包装器记录KeyboardInterrupt，
+总34.088秒、restore_exit=0、service_active_after=true。最终pre_motion.json不存在。
+本轮未到SEARCH，不能从旧轮Depth1/硬件重置推断此次原因；驱动Up和进程启动也不能证明连续数据就绪。
+初检原生雷达约14.97Hz；当前PC入口/定位进程已退出。中断发起来源未独立核验。
+
+本轮仅改只读探针诊断：逐秒保存/打印计数、各流fresh和数据年龄、现有门槛blockers；
+中断/异常保存末次状态、错误和堆栈，维持非ready与异常退出。原子JSON避免读取半文件。
+16项定向测试通过（成功/超时/KeyboardInterrupt/异常快照及已有日志/检测入口回归），
+静态编译/新测试lint/diff检查通过；无需ROS包构建。本轮无节点/相机启动、远端动作或运动。
+当前连续RGB-D/TF阻塞及诊断实机效果NOT VERIFIED。详细说明startup_probe_reporting_20261116.md。
