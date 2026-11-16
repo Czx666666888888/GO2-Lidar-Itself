@@ -53,6 +53,7 @@ class Settings:
     search_trigger_range_m: float = 1.8
     search_trigger_observations: int = 3
     stop_confirm_timeout: float = 6.0
+    stop_confirm_require_stationary: bool = True
     stop_confirm_stable_sec: float = 0.20
     stop_confirm_min_span_sec: float = 0.60
     stop_confirm_speed_mps: float = 0.05
@@ -443,11 +444,13 @@ class ApproachControl:
                 history.clear()
             history.append((observed, t['observed_ns'], point, t['camera_range_m']))
             return
-        if not self._is_stopped(now):
+        if self.p.stop_confirm_require_stationary and not self._is_stopped(now):
             self._clear_stationary()
             self.stop_confirm_reason = 'waiting for measured stop'
             return
-        if self.settled_at is None:
+        sample_after = (self.settled_at if self.p.stop_confirm_require_stationary
+                        else self.stop_confirm_started)
+        if sample_after is None:
             return
         seed = self.stop_candidate['map']
         matches = [t for t in valid if math.dist(tuple(t['latest_observation'][:2]), seed)
@@ -459,7 +462,7 @@ class ApproachControl:
         t = matches[0]
         observed = now-t['age']
         stamp = t['observed_ns']
-        if observed <= self.settled_at or stamp in self.stop_sample_stamps:
+        if observed <= sample_after or stamp in self.stop_sample_stamps:
             return
         if self.stop_samples and stamp <= self.stop_samples[-1][1]:
             return
@@ -471,7 +474,9 @@ class ApproachControl:
         self.stop_samples.append((observed, stamp, point, t['id'], t['camera_range_m']))
         while self.stop_samples and now-self.stop_samples[0][0] > self.p.anchor_window_sec:
             self.stop_samples.popleft()
-        self.stop_confirm_reason = 'collecting new stationary observations'
+        self.stop_confirm_reason = ('collecting new stationary observations'
+                                    if self.p.stop_confirm_require_stationary else
+                                    'collecting convergent target positions')
 
     def _begin_stop_confirm(self, now):
         valid = self._search_candidates(self._near_detections(now))
@@ -497,7 +502,9 @@ class ApproachControl:
         self._clear_stationary()
         self.trigger_history.clear()
         self.state, self.reason, self.vx = 'STOP_CONFIRM', '', 0.0
-        self.stop_confirm_reason = 'waiting for measured stop'
+        self.stop_confirm_reason = ('waiting for measured stop'
+                                    if self.p.stop_confirm_require_stationary else
+                                    'collecting convergent target positions')
         return True
 
     def _stop_confirmation(self, now, out):
@@ -509,6 +516,8 @@ class ApproachControl:
                 stop_request_range_m=self.stop_request_range_m,
                 stop_stable_range_m=self.stop_stable_range_m,
                 stopped_after_sec=self.stopped_after_sec, reason=self.stop_confirm_reason,
+                confirmation_mode=('stationary' if self.p.stop_confirm_require_stationary
+                                   else 'position_convergence'),
                 elapsed=now-self.stop_confirm_started))
             self.state, self.reason = 'SEARCH', 'confirmation timeout; search cooldown'
             self.search_cooldown_until = now+self.p.search_cooldown_sec
@@ -517,26 +526,31 @@ class ApproachControl:
             out.update(state=self.state, reason=self.reason,
                        transition='STOP_CONFIRM->SEARCH', stop_confirm_reason='timeout')
             return out
-        if not self._is_stopped(now):
-            self._clear_stationary()
-            self.stop_confirm_reason = 'waiting for measured stop'
-        elif self.stationary_since is None:
-            self.stationary_since = now
-        elif (self.settled_at is None and
-              now-self.stationary_since >= self.p.stop_confirm_stable_sec):
-            self.settled_at = now
-            self.stopped_after_sec = now-self.stop_confirm_started
-            self.stop_samples.clear()
-            self.stop_sample_stamps.clear()
-            near = self._near_detections(now)
-            match = [t for t in near
-                     if math.dist(t['latest_observation'][:2], self.stop_candidate['map'])
-                     <= self.p.target_jump_m]
-            self.stop_stable_range_m = match[0]['camera_range_m'] if len(match) == 1 else None
+        if self.p.stop_confirm_require_stationary:
+            if not self._is_stopped(now):
+                self._clear_stationary()
+                self.stop_confirm_reason = 'waiting for measured stop'
+            elif self.stationary_since is None:
+                self.stationary_since = now
+            elif (self.settled_at is None and
+                  now-self.stationary_since >= self.p.stop_confirm_stable_sec):
+                self.settled_at = now
+                self.stopped_after_sec = now-self.stop_confirm_started
+                self.stop_samples.clear()
+                self.stop_sample_stamps.clear()
+                near = self._near_detections(now)
+                match = [t for t in near
+                         if math.dist(t['latest_observation'][:2], self.stop_candidate['map'])
+                         <= self.p.target_jump_m]
+                self.stop_stable_range_m = match[0]['camera_range_m'] if len(match) == 1 else None
         samples = list(self.stop_samples)
         spread = max((math.dist(a[2], b[2]) for a in samples for b in samples), default=0.0)
         span = (samples[-1][1]-samples[0][1])*1e-9 if samples else 0.0
-        out.update(stop_confirm_reason=self.stop_confirm_reason,
+        out.update(confirmation_mode=('stationary' if self.p.stop_confirm_require_stationary
+                                      else 'position_convergence'),
+                   confirmation_sample_count=len(samples), confirmation_sample_span=span,
+                   confirmation_spread=spread,
+                   stop_confirm_reason=self.stop_confirm_reason,
                    stationary_since=self.stationary_since,
                    settled_at=self.settled_at, stopped_after_sec=self.stopped_after_sec,
                    stop_stable_range_m=self.stop_stable_range_m,
@@ -548,7 +562,8 @@ class ApproachControl:
         matches = [t for t in current
                    if math.dist(t['latest_observation'][:2], self.stop_candidate['map'])
                    <= self.p.target_jump_m]
-        if (self.settled_at is None or len(samples) < self.p.anchor_min_observations or
+        if ((self.p.stop_confirm_require_stationary and self.settled_at is None) or
+                len(samples) < self.p.anchor_min_observations or
                 span < self.p.stop_confirm_min_span_sec or spread >= self.p.anchor_max_spread or
                 len(matches) != 1 or matches[0]['state'] != 'CONFIRMED' or
                 matches[0]['observed_ns'] != samples[-1][1]):
@@ -560,7 +575,8 @@ class ApproachControl:
         self.confirmed_at = self.started = now
         self.initial_distance = math.dist(self.target, self.camera)
         self.confirmation_spread, self.confirmation_count = spread, len(samples)
-        self.stationary_confirmation_sec = now-self.settled_at
+        self.stationary_confirmation_sec = (now-self.settled_at
+                                            if self.settled_at is not None else None)
         self.state, self.reason = 'LOCK_TARGET', ''
         self.stop_confirm_attempts.append(dict(
             candidate=self.stop_candidate, result='CONFIRMED',
@@ -568,7 +584,10 @@ class ApproachControl:
             stop_stable_range_m=self.stop_stable_range_m,
             stopped_after_sec=self.stopped_after_sec,
             stationary_confirmation_sec=self.stationary_confirmation_sec, spread=spread,
-            count=len(samples), elapsed=now-self.stop_confirm_started))
+            count=len(samples),
+            confirmation_mode=('stationary' if self.p.stop_confirm_require_stationary
+                               else 'position_convergence'),
+            elapsed=now-self.stop_confirm_started))
         out.update(state=self.state, target_id=self.lock_id, target=self.target,
                    target_map_anchor=self.target, anchor_initial=self.anchor_initial,
                    confirmed_at=now, confirmation_count=len(samples), confirmation_spread=spread,

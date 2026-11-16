@@ -1,5 +1,13 @@
 # Project Status
 
+## 2026-11-16 STOP_CONFIRM改为目标位置收敛（当前）
+
+- 用户明确选择目标位置收敛优先，机身不稳定也允许进入靠近。实际SEARCH配置设置stop_confirm_require_stationary=false：请求零速后直接采集源时刻晚于本次STOP_CONFIRM开始的目标MAP观测；不因机身/相机估计速度或Sport速度/偏航超限清空样本，不要求0.20秒停稳。
+- 保留6秒总预算、1秒窗口至少5份不同源观测、跨度至少0.60秒、散布严格小于8cm、0.30秒最大间隔、唯一空间关联和manager CONFIRMED。默认Settings仍true，其他未使用SEARCH配置的入口保留旧行为；SEARCH覆盖用于现有dock/full。
+- STOP_CONFIRM及成功切换周期继续输出零速；遥控急停、控制/定位/TF/Sport新鲜度和定位跳变检查保留。最终停靠STOP_WAIT、趴下、抓取回零、起立保护未改。目标MAP收敛不等于识别对象正确或绝对定位准确。
+- 日志新增confirmation_mode及中性采样字段；保留旧stationary_sample_*供预览兼容，位置模式不伪造settled_at/stopped_after_sec/stationary_confirmation_sec（均null）。
+- 157项相关离线测试、单包构建、安装配置读回和HSV离线计划通过；控制模块两处历史lint问题保留。验证结果见camera_ws/docs/stop_confirm_convergence_20261116.md。无运动/部署/服务重启，实机NOT VERIFIED。
+
 ## 2026-11-15 full连续三目标与自动左右侧（当前）
 
 - 按用户要求，原full入口默认持续SEARCH：不再因原5m/60秒搜索终点停车，也不按剩余搜索路程制动；独立dock的原有行为保持。每轮完成原停靠→相机互斥→趴下→抓取→回零→起立及D435恢复后继续，第三轮完成起立后结束探索。未新增探索距离/时长/尝试次数门槛。

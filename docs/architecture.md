@@ -158,3 +158,9 @@ These commands are sourced from repository scripts. Their success on a clean hos
 原抓取/起立任务完成、D455释放和D435恢复确认后，协调器写round结果；父进程记录完成位置供下轮访问过滤。
 第3轮后不再启动控制器；S1保持服务和恢复后的D435按原策略保留。three_grasps.json为软件任务计数，placement_confirmed仍null。
 旧S1进程需正常退出后加载dual_side_5，不热修改串口所有者。完整实机流程NOT VERIFIED。
+
+
+2026-11-16：现有SEARCH配置在STOP_CONFIRM用请求零速后的目标MAP收敛代替机身停稳前置条件。
+开关stop_confirm_require_stationary=false；观测源时刻必须晚于本次确认开始，时间/空间关联
+与manager CONFIRMED条件保留。原话题/接口、后续停靠与姿态/抓取数据流未变。
+来源：源码及离线测试；实机NOT VERIFIED。

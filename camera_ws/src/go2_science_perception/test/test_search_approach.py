@@ -201,3 +201,101 @@ def test_search_can_reach_035_while_approach_cap_stays_030():
         pass
     else:
         raise AssertionError('SEARCH must retain the new explicit cap')
+
+
+def convergent_search():
+    c = search()
+    c.p.stop_confirm_require_stationary = False
+    trigger(c)
+    return c
+
+
+def test_convergent_map_positions_confirm_despite_body_translation_and_yaw():
+    c = convergent_search()
+    for i in range(4, 20):
+        t = 10+i*.1
+        c.pose(.03+(i-3)*.02, 0, (i-3)*.02, t)
+        c.camera_pose(.39+(i-3)*.02, 0, t)
+        c.feedback_time, c.feedback_speed, c.feedback_yaw_rate = t, .2, .2
+        c.observations([dict(id=1, state='CONFIRMED', visited=False, age=0,
+                             lifetime=1, observed_ns=int(t*1e9), camera_range_m=1.1,
+                             position=[1.4, 0, 0], latest_observation=[1.4, 0, 0])], t)
+        r = c.step(t)
+        assert r['vx'] == r['vy'] == r['wz'] == 0
+        if r.get('transition') == 'STOP_CONFIRM->APPROACH':
+            break
+    assert r['transition'] == 'STOP_CONFIRM->APPROACH'
+    assert not c._is_stopped(t)
+    assert c.settled_at is None and c.stationary_confirmation_sec is None
+    assert r['confirmation_mode'] == 'position_convergence'
+    assert c.stop_confirm_attempts[-1]['result'] == 'CONFIRMED'
+    assert all(s[0] > c.stop_confirm_started for s in c.stop_samples)
+
+
+def test_convergence_rejects_nonconvergent_positions_even_with_moving_feedback():
+    c = convergent_search()
+    for i in range(4, 25):
+        r = sample(c, 10+i*.1, x=1.4+(.05 if i % 2 else -.05), feedback=.2)
+        if r['state'] == 'SEARCH':
+            break
+    assert c.target is None
+    assert c.stop_confirm_attempts[-1]['result'] == 'TIMEOUT'
+
+
+def test_convergence_rejects_duplicate_and_pre_request_source_frames():
+    c = convergent_search()
+    for i in range(4, 8):
+        t = 10+i*.1
+        sample(c, t, age=t-10.29, feedback=.2)
+    assert not c.stop_samples
+    for i in range(8, 16):
+        t = 10+i*.1
+        r = sample(c, t, age=t-10.75, feedback=.2)
+    assert r['state'] == 'STOP_CONFIRM'
+    assert len(c.stop_samples) <= 1 and c.target is None
+
+
+def test_convergence_keeps_spatial_identity_and_freshness_requirements():
+    c = convergent_search()
+    for i in range(4, 25):
+        r = sample(c, 10+i*.1, x=2.0, identity=99, feedback=.2)
+        if r['state'] == 'SEARCH':
+            break
+    assert c.target is None and c.stop_confirm_attempts[-1]['result'] == 'TIMEOUT'
+    c = convergent_search()
+    assert c.step(11)['state'] == 'FAULT'
+
+
+def test_convergence_cannot_use_sparse_observations_or_ambiguous_candidates():
+    c = convergent_search()
+    for i in range(4, 24):
+        t = 10+i*.1
+        # One new source frame every 0.4s exceeds the existing 0.30s gap limit.
+        source = 10.4+((i-4)//4)*.4
+        sample(c, t, age=t-source, feedback=.2)
+    assert c.target is None and len(c.stop_samples) <= 1
+    c = convergent_search()
+    for i in range(4, 24):
+        t = 10+i*.1
+        c.pose(.03, 0, 0, t)
+        c.camera_pose(.39, 0, t)
+        c.feedback_time, c.feedback_speed = t, .2
+        tracks = [dict(id=k, state='CONFIRMED', visited=False, age=0, lifetime=1,
+                       observed_ns=int((t+.01)*1e9), camera_range_m=1.1,
+                       position=[1.4, 0, 0], latest_observation=[1.4, 0, 0]) for k in (1, 2)]
+        c.observations(tracks, t+.01)
+        c.step(t+.01)
+    assert c.target is None
+
+
+def test_search_profile_enables_convergence_without_changing_legacy_default():
+    from pathlib import Path
+    import yaml
+
+    profile = Path(__file__).parents[1]/'config/science_target_search.yaml'
+    params = yaml.safe_load(profile.read_text())['science_target_approach']['ros__parameters']
+    assert params['stop_confirm_require_stationary'] is False
+    assert Settings().stop_confirm_require_stationary is True
+    assert params['anchor_min_observations'] == 5
+    assert params['anchor_max_spread'] == .08
+    assert params['stop_confirm_timeout'] == 6.0
