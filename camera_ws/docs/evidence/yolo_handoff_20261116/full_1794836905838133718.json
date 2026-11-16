@@ -1,0 +1,56 @@
+{
+  "run": "full_1794836905838133718",
+  "frames": 867,
+  "detection_reports": 584,
+  "valid_depth_frames": 134,
+  "boxes_per_frame": {
+    "0": 445,
+    "1": 136,
+    "2": 3
+  },
+  "depth_reasons": {
+    "accepted_central_roi": 137,
+    "rgb_depth_time_mismatch": 4,
+    "insufficient_valid_depth": 1
+  },
+  "adapter_final": {
+    "input": 6,
+    "transformed": 6,
+    "failed": 0
+  },
+  "selection_attempts": null,
+  "selection_reasons": null,
+  "selection_unique_frames_by_reason": null,
+  "initial_gate_rejections": null,
+  "update_gate_rejections": null,
+  "exact_tf_failed_attempts": null,
+  "map_measurement_messages": null,
+  "manager_new_track_ids": [
+    "1",
+    "2",
+    "3"
+  ],
+  "manager_confirmed_log_lines": [],
+  "search_unique_map_observations": 6,
+  "valid_depth_frames_after_last_search_map": 128,
+  "candidate_control_reports": 0,
+  "control_states": {
+    "IDLE": 19,
+    "SEARCH": 534,
+    "FAULT": 23
+  },
+  "terminal_reason": "localization jump or time regression",
+  "missing_evidence": [
+    "yolo",
+    "selection",
+    "map_measurement",
+    "tracks"
+  ],
+  "note": "null means not recorded or not derivable; failed=0 excludes adapter preflight gates",
+  "source_sha256": {
+    "manifest.json": "30193eb6a6cf04fe66e372056ad185ead5beabc24595411bde35fcd5facbfadb",
+    "slam.log": "e11730f616d85fb2b780c5fc282dbcb20dff670773b38b8be4ddf7ad72c4d516",
+    "approach_20261116_214843_509039.jsonl": "4df3b839e1d38c8b0fa362f26006516187e2d9378229d6c05965778ed26828ab",
+    "run_1794836922651523575.json": "f1d95d245826d20eaa03396ff3e48f8bd21382529b44a9a822a6c1a3cd81ce8b"
+  }
+}

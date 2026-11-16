@@ -775,6 +775,15 @@ class ApproachControl:
             out['odometry_evidence']['disagreement_stop_enabled'] = (
                 self.docking.p.motion_disagreement_stop_enabled)
         out.update(search_origin=self.search_origin, search_started=self.search_started,
+                   search_trigger_history=[{'id': identity, 'samples': list(samples)}
+                                           for identity, samples in self.trigger_history.items()],
+                   search_track_gates=[dict(
+                       id=t['id'], state=t['state'], visited=t['visited'],
+                       observed_ns=t.get('observed_ns'),
+                       age_sec=t['age']+now-self.snapshot_time,
+                       camera_range_m=(t.get('camera_range_m') if math.isfinite(
+                           t.get('camera_range_m', math.inf)) else None))
+                       for t in self.tracks] if self.state == 'SEARCH' else [],
                    search_observations=[{
                        'id': t['id'], 'map': t.get('latest_observation', t['position']),
                        'observed_ns': t.get('observed_ns'), 'age': t['age']}

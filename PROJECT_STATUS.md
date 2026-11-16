@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-11-16 指定21:48录像YOLO→MAP审计
+
+只针对full_1794836905838133718（远端最新7c17021）：584份检测/134份有效深度帧，仅6次MAP，之后128份有效检测未发布正式点。Manager收到6点，3个CANDIDATE未确认，SEARCH无STOP_CONFIRM。首个可定位阻断在adapter发布前，selection reason/20cm与15cm拒绝/精确TF失败未录，具体分支Unknown，不能据failed=0排除TF或据源码存在锁就认定锁是根因。补齐录像原始YOLO/selection/MAP诊断/轨迹及控制触发history，离线audit保留未知；未改身份/抓取/三轮/左右/停靠逻辑。111项离线检查、独立单包构建及3模块安装hash核对通过；未运行硬件，线上与根因分支NOT VERIFIED。详见camera_ws/docs/yolo_handoff_20261116.md。
+
 ## 2026-11-16 YOLO成功轮次解除旧锁
 
 成功轮次累计列表经现有参数原子服务确认后，第二/三轮才启动SEARCH。adapter排除已完成15cm位置、清旧锁/排队帧并提升源时间水位；重复请求幂等、非法推进拒绝，单轮唯一关联不变。50项定向离线检查通过；在线效果NOT VERIFIED，无相机/ROS图/机器人动作。证据camera_ws/docs/yolo_round_reset_20261116.md。

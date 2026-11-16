@@ -36,10 +36,29 @@ def test_complete_frames_publish_one_latched_block_and_reject_invalid_depth():
     assert point.point.x==1. and point.header.stamp.sec==1
     assert point.header.frame_id=='camera_color_optical_frame'
     frame(1_020_000_000,[detection(2.)])  # Locked target disappears; never switch.
+    import json
+    diagnostic = json.loads(node.selection_debug.publish.call_args.args[0].data)
+    assert diagnostic['reason'] == 'locked_block_missing_or_ambiguous'
+    assert diagnostic['published_count'] == 0
+    assert diagnostic['association_checks'][0]['initial_rejected']
+    assert diagnostic['association_checks'][0]['update_rejected']
     frame(1_040_000_000,[detection(1.,valid=False),detection(2.)])
     assert node.camera_point.publish.call_count==1
     frame(1_060_000_000,[detection(1.02)])
     assert node.camera_point.publish.call_count==2
+    diagnostic = json.loads(node.selection_debug.publish.call_args.args[0].data)
+    assert diagnostic['published_count'] == 1
+    assert not diagnostic['association_checks'][0]['initial_rejected']
+    # A failed TF query never masquerades as a spatial gate rejection or unlocks identity.
+    from tf2_ros import TransformException
+    node.tf_buffer.lookup_transform = Mock(side_effect=TransformException('source time absent'))
+    frame(1_080_000_000,[detection(1.03)])
+    diagnostic = json.loads(node.selection_debug.publish.call_args.args[0].data)
+    assert diagnostic['reason'] == 'waiting_for_exact_source_tf'
+    assert diagnostic['tf_error'] == 'source time absent'
+    assert 'association_checks' not in diagnostic
+    assert node.camera_point.publish.call_count == 2
+    assert node.selection.current == (1.02, 0., 1.)
 
 
 def test_round_reset_discards_queued_frame_and_rejects_replayed_old_rgb():

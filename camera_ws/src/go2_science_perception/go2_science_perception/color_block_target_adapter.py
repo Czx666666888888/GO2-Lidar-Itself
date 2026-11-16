@@ -64,9 +64,15 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
             return
         stamp = report.get('rgb_stamp_ns', 0)
         reason = 'invalid_report'
-        diagnostic = dict(stamp_ns=stamp, selected=None, reason=reason)
+        diagnostic = dict(stamp_ns=stamp, selected=None, reason=reason,
+                          locked_initial=self.selection.initial,
+                          locked_current=self.selection.current,
+                          initial_radius_m=self.selection.initial_radius,
+                          update_radius_m=self.selection.update_radius,
+                          published_count=0)
         try:
             age = (self.get_clock().now().nanoseconds-stamp)/1e9
+            diagnostic['observation_age_sec'] = age
             if stamp <= self.last_published or not 0 <= age <= self.get_parameter('max_observation_age_sec').value:
                 reason = 'stale_or_future_observation'
                 self.latest = None
@@ -114,6 +120,17 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
             camera = camera_tf.transform.translation
             index, reason = self.selection.choose(mapped, (camera.x, camera.y))
             diagnostic.update(camera_map_xy=[camera.x, camera.y], candidates_map=mapped)
+            diagnostic['association_checks'] = [dict(
+                initial_distance_m=(math.dist(p[:2], self.selection.initial[:2])
+                                    if self.selection.initial is not None else None),
+                update_distance_m=(math.dist(p[:2], self.selection.current[:2])
+                                   if self.selection.current is not None else None),
+                initial_rejected=(self.selection.initial is not None and
+                                  math.dist(p[:2], self.selection.initial[:2]) >
+                                  self.selection.initial_radius),
+                update_rejected=(self.selection.current is not None and
+                                 math.dist(p[:2], self.selection.current[:2]) >
+                                 self.selection.update_radius)) for p in mapped]
             if index is None:
                 return
             # Reuse original exact-stamp transformer and original measurement diagnostics.
@@ -124,9 +141,11 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
             self.last_published = stamp
             self.latest = None
             diagnostic.update(selected=detections[index], camera_xyz=detections[index]['xyz_m'],
-                              map_xyz=mapped[index], locked_initial=self.selection.initial)
-        except TransformException:
+                              map_xyz=mapped[index], locked_initial=self.selection.initial,
+                              published_count=1)
+        except TransformException as exc:
             reason = 'waiting_for_exact_source_tf'
+            diagnostic['tf_error'] = str(exc)
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
             reason = 'invalid_frame: '+str(exc)
             self.latest = None

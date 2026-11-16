@@ -1,6 +1,7 @@
 """Record actual RGB plus existing detector results and timestamped control logs."""
 
 from datetime import datetime
+from functools import partial
 import json
 import os
 import time
@@ -54,6 +55,14 @@ class ApproachVideoRecorder(Node):
                                  qos_profile_sensor_data)
         self.create_subscription(String, '/science/detection_debug', self._debug, 10)
         self.create_subscription(String, '/science/approach/status', self._control, 20)
+        # Preserve the gates between a visible box and a usable SEARCH candidate.
+        # These are evidence subscriptions only, with no control/selection feedback.
+        for topic, kind in (
+                ('/science/yolo/detections', 'yolo'),
+                ('/science/color_block/selection', 'selection'),
+                ('/science/map_measurement_debug', 'map_measurement'),
+                ('/science/target_tracks', 'tracks')):
+            self.create_subscription(String, topic, partial(self._evidence, kind), 100)
         self.create_subscription(Empty, '/science/approach/finish_recording',
                                  lambda _: self.close(), 1)
         self.create_timer(0.5, self._heartbeat)
@@ -75,6 +84,15 @@ class ApproachVideoRecorder(Node):
     def _debug(self, msg):
         self.debug = json.loads(msg.data)
         self._write('detection', {'detection': self.debug})
+
+    def _evidence(self, kind, msg):
+        """Retain source stamps, TF errors and association gates without interpreting them."""
+        try:
+            data = json.loads(msg.data)
+        except (ValueError, TypeError):
+            self._write('invalid_evidence', {'topic_kind': kind, 'data': msg.data})
+            return
+        self._write(kind, {kind: data})
 
     def _mask(self, msg):
         self.mask = self.bridge.imgmsg_to_cv2(msg, 'mono8').copy()
