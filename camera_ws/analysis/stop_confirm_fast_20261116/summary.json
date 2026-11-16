@@ -1,0 +1,589 @@
+{
+  "successful_attempt_mean_sec": 4.142866546714572,
+  "successful_attempt_stop_mean_sec": 3.2286459932858924,
+  "successful_attempt_post_stop_mean_sec": 0.9142205534286794,
+  "scope": "8 fixed full folders; all run JSONs within them; no hardware execution",
+  "interpretation": "first_seen is first eligible detection, not necessarily the final physical target; LOCK success is not grasp proof",
+  "runs": [
+    {
+      "path": "full_1794746510438141133/run_1794746525061295239.json",
+      "sha256": "f95325c04a99ce70297a6ef8608f8a8f2a336a4c34bfff6294d3bcdaecf2951a",
+      "run_start_local": "2026-11-15T20:41:50.438141",
+      "detector": "hsv",
+      "commit": "a51bfce3dffff6c8e002be61048fda7f63a60716",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 17.384924803001923,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              2.5931447697308583,
+              0.1146166029185603
+            ],
+            "trigger_stamp_ns": 1794746538654947998
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.8409518934060008,
+          "stop_stable_range_m": 0.712922486450972,
+          "stopped_after_sec": 5.599960444997123,
+          "reason": "collecting new stationary observations",
+          "elapsed": 6.000039605998609
+        },
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              2.5562039258670417,
+              0.13433480719661506
+            ],
+            "trigger_stamp_ns": 1794746546047048584
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 0.6910760825035611,
+          "stop_stable_range_m": 0.694164502460839,
+          "stopped_after_sec": 3.3001111039993702,
+          "stationary_confirmation_sec": 0.8999378650005383,
+          "spread": 0.018757492914894345,
+          "count": 6,
+          "elapsed": 4.2000489689999085
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 3.00003625500176
+    },
+    {
+      "path": "full_1794746842611482601/run_1794746860928314057.json",
+      "sha256": "ac678dd6e625d5ecf49e55d447a74701b402c6d305c87f3f7b183ccd86c4a27a",
+      "run_start_local": "2026-11-15T20:47:22.611483",
+      "detector": "hsv",
+      "commit": "bec9a14bf59ab9213d60f06a8b0be7f84ae73ec7",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 12.20917651900163,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              2.0608243991911097,
+              0.07456326506565603
+            ],
+            "trigger_stamp_ns": 1794746866862017090
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.5957095347418375,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 3.599482794998039,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.09945523299757
+        },
+        {
+          "candidate": {
+            "id": 2,
+            "map": [
+              2.16342474355754,
+              0.1126633213193028
+            ],
+            "trigger_stamp_ns": 1794746875059429199
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 1.2700504256080853,
+          "stop_stable_range_m": 1.1614430833655687,
+          "stopped_after_sec": 2.600055347000307,
+          "stationary_confirmation_sec": 0.8999519799981499,
+          "spread": 0.02455670754255465,
+          "count": 6,
+          "elapsed": 3.500007326998457
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 0.2997619179986941
+    },
+    {
+      "path": "full_1794747100355265452/run_1794747112116176484.json",
+      "sha256": "d28ade021368b60ed1848309939bc0394f942fcbbbb3c06feb86cb52d1007e56",
+      "run_start_local": "2026-11-15T20:51:40.355266",
+      "detector": "hsv",
+      "commit": "bec9a14bf59ab9213d60f06a8b0be7f84ae73ec7",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 12.157425402001536,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 3,
+            "map": [
+              2.6498362727944573,
+              0.22482145104695261
+            ],
+            "trigger_stamp_ns": 1794747120478868408
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.5826600411610972,
+          "stop_stable_range_m": 1.378591403661992,
+          "stopped_after_sec": 5.199774522003281,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.099927270002809
+        },
+        {
+          "candidate": {
+            "id": 3,
+            "map": [
+              2.6331040019211667,
+              0.23676804426437043
+            ],
+            "trigger_stamp_ns": 1794747127802944580
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 1.4251848808025818,
+          "stop_stable_range_m": 1.3715199423313578,
+          "stopped_after_sec": 1.4998632080023526,
+          "stationary_confirmation_sec": 0.8999822830010089,
+          "spread": 0.018027048932196588,
+          "count": 6,
+          "elapsed": 2.3998454910033615
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 0.39995082600216847
+    },
+    {
+      "path": "full_1794747532450478669/run_1794747544230130069.json",
+      "sha256": "c1a2cba5aef2776775bc4b02a6aefa4868cd05ed6da0cbf3afc6ed1811613f25",
+      "run_start_local": "2026-11-15T20:58:52.450479",
+      "detector": "hsv",
+      "commit": "bec9a14bf59ab9213d60f06a8b0be7f84ae73ec7",
+      "final_state": "FAULT",
+      "terminal_reason": "search cross-track limit",
+      "first_seen_to_lock_sec": null,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 4,
+            "map": [
+              2.585938050501194,
+              0.5558031393889162
+            ],
+            "trigger_stamp_ns": 1794747554474067871
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.3504932150031126,
+          "stop_stable_range_m": 1.1888978604691942,
+          "stopped_after_sec": 4.799989874998573,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.099948114999279
+        },
+        {
+          "candidate": {
+            "id": 4,
+            "map": [
+              2.5653620482616244,
+              0.521910637288159
+            ],
+            "trigger_stamp_ns": 1794747561999725830
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.134289134060424,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 4.100122627998644,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.000090638000984
+        },
+        {
+          "candidate": {
+            "id": 4,
+            "map": [
+              2.6069375250022304,
+              0.5456452322198426
+            ],
+            "trigger_stamp_ns": 1794747571140089355
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.001607944222831,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 4.500260363998677,
+          "reason": "collecting new stationary observations",
+          "elapsed": 6.000225079998927
+        }
+      ]
+    },
+    {
+      "path": "full_1794747675021281105/run_1794747687060853020.json",
+      "sha256": "315404e87c4a3c159c4bb524dcc39d6c5db7b9c2b2467fc6e68df3e9a32b7c79",
+      "run_start_local": "2026-11-15T21:01:15.021281",
+      "detector": "hsv",
+      "commit": "bec9a14bf59ab9213d60f06a8b0be7f84ae73ec7",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 24.67337854899597,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 2,
+            "map": [
+              2.511220606982966,
+              0.379925557160399
+            ],
+            "trigger_stamp_ns": 1794747695887640137
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.4472597747641902,
+          "stop_stable_range_m": 1.3038294029872814,
+          "stopped_after_sec": 5.099992374998692,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.099887190001027
+        },
+        {
+          "candidate": {
+            "id": 2,
+            "map": [
+              2.4263242239157994,
+              0.40135641749238604
+            ],
+            "trigger_stamp_ns": 1794747703208323975
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.2579273437304106,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 5.800192646998767,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.000187249999726
+        },
+        {
+          "candidate": {
+            "id": 2,
+            "map": [
+              2.4951206663543504,
+              0.4183887809596474
+            ],
+            "trigger_stamp_ns": 1794747712749892334
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 0.8836204757526676,
+          "stop_stable_range_m": 0.6482577385814228,
+          "stopped_after_sec": 4.700227871999232,
+          "stationary_confirmation_sec": 0.8997099580010399,
+          "spread": 0.017478474976393956,
+          "count": 6,
+          "elapsed": 5.599937830000272
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 2.299749530000554
+    },
+    {
+      "path": "full_1794819424367985274/run_1794819445721622513.json",
+      "sha256": "ec870e78b339e9e192cfe868d9cc95fbb34588565ed360a917626cb58b089a11",
+      "run_start_local": "2026-11-16T16:57:04.367985",
+      "detector": "hsv",
+      "commit": "5e818cf9aa35a127882e82b021a42693b660f1f2",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 21.22098784399998,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 2,
+            "map": [
+              2.1059843565320144,
+              -0.4487096600099325
+            ],
+            "trigger_stamp_ns": 1794819455698269775
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.9507356672033032,
+          "stop_stable_range_m": 0.8313962107748065,
+          "stopped_after_sec": 5.699983153000005,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.099961208999957
+        },
+        {
+          "candidate": {
+            "id": 7,
+            "map": [
+              4.160215677515473,
+              -0.6110953646738995
+            ],
+            "trigger_stamp_ns": 1794819469674456055
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 1.5201946854432729,
+          "stop_stable_range_m": 1.4091316314112974,
+          "stopped_after_sec": 4.599968137000019,
+          "stationary_confirmation_sec": 0.9001480910000055,
+          "spread": 0.028094014010145968,
+          "count": 5,
+          "elapsed": 5.500116228000024
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 0.20010626399999865
+    },
+    {
+      "path": "full_1794819797246482768/run_1794819818752971803.json",
+      "sha256": "56cc34bda4668d6701a3f8874f8c8c1718ee1cbddc2daf36c19a070bdf67c978",
+      "run_start_local": "2026-11-16T17:03:17.246483",
+      "detector": "hsv",
+      "commit": "5e818cf9aa35a127882e82b021a42693b660f1f2",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 72.02328524000006,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              1.5622104917868447,
+              0.07734277754629512
+            ],
+            "trigger_stamp_ns": 1794819824229313232
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.1890841361955082,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 4.700074130999951,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.100092787999984
+        },
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              1.5797575122690157,
+              0.09476982090152791
+            ],
+            "trigger_stamp_ns": 1794819832417779053
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.8439650641611081,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 2.899999159999993,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.000091324999971
+        },
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              1.5312140710505053,
+              0.09405517098946221
+            ],
+            "trigger_stamp_ns": 1794819840884155273
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.50594126226113,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 4.599829182999997,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.099860744000011
+        },
+        {
+          "candidate": {
+            "id": 13,
+            "map": [
+              1.586047974743388,
+              0.11834040595591597
+            ],
+            "trigger_stamp_ns": 1794819849148985107
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.34663741071769893,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 5.399946982000074,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.000016147999986
+        },
+        {
+          "candidate": {
+            "id": 15,
+            "map": [
+              3.4334769360609876,
+              0.31253849402211187
+            ],
+            "trigger_stamp_ns": 1794819859160687256
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.5129602934617687,
+          "stop_stable_range_m": 1.2957024953137468,
+          "stopped_after_sec": 5.599809367000034,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.09992832599994
+        },
+        {
+          "candidate": {
+            "id": 15,
+            "map": [
+              3.381208263377986,
+              0.32966412214891117
+            ],
+            "trigger_stamp_ns": 1794819866484810059
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.2676822215158774,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 5.799883587999943,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.099943211999971
+        },
+        {
+          "candidate": {
+            "id": 15,
+            "map": [
+              3.39746524766951,
+              0.34119591864424326
+            ],
+            "trigger_stamp_ns": 1794819874279173340
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.2398563092914268,
+          "stop_stable_range_m": 1.2932700131151633,
+          "stopped_after_sec": 3.1001320200000464,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.100125455000011
+        },
+        {
+          "candidate": {
+            "id": 15,
+            "map": [
+              3.395078030989345,
+              0.33873564843187115
+            ],
+            "trigger_stamp_ns": 1794819881871993652
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 1.2672733389110942,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 3.199979806999977,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.099831571999971
+        },
+        {
+          "candidate": {
+            "id": 15,
+            "map": [
+              3.375925203623412,
+              0.35111050227121443
+            ],
+            "trigger_stamp_ns": 1794819890741632324
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 1.064400195614191,
+          "stop_stable_range_m": 0.8957042059078517,
+          "stopped_after_sec": 3.4001280969999925,
+          "stationary_confirmation_sec": 0.9999955450000471,
+          "spread": 0.025839755894296382,
+          "count": 6,
+          "elapsed": 4.40012364200004
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 0.400151277999953
+    },
+    {
+      "path": "full_1794820061800141575/run_1794820073670233692.json",
+      "sha256": "6881631d483fb07cdf182d34c60913d6760ea1523742a7a252da74052afcf5df",
+      "run_start_local": "2026-11-16T17:07:41.800142",
+      "detector": "hsv",
+      "commit": "5e818cf9aa35a127882e82b021a42693b660f1f2",
+      "final_state": "STOP",
+      "terminal_reason": "grasp docking pose reached and stopped",
+      "first_seen_to_lock_sec": 6.252511337999977,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 1,
+            "map": [
+              1.638551135204934,
+              0.09473351388770959
+            ],
+            "trigger_stamp_ns": 1794820079085961914
+          },
+          "result": "CONFIRMED",
+          "stop_request_range_m": 1.2004685052265398,
+          "stop_stable_range_m": 1.0017192703772713,
+          "stopped_after_sec": 2.500168187999975,
+          "stationary_confirmation_sec": 0.8998181519999662,
+          "spread": 0.024222945973816704,
+          "count": 6,
+          "elapsed": 3.3999863399999413
+        }
+      ],
+      "accepted_sample_timing_saving_sec": 0.39991687999997794
+    },
+    {
+      "path": "full_1794820061800141575/run_1794820172108224802.json",
+      "sha256": "35a03dd23d681a65a470a09ce813b39fce09104fe1da233460bc9bde1114ccdc",
+      "run_start_local": "2026-11-16T17:07:41.800142",
+      "detector": "hsv",
+      "commit": "5e818cf9aa35a127882e82b021a42693b660f1f2",
+      "final_state": "FAULT",
+      "terminal_reason": "localization jump or time regression",
+      "first_seen_to_lock_sec": null,
+      "attempts": [
+        {
+          "candidate": {
+            "id": 5,
+            "map": [
+              3.219597441635333,
+              0.6632030142681486
+            ],
+            "trigger_stamp_ns": 1794820179034146729
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.9112519355742407,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 4.20005244999993,
+          "reason": "waiting for measured stop",
+          "elapsed": 6.000009084999988
+        },
+        {
+          "candidate": {
+            "id": 5,
+            "map": [
+              3.1431193447721615,
+              0.651861051617861
+            ],
+            "trigger_stamp_ns": 1794820187499287354
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.5945050018761259,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 5.599960430000124,
+          "reason": "collecting new stationary observations",
+          "elapsed": 6.09995262200016
+        },
+        {
+          "candidate": {
+            "id": 5,
+            "map": [
+              3.169364460734368,
+              0.6968375574282891
+            ],
+            "trigger_stamp_ns": 1794820195226647949
+          },
+          "result": "TIMEOUT",
+          "stop_request_range_m": 0.46050557658171853,
+          "stop_stable_range_m": null,
+          "stopped_after_sec": 5.600078022999924,
+          "reason": "candidate missing or spatially ambiguous",
+          "elapsed": 6.000034851999999
+        }
+      ]
+    }
+  ],
+  "successful_lock_count": 7,
+  "failed_without_lock_count": 2,
+  "first_seen_to_lock_mean_sec": 23.703098527857296,
+  "completed_attempt_count": 27,
+  "timeout_reason_counts": {
+    "collecting new stationary observations": 3,
+    "candidate missing or spatially ambiguous": 7,
+    "waiting for measured stop": 10
+  },
+  "stop_confirm_cycle_reasons": {
+    "unknown": 28,
+    "waiting for measured stop": 1071,
+    "collecting new stationary observations": 129,
+    "candidate missing or spatially ambiguous": 278
+  },
+  "accepted_sample_comparison_count": 7,
+  "accepted_sample_timing_saving_mean_sec": 0.9999532787147294,
+  "accepted_sample_timing_saving_median_sec": 0.39995082600216847,
+  "comparison_limit": "counterfactual sampling-time check, not full replay; raw Manager track snapshots and pre-stop evidence are incomplete; no new success-rate or end-to-end saving claim"
+}

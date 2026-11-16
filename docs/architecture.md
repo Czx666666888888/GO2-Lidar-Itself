@@ -164,3 +164,9 @@ These commands are sourced from repository scripts. Their success on a clean hos
 开关stop_confirm_require_stationary=false；观测源时刻必须晚于本次确认开始，时间/空间关联
 与manager CONFIRMED条件保留。原话题/接口、后续停靠与姿态/抓取数据流未变。
 来源：源码及离线测试；实机NOT VERIFIED。
+
+
+2026-11-16最新：上述单纯位置收敛模式已被用户新要求替代。当前SEARCH启用fast确认，恢复
+实际速度/偏航+0.20秒停稳，复用Manager/SEARCH前史，停稳后3帧RGB-D唯一空间复核；
+无可靠前史则5帧/0.60秒回退。6秒后一次2秒原地复核有界结束。后续MAP/S1/相机/三轮链路不变。
+来源：源码、旧日志统计及26项针对性测试；新实机NOT VERIFIED。

@@ -288,13 +288,15 @@ def test_convergence_cannot_use_sparse_observations_or_ambiguous_candidates():
     assert c.target is None
 
 
-def test_search_profile_enables_convergence_without_changing_legacy_default():
+def test_search_profile_enables_fast_stationary_confirmation_with_legacy_fallback():
     from pathlib import Path
     import yaml
 
     profile = Path(__file__).parents[1]/'config/science_target_search.yaml'
     params = yaml.safe_load(profile.read_text())['science_target_approach']['ros__parameters']
-    assert params['stop_confirm_require_stationary'] is False
+    assert params['stop_confirm_require_stationary'] is True
+    assert params['stop_confirm_fast_enabled'] is True
+    assert Settings().stop_confirm_fast_enabled is False
     assert Settings().stop_confirm_require_stationary is True
     assert params['anchor_min_observations'] == 5
     assert params['anchor_max_spread'] == .08

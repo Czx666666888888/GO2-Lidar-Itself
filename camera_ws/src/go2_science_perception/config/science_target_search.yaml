@@ -9,8 +9,12 @@ science_target_approach:
     search_trigger_range_m: 1.8
     search_trigger_observations: 3
     stop_confirm_timeout: 6.0
-    # Confirm fresh target MAP convergence even while body feedback is not quiet.
-    stop_confirm_require_stationary: false
+    # Restore measured stop; reuse reliable SEARCH history for 3-frame RGB-D recheck.
+    stop_confirm_require_stationary: true
+    stop_confirm_fast_enabled: true
+    stop_confirm_fast_observations: 3
+    stop_confirm_fast_gap_sec: 0.75
+    stop_confirm_recheck_sec: 2.0
     # User-authorized far-target trial: lost-vision odometry path budget only.
     odom_max_distance: 5.0
     stop_confirm_stable_sec: 0.20

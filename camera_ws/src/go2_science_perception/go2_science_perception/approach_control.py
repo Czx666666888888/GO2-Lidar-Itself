@@ -54,6 +54,10 @@ class Settings:
     search_trigger_observations: int = 3
     stop_confirm_timeout: float = 6.0
     stop_confirm_require_stationary: bool = True
+    stop_confirm_fast_enabled: bool = False
+    stop_confirm_fast_observations: int = 3
+    stop_confirm_fast_gap_sec: float = 0.75
+    stop_confirm_recheck_sec: float = 2.0
     stop_confirm_stable_sec: float = 0.20
     stop_confirm_min_span_sec: float = 0.60
     stop_confirm_speed_mps: float = 0.05
@@ -64,9 +68,14 @@ class Settings:
     def __post_init__(self):
         """Reject invalid limits rather than silently weakening safety bounds."""
         for name, value in vars(self).items():
-            if (name not in ('allow_odom', 'stop_reference', 'search_enabled', 'search_continuous') and
+            if (name not in ('allow_odom', 'stop_reference', 'search_enabled', 'search_continuous',
+                             'stop_confirm_require_stationary', 'stop_confirm_fast_enabled') and
                     (not math.isfinite(value) or value <= 0)):
                 raise ValueError(f'{name} must be finite and positive')
+        if (self.stop_confirm_fast_observations not in (2, 3) or
+                not isinstance(self.stop_confirm_fast_observations, int) or
+                self.stop_confirm_fast_gap_sec > 0.75 or self.stop_confirm_recheck_sec > 2.0):
+            raise ValueError('Fast confirmation requires 2-3 frames and bounded gap/recheck')
         if self.max_linear_speed > 0.3 or self.max_angular_speed > 0.3:
             raise ValueError('experiment speed cap is 0.30')
         if self.stop_reference not in ('body_center', 'camera_origin'):
@@ -146,6 +155,7 @@ class ApproachControl:
         self.trigger_history = {}
         self.search_cooldown_until = -math.inf
         self.stop_candidate = None
+        self.fast_confirmation = None
         self.stop_confirm_started = self.stationary_since = self.settled_at = None
         self.stop_samples = deque()
         self.stop_sample_stamps = set()
@@ -421,7 +431,12 @@ class ApproachControl:
                     self.search_first_detection_range_m = first['camera_range_m']
             # A single spatial candidate must persist through distinct source frames.
             if len(valid) != 1:
-                self.trigger_history.clear()
+                if not valid and self.p.stop_confirm_fast_enabled:
+                    for history in self.trigger_history.values():
+                        while history and now-history[0][0] > self.p.stop_confirm_fast_gap_sec:
+                            history.popleft()
+                else:
+                    self.trigger_history.clear()
                 return
             t = valid[0]
             observed = now-t['age']
@@ -439,11 +454,14 @@ class ApproachControl:
                 return
             point = tuple(t['latest_observation'][:2])
             if history and ((t['observed_ns']-history[-1][1])*1e-9 >
-                            self.p.confirmation_max_gap_sec or
+                            (self.p.stop_confirm_fast_gap_sec if self.p.stop_confirm_fast_enabled
+                             else self.p.confirmation_max_gap_sec) or
                             math.dist(point, history[0][2]) > self.p.target_jump_m):
                 history.clear()
             history.append((observed, t['observed_ns'], point, t['camera_range_m']))
             return
+        if self.p.stop_confirm_fast_enabled:
+            return  # The fast state machine consumes each fresh source stamp in step().
         if self.p.stop_confirm_require_stationary and not self._is_stopped(now):
             self._clear_stationary()
             self.stop_confirm_reason = 'waiting for measured stop'
@@ -484,7 +502,9 @@ class ApproachControl:
             return False
         t = valid[0]
         history = self.trigger_history.get(t['id'], [])
-        if len(history) < self.p.search_trigger_observations:
+        required = (2 if self.p.stop_confirm_fast_enabled and t['state'] == 'CONFIRMED'
+                    else self.p.search_trigger_observations)
+        if len(history) < required:
             return False
         if now-history[-1][0] > self.p.visual_timeout:
             return False
@@ -495,6 +515,12 @@ class ApproachControl:
             self.docking.p = self.docking_options[self.grasp_side]
             self.docking.reset()
             self.stop_candidate['grasp_side'] = self.grasp_side
+        if self.p.stop_confirm_fast_enabled:
+            from .search_confirmation import FastConfirmation
+            self.stop_candidate['pre_stop_history'] = list(history)
+            self.stop_candidate['manager_confirmed'] = t['state'] == 'CONFIRMED'
+            self.fast_confirmation = FastConfirmation(
+                self.p, self.stop_candidate, history, t['state'] == 'CONFIRMED', now)
         self.stop_request_range_m = t['camera_range_m']
         self.stop_stable_range_m = None
         self.stopped_after_sec = self.stationary_confirmation_sec = None
@@ -510,6 +536,8 @@ class ApproachControl:
     def _stop_confirmation(self, now, out):
         """Always zero; timeout resumes the original bounded search after cooldown."""
         self.vx = 0.0
+        if self.p.stop_confirm_fast_enabled:
+            return self._fast_stop_confirmation(now, out)
         if now-self.stop_confirm_started >= self.p.stop_confirm_timeout:
             self.stop_confirm_attempts.append(dict(
                 candidate=self.stop_candidate, result='TIMEOUT',
@@ -568,6 +596,10 @@ class ApproachControl:
                 len(matches) != 1 or matches[0]['state'] != 'CONFIRMED' or
                 matches[0]['observed_ns'] != samples[-1][1]):
             return out
+        return self._lock_search_target(now, out, samples, spread)
+
+    def _lock_search_target(self, now, out, samples, spread):
+        """Initialize the existing MAP approach anchor without changing docking."""
         self.target = tuple(median(s[2][i] for s in samples) for i in (0, 1))
         self.lock_id = samples[-1][3]
         self.anchor_initial, self.anchor_lock_camera = self.target, self.camera
@@ -593,6 +625,43 @@ class ApproachControl:
                    confirmed_at=now, confirmation_count=len(samples), confirmation_spread=spread,
                    stationary_confirmation_sec=self.stationary_confirmation_sec,
                    initial_distance=self.initial_distance, transition='STOP_CONFIRM->APPROACH')
+        return out
+
+    def _fast_stop_confirmation(self, now, out):
+        """Confirm actual stop, then reuse SEARCH evidence for a short RGB-D recheck."""
+        tracks = [dict(t, age=t['age']+now-self.snapshot_time)
+                  for t in self._near_detections(now)]
+        report = self.fast_confirmation.step(now, self._is_stopped(now), tracks)
+        samples = report.pop('samples')
+        action = report.pop('action')
+        self.stationary_since = report['stationary_since']
+        self.settled_at = report['settled_at']
+        self.stopped_after_sec = report['stopped_after_sec']
+        self.stop_stable_range_m = report['stop_stable_range_m']
+        self.stop_confirm_reason = report['stop_confirm_reason']
+        self.stop_samples = deque(samples)
+        out.update(report)
+        if report.get('timeout_event'):
+            self.stop_confirm_attempts.append(dict(
+                candidate=self.stop_candidate, result=report['timeout_result'],
+                reason=report['stop_confirm_reason'], blockers=report['confirmation_blockers'],
+                elapsed=now-self.stop_confirm_started, stopped_after_sec=self.stopped_after_sec,
+                count=len(samples), spread=report['confirmation_spread'],
+                confirmation_path=report['confirmation_path']))
+        if action == 'lock':
+            result = self._lock_search_target(now, out, samples, report['confirmation_spread'])
+            self.stop_confirm_attempts[-1].update(
+                confirmation_mode='fast_stationary', confirmation_path=report['confirmation_path'])
+            return result
+        if action == 'fault':
+            self.fault('target confirmation exhausted while visible: '+self.stop_confirm_reason)
+            out.update(state=self.state, reason=self.reason)
+        elif action == 'search':
+            self.state, self.reason = 'SEARCH', 'confirmation timeout; search cooldown'
+            self.search_cooldown_until = now+self.p.search_cooldown_sec
+            self.trigger_history.clear()
+            self._clear_stationary()
+            out.update(state=self.state, reason=self.reason, transition='STOP_CONFIRM->SEARCH')
         return out
 
     def candidate(self, now):

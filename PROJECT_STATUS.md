@@ -1,6 +1,17 @@
 # Project Status
 
-## 2026-11-16 STOP_CONFIRM改为目标位置收敛（当前）
+## 2026-11-16 快速确认：恢复实际停稳，复用可靠目标历史（当前）
+
+- 用户本轮反馈单目标自主抓取已连续成功；本轮不改其稳定链路，不据此补写未复核的逐轮定量抓取结论。
+- 已fetch远端：最新基线f9245bc（包含5e818cf及上一轮取消停稳的改动）；本轮按新要求恢复SEARCH配置stop_confirm_require_stationary=true，并启用stop_confirm_fast_enabled=true。保留原Sport/机身/相机速度≤0.05m/s及yaw≤0.10rad/s和0.20秒连续停稳。
+- Manager仍使用原确认；SEARCH已CONFIRMED目标只需2份不同源观测保存ID/MAP/历史，其他候选保留3份触发。快速锁定需可靠停车前历史、同ID唯一空间匹配、停稳后3份新RGB-D观测、散布<8cm及与原种子距离≤15cm；不再重复等待Manager二次确认或5帧/0.6秒。
+- 缺少可靠前史/ID变化走完整5帧/0.6秒回退；开关关闭且require_stationary=true恢复原成功路径。有限漏帧间隔0.75秒，仍须新鲜有效RGB-D和唯一关联；LIO速度波动重新判断停稳，保留目标证据，锁定只使用最近一次停稳之后的新帧。
+- 6秒到期若候选仍新鲜唯一一致，最多原地复核2秒一次；仍可见但复核耗尽则FAULT零速，丢失/歧义则原有冷却SEARCH。不无限原地等待或循环自动重试。记录具体blockers及确认路径。
+- 8目录9份旧日志：7份LOCK，first_seen到LOCK平均23.703秒；27次完成确认中20次超时（10停稳、7缺失/歧义、3采样）。同最终尝试的既有合格样本时序估算节省中位0.400秒/均值1.000秒，非完整回放或新实机结果。
+- 26项针对性测试、单包构建、安装模块哈希/参数读回、离线计划和新文件lint通过。
+- 实现仅SEARCH确认与公共锁定初始化提取；MAP停靠参数/实现、Point-LIO、Manager、YOLO模型、S1、相机交接和三轮任务链未改。详见camera_ws/docs/stop_confirm_fast_20261116.md及本轮实验记录。真实效果NOT VERIFIED，未执行GO2运动/抓取或远端部署。
+
+## 2026-11-16 STOP_CONFIRM改为目标位置收敛（历史，已由快速停稳确认替代）
 
 - 用户明确选择目标位置收敛优先，机身不稳定也允许进入靠近。实际SEARCH配置设置stop_confirm_require_stationary=false：请求零速后直接采集源时刻晚于本次STOP_CONFIRM开始的目标MAP观测；不因机身/相机估计速度或Sport速度/偏航超限清空样本，不要求0.20秒停稳。
 - 保留6秒总预算、1秒窗口至少5份不同源观测、跨度至少0.60秒、散布严格小于8cm、0.30秒最大间隔、唯一空间关联和manager CONFIRMED。默认Settings仍true，其他未使用SEARCH配置的入口保留旧行为；SEARCH覆盖用于现有dock/full。

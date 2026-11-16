@@ -2287,3 +2287,29 @@ run新增phase_seconds及明确的停车位误差字段，camera距离不作为�
 4cm/10°/0.5秒、定位/TF/反馈新鲜度、5m续行预算、人工急停和唯一速度出口均未放宽。
 最终单包构建成功，安装控制器/响应检查/短步及序列代码与源码逐字节一致，未标定补偿保持关闭。
 本轮无新的实机运动授权，未运动或抓取；响应/制动标定、几厘米修正、独立dock、full及提速均NOT VERIFIED。
+
+
+## 2026-11-16 SEARCH→STOP_CONFIRM→LOCK_TARGET快速确认
+
+来源：用户本轮反馈单目标抓取连续成功；fetch后的集成基线f9245bc（父提交5e818cf）、
+既有8目录9份run JSON、源码和定向测试/构建输出。未执行新真机动作或抓取。
+
+- 旧流程：7份LOCK，首次有效发现到LOCK平均23.703秒（含候选更换与重复停车，非最终同物块专属时长）；
+  27次已结束确认中20次超时，10次末因为等待停稳、7次目标缺失/歧义、3次采样未完成。
+  成功单次STOP_CONFIRM均值4.143秒=3.229秒停稳+0.914秒复核。
+- 新配置恢复原实际速度/角速度≤0.05m/s、≤0.10rad/s及0.20秒停稳；复用Manager已确认ID和
+  SEARCH可靠MAP前史，停稳后3份新RGB-D复核，保留唯一空间关联/不同源时间戳/散布<8cm。
+  未具备快速前提回退5帧/0.60秒；关闭fast开关可恢复原成功确认流程。
+- 有限断档0.75秒，不因LIO速度波动清除前史；新锁定必须使用最近一次连续停稳之后的观测。
+  超时记录具体阻塞；可见唯一一致目标6秒后最多追加2秒原地复核一次，耗尽仍可见则FAULT零速。
+- 仅用旧成功尝试中已经合格的样本比较3帧时刻，估算节省中位0.400秒、均值1.000秒、范围0.200～3.000秒。
+  缺完整Manager快照，非完整闭环回放，不保证所有旧尝试能走快速路径；反复停车的整体收益待实机。
+- 26项小范围SEARCH/确认测试通过；新模块/测试/统计脚本lint通过，原控制模块历史E128保留。
+  沙箱构建先出现setuptools正则TypeError，第二次等待子进程异常并主动取消；沙箱外同一单包构建0.54秒成功。
+  安装两模块与源码SHA256一致，配置读回fast=true/require_stationary=true/stable=.20/frames=3；full HSV离线计划通过。
+- diff对照5e818cf：Manager、MAP停靠/运动窗口、S1任务序列、姿态主机、full/三轮/交接脚本和停靠参数未改。
+- 新增效率/多目标快速确认/三轮完整full实机效果NOT VERIFIED；未部署/采流/重启服务/运动。
+
+可复现统计：`python3 camera_ws/scripts/analyze_stop_confirmation.py --records camera_ws/records --output /tmp/stop_confirm_fast_summary.json`。
+源日志路径/哈希及逐次结果：camera_ws/analysis/stop_confirm_fast_20261116/summary.json。
+详细条件、回退和唯一下一次full命令：camera_ws/docs/stop_confirm_fast_20261116.md。

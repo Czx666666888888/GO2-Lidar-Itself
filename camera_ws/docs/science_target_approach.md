@@ -134,17 +134,16 @@ SEARCH沿用0.20m/s。源时间戳和原始MAP XYZ与`/science/map_measurement_d
 读取相机3D欧氏距离；距离≤1.8m且同一唯一候选连续3份不同源观测才请求停车。
 更远的MAP点仅作提示；缺少匹配的相机量测时不触发。HSV和Point-LIO不变。
 
-2026-11-16用户指定当前SEARCH配置以目标MAP位置收敛为准：
-`stop_confirm_require_stationary=false`。STOP_CONFIRM和确认成功的切换周期继续输出零速，
-但不等待Sport/机身/相机速度与偏航满足停稳阈值，也不因速度波动清空目标样本。
-仅使用源测量时刻晚于本次STOP_CONFIRM开始的全新观测；1秒窗口至少5份不同源时间戳，
-源时间跨度≥0.60秒、最大两点XY散布严格<0.08m、源帧间隔≤0.30秒。
-还需唯一匹配本次触发时冻结的空间种子（0.15m跳变/0.20m关联半径取更小者），
-且manager为CONFIRMED。缺失/歧义清空样本，6秒总预算和0.75秒恢复搜索冷却保持。
-通用Settings默认仍要求停稳；需要恢复旧模式可将上述SEARCH参数设true。
-定位/TF/Sport新鲜度、定位跳变、急停和最终停靠/姿态/机械臂保护不变。
-新行为只表示目标估计位置收敛，不证明物块身份正确、机身静止或绝对定位准确。
-验证与兼容日志说明见`stop_confirm_convergence_20261116.md`。
+2026-11-16当前快速确认：SEARCH配置`stop_confirm_require_stationary=true`、
+`stop_confirm_fast_enabled=true`，恢复原实际速度/角速度和0.20秒连续停稳。
+Manager已确认的唯一目标在SEARCH保留2份新源观测形成候选历史，其他候选仍需3份。
+冻结ID/MAP/历史；停稳后3帧不同源RGB-D、同ID唯一关联、散布<8cm且与原种子≤15cm即可锁定，
+不再重复要求5帧/0.60秒或最新Manager再次CONFIRMED。
+前史不可靠或ID变化使用完整5帧/0.60秒回退；关闭fast开关即恢复原成功确认流程。
+有限漏帧间隔放宽至0.75秒，视觉新鲜度不变；运动波动不清除目标历史，但锁定仍必须取得
+最近一次连续停稳之后的全新帧。歧义时禁止快速锁定。
+6秒到期仍可见且唯一一致时只追加一次2秒原地复核；耗尽仍可见则FAULT零速，丢失/歧义才恢复原冷却SEARCH。
+具体诊断、回退配置与实测边界见`stop_confirm_fast_20261116.md`。
 
 同一个controller依次完成全部阶段，唯一raw发布者；确认成功的切换周期输出零速度，
 下一周期复用既有ALIGN/APPROACH_VISUAL/APPROACH_ODOM（LOCK_TARGET仅为交接状态）。
