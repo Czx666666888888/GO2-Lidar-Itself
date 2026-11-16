@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-11-16补充：横向目标36cm
+
+用户追加要求：实际左右停靠overlay的dock_target_s1_y从±0.37改±0.36m，自动选侧/记忆目标停车位距离使用同一新值；其余参数逐项一致，计划输出同步。11项现有几何/自动选侧测试通过；无动作，物理效果NOT VERIFIED。
+
 ## 2026-11-16 YOLO多目标MAP记忆与连续处理
 
 基线远端7c17021。YOLO/full送全部有效方块到原Tracker，保留确认记忆；首轮原SEARCH/STOP_CONFIRM，后续按左右停车位距离选未处理记忆直接MAP接近，3份新源观测唯一复核；无视觉保留锚点，定位/TF/反馈/运动预算保护不变。明确D455无目标且原安全返回、原contact_miss/secure_lost可在回零反馈通过后标MISSED起立跳过，硬件/姿态FAULT仍中止。默认处理3个不同目标，区分完成/漏失计数；终端结果先保存，恢复完整chain ready失败保留计数不续跑。用户明确延期障碍接口，本轮无避障。S1兼容v6仅离线生成，旧运行服务不热替换。单包构建及定向检查通过，实机NOT VERIFIED；见camera_ws/docs/multi_target_memory_20261116.md。
