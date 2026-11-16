@@ -49,9 +49,11 @@ def test_shared_model_validation_is_used_before_full_start(tmp_path,monkeypatch)
     import go2_color_block_test as assets
     w=workflow(tmp_path,view=False);(tmp_path/'manifest.json').write_text('{}')
     monkeypatch.setattr(assets,'detector_assets',lambda args,root:(Path('/local/best.pt'),Path('/local/python')))
+    monkeypatch.setattr(assets,'model_identity',lambda path:('science_targets_mixed_v3',assets.V3_SHA256))
     w.configure_vision()
     state=json.loads((tmp_path/'manifest.json').read_text())
-    assert state['detector']=='yolo' and state['model_sha256']==assets.V2_SHA256
+    assert state['detector']=='yolo' and state['model_sha256']==assets.V3_SHA256
+    assert state['model_version']=='science_targets_mixed_v3'
     def fail(*a):raise RuntimeError('wrong model')
     monkeypatch.setattr(assets,'detector_assets',fail)
     with pytest.raises(RuntimeError,match='wrong model'):w.configure_vision()

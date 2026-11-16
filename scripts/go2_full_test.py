@@ -271,6 +271,7 @@ class Workflow:
         self.detector = ('hsv' if getattr(args, 'forward_response_check', False)
                          else getattr(args, 'detector', 'yolo'))
         self.vision_model = self.vision_python = None
+        self.vision_version = self.vision_sha256 = None
         self.folder = ROOT / 'camera_ws/records' / ('full_' + str(time.time_ns()))
         self.overlay = self.work / '.onekey/install/setup.bash'
         self.env_prefix = ''
@@ -316,8 +317,11 @@ class Workflow:
         if scope != 'native' and not getattr(self.args, 'forward_response_check', False):
             command += ['--detector', self.detector]
             if self.detector == 'yolo':
-                from go2_color_block_test import V2_SHA256
-                command += ['--model-sha256', V2_SHA256]
+                from go2_color_block_test import model_identity, V3_SHA256
+                explicit_model = getattr(self.args, 'model_path', None)
+                expected = self.vision_sha256 or (
+                    model_identity(explicit_model)[1] if explicit_model else V3_SHA256)
+                command += ['--model-sha256', expected]
         with self.stage('probe_'+label):
             result = subprocess.run(self.shell(shlex.join(command)))
         if result.returncode not in (0, 2) or not target.exists():
@@ -331,17 +335,20 @@ class Workflow:
         """Validate model identity before S1 initialization or any navigation."""
         if getattr(self.args, 'view', False) and not os.environ.get('DISPLAY'):
             raise RuntimeError('--view需要桌面DISPLAY；无桌面时去掉--view')
-        from go2_color_block_test import detector_assets, V2_SHA256
+        from go2_color_block_test import detector_assets, model_identity
         from types import SimpleNamespace
         assets = SimpleNamespace(detector=self.detector,
             model_path=getattr(self.args, 'model_path', None),
             python_executable=getattr(self.args, 'python_executable', None))
         self.vision_model, self.vision_python = detector_assets(assets, self.work)
+        if self.detector == 'yolo':
+            self.vision_version, self.vision_sha256 = model_identity(self.vision_model)
         path = self.folder/'manifest.json'
         data = json.loads(path.read_text())
         data.update(detector=self.detector, view=bool(getattr(self.args, 'view', False)),
                     model=str(self.vision_model) if self.detector == 'yolo' else None,
-                    model_sha256=V2_SHA256 if self.detector == 'yolo' else None)
+                    model_version=self.vision_version if self.detector == 'yolo' else None,
+                    model_sha256=self.vision_sha256 if self.detector == 'yolo' else None)
         path.write_text(json.dumps(data, indent=2)+'\n')
         if self.detector == 'yolo':
             for key, value in dict(OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1',

@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-11-16 YOLO V3默认接入
+
+用户指定V3，默认权重改V3且manifest/所有链路probe按选中模型校验；保留显式V2哈希回退，未知模型阻断。640/.25及原class0适配、深度/MAP/关联/S1/三轮链未改。53项定向离线测试、真实V3加载和1帧历史RGB CPU推理、静态检查/离线计划通过；无相机/ROS/机器人动作，在线效果及物理抓取NOT VERIFIED。PC原推理路径未迁移NX。证据camera_ws/docs/yolo_v3_integration_20261116.md。
+
 ## 2026-11-16 17:55启动中断与就绪探针快照
 
 - 最新full_1794822914408730480已使用4c72fa8；日志重名修复已生效，本轮未报Errno17。prepare/设备/S1/相机定位启动阶段通过，pre_motion等待26.970秒后中断；PC包装器记录KeyboardInterrupt、总34.088秒并恢复校时。没有最终pre_motion.json，不能确定本次具体缺哪路数据，也不能把上一轮Depth1直接复用为本轮结论。

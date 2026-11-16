@@ -13,6 +13,17 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 V2_SHA256 = 'e9bfab914e3412738b1ba9a45db24646a756ac75ab92abda8012aae3a37b46a1'
+V3_SHA256 = 'db74e03e4073574fb91b9fe3cb404c0f256b13c6451c014639818471e186e391'
+VERIFIED_MODELS = {V2_SHA256: 'science_targets_mixed_v2',
+                   V3_SHA256: 'science_targets_mixed_v3'}
+
+
+def model_identity(model):
+    """Bind manifests and readiness checks to an explicitly accepted checkpoint."""
+    digest = hashlib.sha256(Path(model).read_bytes()).hexdigest()
+    if digest not in VERIFIED_MODELS:
+        raise RuntimeError('Model differs from verified science_targets_mixed_v2/v3 best.pt')
+    return VERIFIED_MODELS[digest], digest
 
 
 def arguments(argv=None):
@@ -35,16 +46,15 @@ def arguments(argv=None):
 
 
 def detector_assets(args, root=ROOT):
-    """Resolve the same local V2 assets for approach, dock and full."""
+    """Resolve V3 by default; an explicit verified V2 path remains available."""
     data_root = Path(os.environ.get('GO2_VISION_ROOT',
         str((root/'camera_ws/records').resolve().parents[1])))
-    model = getattr(args, 'model_path', None) or data_root/'vision_training/runs/science_targets_mixed_v2/baseline/weights/best.pt'
+    model = getattr(args, 'model_path', None) or data_root/'vision_training/runs/science_targets_mixed_v3/baseline/weights/best.pt'
     python = getattr(args, 'python_executable', None) or data_root/'vision_training/.venv/bin/python'
     if args.detector == 'yolo':
         if not python.is_file() or not model.is_file():
-            raise RuntimeError('Missing local V2 weights/venv; use GO2_VISION_ROOT or explicit paths')
-        if hashlib.sha256(model.read_bytes()).hexdigest() != V2_SHA256:
-            raise RuntimeError('Model differs from verified science_targets_mixed_v2 best.pt')
+            raise RuntimeError('Missing local V3 weights/venv; use GO2_VISION_ROOT or explicit paths')
+        model_identity(model)
     return model, python
 
 
@@ -97,7 +107,9 @@ def run(args, model, python):
     (folder/'manifest.json').write_text(json.dumps(dict(
         mode='approach', detector=args.detector, preview=args.preview, execute=args.execute,
         commit=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(),
-        model=str(model), model_sha256=V2_SHA256 if args.detector=='yolo' else None,
+        model=str(model),
+        model_version=model_identity(model)[0] if args.detector=='yolo' else None,
+        model_sha256=model_identity(model)[1] if args.detector=='yolo' else None,
         stop_reference='camera_origin', stop_xy_tolerance=.10, physical_result='NOT VERIFIED'), indent=2))
     overlay = ROOT/'.color_block/install/setup.bash'
     sources = [Path('/opt/ros/humble/setup.bash'), ROOT/'deploy_ws/install/setup.bash']
