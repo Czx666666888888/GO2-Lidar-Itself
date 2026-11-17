@@ -159,3 +159,32 @@ def test_installer_race_with_new_owner_never_writes(payload, tmp_path, monkeypat
                             input=json.dumps(payload), text=True, capture_output=True)
     assert result.returncode != 0 and 'Existing S1 owner' in result.stderr
     assert not target.exists() and not target.with_name(target.name + '.installing').exists()
+
+
+@pytest.mark.parametrize('active_owner', [False, True])
+def test_force_upgrade_preserves_every_other_resource(installed, payload, monkeypatch, active_owner):
+    target, expected = installed
+    previous = delivery.delivery_payload(ROOT, previous=True)[1]
+    for name, item in previous['files'].items():
+        (target / name).write_bytes(base64.b64decode(item.pop('content')))
+    (target / 'S1_V2_COMPAT.json').write_text(json.dumps(previous))
+    before = {name: (target / name).read_bytes() for name in expected}
+    if active_owner:
+        import os
+        pgrep = Path(os.environ['PATH'].split(os.pathsep)[0]) / 'pgrep'
+        pgrep.write_text('#!/bin/sh\nexit 0\n')
+    result = subprocess.run([sys.executable, '-c', delivery.UPGRADE, str(target)],
+                            input=json.dumps(dict(previous=previous, current=copy.deepcopy(payload))),
+                            text=True, capture_output=True)
+    changed = {name for name in expected if (target / name).read_bytes() != before[name]}
+    if active_owner:
+        assert result.returncode != 0 and 'Existing S1 owner' in result.stderr
+        assert not changed
+        assert json.loads((target / 'S1_V2_COMPAT.json').read_text()) == previous
+    else:
+        assert result.returncode == 0, result.stderr
+        assert changed == {'scripts/run_go2_visual_alignment.py'}
+        name = next(iter(changed))
+        assert (target / name).read_bytes() == before[name].replace(
+            b'setdefault("secure_force_nm", 0.40)', b'setdefault("secure_force_nm", 0.80)', 1)
+        assert check_installed(target, expected).returncode == 0
