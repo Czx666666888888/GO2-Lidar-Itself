@@ -491,3 +491,11 @@ The entries below are a structured transcription of the root `README.md`. No ros
 202项定向检查通过，单包构建及安装参数/源码hash一致。合并测试的pytest/原生加载故障与
 隔离重跑记录见camera_ws/docs/dual_axis_arrival_20261117.md。无设备连接或真实动作，
 物理定位/横移/停车/抓取仍NOT VERIFIED。
+
+
+## 2026-11-17 横向微调软件验证
+
+用户指定0.4m/s横向名义速度、28～30cm到位。168项相关检查通过，单包构建及
+安装参数/三个模块字节一致；首轮Python原生段错误及独立pycache重跑有完整记录。
+无设备连接/动作，物理速度/制动/定位/停车及抓取NOT VERIFIED。
+配置、控制链和原始输出位置见camera_ws/docs/lateral_fine_20261117.md。

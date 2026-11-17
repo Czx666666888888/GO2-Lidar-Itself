@@ -28,6 +28,7 @@ class DockSettings:
     arrival_latch_enabled: bool = False  # Current task may remember one in-range pose.
     axis_arrival_latch_enabled: bool = False  # Opt-in independent S1 X/Y arrival memory.
     lateral_position_tolerance: float = 0.02
+    lateral_fine_speed: float = 0.0  # Dock-only nominal lateral speed; zero retains legacy.
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     fine_distance: float = 0.15
     fine_forward_correction_enabled: bool = True
@@ -60,6 +61,8 @@ class DockSettings:
         if min(self.position_tolerance, self.lateral_position_tolerance, self.yaw_tolerance,
                self.settled_sec, self.progress_timeout) <= 0:
             raise ValueError('Dock tolerances and settling time must be positive')
+        if not 0 <= self.lateral_fine_speed <= .4:
+            raise ValueError('Lateral fine speed must be within 0..0.4m/s')
         if self.min_linear_speed < 0:
             raise ValueError('Dock minimum speed must be nonnegative')
         if not (self.position_tolerance < self.settle_exit_tolerance < self.fine_distance

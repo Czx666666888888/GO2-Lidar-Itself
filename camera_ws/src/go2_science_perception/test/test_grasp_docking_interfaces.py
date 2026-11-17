@@ -126,6 +126,8 @@ def test_runner_docking_exceeds_former_combined_deadline_plain_map_remains_bound
     else:
         assert clock[0] < 100 and timers == [85.5]
         assert any('max_run_time:=25.0' in args for _, args in launched)
+    gate_arguments = next(arguments for label, arguments in launched if label == 'gate')
+    assert ('max_speed:=0.4' in gate_arguments) is docking
     assert experiment.stop.messages
 
 

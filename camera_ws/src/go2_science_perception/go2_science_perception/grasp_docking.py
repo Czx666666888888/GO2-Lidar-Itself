@@ -196,7 +196,7 @@ class GraspDocking:
         longitudinal_ok = lateral_ok = False
         if axis_mode:
             # S1 axes oppose the vehicle axes. Test the actual predicted S1
-            # offset so +/-2cm means 30..34cm for either mirrored side.
+            # offset so +/-1cm means 28..30cm for either mirrored side.
             ex = self.p.target_s1_x-report['predicted_target_s1_xy'][0]
             ey = self.p.target_s1_y-report['predicted_target_s1_xy'][1]
             longitudinal_ok = abs(ex) <= self.p.position_tolerance+1e-12
@@ -399,6 +399,23 @@ class GraspDocking:
             target_map = (rotate_xy(core.robot[2],
                           (desired*remaining_x/remaining, desired*remaining_y/remaining))
                           if remaining else (0., 0.))
+        lateral_fine = (axis_mode and self.p.lateral_fine_speed > 0 and yaw_ok
+                        and self.longitudinal_arrival_sample is not None
+                        and self.lateral_arrival_sample is None)
+        if lateral_fine:
+            # Nominal request only. Do not bypass distance-based braking,
+            # measured-speed stopping distance or the existing vector slew.
+            lateral_clearance = max(0., abs(ey)-self.p.lateral_position_tolerance/2)
+            a, latency = core.p.max_deceleration, core.p.braking_latency
+            brake_limit = math.sqrt((a*latency)**2+2*a*lateral_clearance)-a*latency
+            lateral_speed = min(self.p.lateral_fine_speed, brake_limit)
+            if core.actual_speed**2/(2*a)+core.actual_speed*latency >= lateral_clearance:
+                lateral_speed = min(lateral_speed, max(0., core.actual_speed-a*dt))
+            target_map = rotate_xy(core.robot[2], (0., math.copysign(lateral_speed, ey)))
+            out.update(docking_lateral_fine_nominal_mps=self.p.lateral_fine_speed,
+                       docking_lateral_fine_braking_limit_mps=brake_limit,
+                       docking_lateral_fine_target_mps=math.copysign(lateral_speed, ey))
+        out['docking_lateral_fine_active'] = lateral_fine
         if self.lateral_only:
             _, body_vy = rotate_xy(-core.robot[2], target_map)
             target_map = rotate_xy(core.robot[2], (0., body_vy))

@@ -150,6 +150,10 @@ class ScienceTargetApproach(Node):
             values = (floor, speed, yaw, accel, timeout)
             speed_cap = max(self.core.p.max_linear_speed,
                             self.core.p.search_speed if self.core.p.search_enabled else 0.0)
+            docking = getattr(self.core, 'docking', None)
+            if (docking is not None and docking.p.arrival_latch_enabled
+                    and docking.p.axis_arrival_latch_enabled and not docking.p.forward_response_check):
+                speed_cap = max(speed_cap, docking.p.lateral_fine_speed)
             valid = (all(isinstance(v, (int, float)) and math.isfinite(v) for v in values)
                      and dry is False and lease is True and floor == 0.0
                      and 0 < speed <= speed_cap

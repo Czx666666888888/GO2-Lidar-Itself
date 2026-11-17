@@ -160,9 +160,13 @@ class Experiment:
                               '--geometry=160x38', '--', 'bash', '-c',
                               f'bash "{self.root}/camera_ws/scripts/watch_approach_logs.sh"; '
                               'exec bash'])
+        # The existing gate shares its X/Y cap; only docking opts into 0.4.
+        # The controller retains its original 0.3 forward/ordinary planar cap.
         gate_log = self.launch('go2_keyboard_teleop', 'go2_safety_gate', [
             '--params-file', str(share / 'config/science_approach_safety_gate.yaml'),
-            '-p', 'dry_run:=false'], 'gate')
+            '-p', 'dry_run:=false',
+            *(['-p', 'max_speed:=0.4'] if (getattr(self.args, 'grasp_pose', False) and
+                not getattr(self.args, 'forward_response_check', False)) else [])], 'gate')
         search_params = (['--params-file', str(share / 'config/science_target_search.yaml'),
                           '-p', f'search_distance:={self.args.search_distance}',
                           '-p', f'search_timeout:={self.args.search_timeout}']
