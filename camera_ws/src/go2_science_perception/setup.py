@@ -36,6 +36,8 @@ setup(
             "color_block_target_adapter = go2_science_perception.color_block_target_adapter:main",
             "yolo_detector = go2_science_perception.yolo_detector:main",
             "rgbd_capture = go2_science_perception.rgbd_capture:main",
+            "motion_arbiter = go2_science_perception.motion_arbiter:main",
+            "mission_manager = go2_science_perception.mission_manager:main",
         ],
     },
 )
