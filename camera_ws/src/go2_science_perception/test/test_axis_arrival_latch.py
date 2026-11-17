@@ -1,4 +1,4 @@
-"""Independent six/one-centimetre arrival memory; no hardware or ROS init."""
+"""Independent six/two-centimetre arrival memory; no hardware or ROS init."""
 from dataclasses import fields
 from pathlib import Path
 import math
@@ -43,7 +43,7 @@ def step(c, now, ex, ey, speed=0., yaw=0.):
 @pytest.mark.parametrize('first_axis', ['longitudinal', 'lateral'])
 def test_one_axis_cannot_stop_and_remaining_axis_keeps_correcting(side, first_axis):
     c = core(side)
-    ex, ey = (.05, .0793) if first_axis == 'longitudinal' else (.09, .005)
+    ex, ey = (.05, .0793) if first_axis == 'longitudinal' else (.09, .015)
     for i in range(10):
         out = step(c, 10.+i*.1, ex, ey)
         assert out['state'] != 'STOP' and not out['grasp_docking_complete']
@@ -68,18 +68,18 @@ def test_lateral_correction_does_not_stall_in_old_eight_cm_braking_deadband(side
 def test_axes_latch_at_different_times_and_still_require_real_stop(side, first_axis):
     c = core(side)
     first = step(c, 10., .05 if first_axis == 'longitudinal' else .09,
-                 .08 if first_axis == 'longitudinal' else .005, speed=.2)
+                 .08 if first_axis == 'longitudinal' else .015, speed=.2)
     original = first['docking_'+first_axis+'_arrival_sample']
     # Preserve the first arrival despite drift; the other axis reaches its band.
     for i in range(1, 9):
-        out = step(c, 10.+i*.1, .11 if first_axis == 'longitudinal' else .05,
-                   .005 if first_axis == 'longitudinal' else .08, speed=.2)
+        out = step(c, 10.+i*.1, .12 if first_axis == 'longitudinal' else .05,
+                   .015 if first_axis == 'longitudinal' else .08, speed=.2)
         assert out['docking_arrival_latched']
         assert not out['grasp_docking_complete']
     assert out['docking_'+first_axis+'_arrival_sample'] == original
     for i in range(9, 25):
-        out = step(c, 10.+i*.1, .11 if first_axis == 'longitudinal' else .05,
-                   .005 if first_axis == 'longitudinal' else .08)
+        out = step(c, 10.+i*.1, .12 if first_axis == 'longitudinal' else .05,
+                   .015 if first_axis == 'longitudinal' else .08)
         if out['grasp_docking_complete']:
             break
     assert out['state'] == 'STOP' and out['grasp_docking_complete']
@@ -87,7 +87,7 @@ def test_axes_latch_at_different_times_and_still_require_real_stop(side, first_a
 
 @pytest.mark.parametrize('side', ['right', 'left'])
 @pytest.mark.parametrize('lateral_error,accepted', [
-    (.01, True), (.0101, False), (-.01, True), (-.0101, False)])
+    (.02, True), (.0201, False), (-.02, True), (-.0201, False)])
 def test_lateral_band_is_actual_s1_distance_even_with_heading_error(side, lateral_error, accepted):
     c = core(side)
     out = step(c, 10., .05, lateral_error, yaw=math.radians(9))
@@ -114,6 +114,6 @@ def test_partial_arrival_cannot_survive_fault_reset_or_stale_pose(guard):
 def test_both_axis_latches_do_not_replace_current_heading_requirement():
     c = core()
     for i in range(12):
-        out = step(c, 10.+i*.1, .05, .005, yaw=math.radians(15))
+        out = step(c, 10.+i*.1, .05, .015, yaw=math.radians(15))
         assert out['docking_arrival_latched']
         assert not out['grasp_docking_complete'] and out['state'] != 'STOP'

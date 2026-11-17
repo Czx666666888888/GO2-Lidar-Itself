@@ -196,7 +196,7 @@ class GraspDocking:
         longitudinal_ok = lateral_ok = False
         if axis_mode:
             # S1 axes oppose the vehicle axes. Test the actual predicted S1
-            # offset so +/-1cm means 30..32cm for either mirrored side.
+            # offset so +/-2cm means 30..34cm for either mirrored side.
             ex = self.p.target_s1_x-report['predicted_target_s1_xy'][0]
             ey = self.p.target_s1_y-report['predicted_target_s1_xy'][1]
             longitudinal_ok = abs(ex) <= self.p.position_tolerance+1e-12

@@ -105,7 +105,7 @@ def main():
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
                 s1_base_vehicle_xy_m=[-.06, 0],
                 desired_target_s1_xy_m=(None if args.grasp_side == 'auto' else
-                                       [0, .31 if args.grasp_side=='right' else -.31]),
+                                       [0, .32 if args.grasp_side=='right' else -.32]),
                 search_continuous=args.continuous_search,
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),
