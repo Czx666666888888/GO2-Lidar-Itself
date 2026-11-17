@@ -47,7 +47,8 @@ def finish_docked_task(arm_request, posture, log, timeout=300.0, poll=0.25,
                       and state.get('at_zero') is True
                       and state.get('communication_state') == 'OK'
                       and state.get('readiness_state') == 'ZERO_HOLD')
-            if ((not missed and (state.get('last_exit_code') != 0 or
+            if (state.get('last_task', 'grasp') != 'grasp' or
+                    (not missed and (state.get('last_exit_code') != 0 or
                                  state.get('last_result') != ARM_MOTION_DONE)) or
                     not state.get('last_log') or state['last_log'] == before.get('last_log')):
                 raise RuntimeError('No new successful complete grasp result; keep GO2 down')

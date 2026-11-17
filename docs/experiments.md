@@ -474,3 +474,12 @@ The entries below are a structured transcription of the root `README.md`. No ros
 - 原控制器、Manager、转换器实现及camera_origin/0.10m配置未改，hash证据见camera_ws/docs/evidence/color_block_interface/unchanged_integration_controls.json。新增集成approach分支，不启动S1/抓取，不改full/dock功能。
 - 用户改为先完成代码，本轮不连接设备/预览/运动；没有相机/MAP实测坐标、停车距离或物理停止结论。上述真机项均NOT VERIFIED；后续先静态误差检查再另授权单方块、多方块。
 - 完整命令、数据路径和失检ODOM行为：camera_ws/docs/color_block_map_approach.md。早于build的参数检查及默认只读ROS日志目录检查失败，build完成并指定/tmp日志后解析通过。
+
+
+## 2026-11-17 S1 v4软件融合验证
+
+来源：固定SHA256用户原ZIP、实际离线命令输出、colcon构建及安装文件核对。
+原包187测试、融合169测试、v2兼容22测试通过；适配包左右预检与完整性通过。
+单包构建退出0；安装左右目标±0.32m、自动选侧共享几何及交接模块hash一致。
+没有连接GO2、打开相机/串口或真实动作，物理停车/抓取/卸料NOT VERIFIED。
+原始输出与边界见camera_ws/docs/s1_final_fusion_v4_20261117.md。

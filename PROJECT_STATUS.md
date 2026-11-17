@@ -1,5 +1,15 @@
 # Project Status
 
+## 2026-11-17 S1 final fusion v4 / 横向停车32cm
+
+基于远端0b3159d接入用户v4原包（仓库存档及固定SHA256），原全流程改用独立v4目录，
+保留多目标/左右/漏抓、唯一串口、反馈零位与相机交接；支持独立dump，不绑每次grasp。
+左右停车目标±0.36→±0.32m，自动选侧共用；其余当前8cm/10°/0.5秒到位规则不改。
+原包187项、融合169项、v2兼容22项通过；适配包左右预检、单包构建及安装参数/hash核对通过。
+仅本地提交，无部署/运动；真机NOT VERIFIED。返回卸载区导航尚未实现，不能自动卸料；
+J6跟踪长等待/USB根因未在本轮解决。详见camera_ws/docs/s1_final_fusion_v4_20261117.md。
+
+
 ## 2026-11-16 指定21:48录像YOLO→MAP审计
 
 只针对full_1794836905838133718（远端最新7c17021）：584份检测/134份有效深度帧，仅6次MAP，之后128份有效检测未发布正式点。Manager收到6点，3个CANDIDATE未确认，SEARCH无STOP_CONFIRM。首个可定位阻断在adapter发布前，selection reason/20cm与15cm拒绝/精确TF失败未录，具体分支Unknown，不能据failed=0排除TF或据源码存在锁就认定锁是根因。补齐录像原始YOLO/selection/MAP诊断/轨迹及控制触发history，离线audit保留未知；未改身份/抓取/三轮/左右/停靠逻辑。111项离线检查、独立单包构建及3模块安装hash核对通过；未运行硬件，线上与根因分支NOT VERIFIED。详见camera_ws/docs/yolo_handoff_20261116.md。

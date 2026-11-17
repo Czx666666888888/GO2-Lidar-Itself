@@ -1,5 +1,14 @@
 # Current Architecture
 
+## 2026-11-17 S1 v4接入（源码/离线确认）
+
+PC full入口经s1_v4_delivery固定原ZIP与兼容层，使用独立s1-arm-control-v4。
+同一服务处理左右grasp及显式dump，反馈失效不入队；上层grasp只接受对应任务的新结果。
+D435/D455交接、多目标循环和原姿态反馈链保留；左右停车目标±32cm共享给自动选侧。
+当前没有返回卸载区导航，dump尚未成为full末尾的自动阶段。
+细节和验证边界见camera_ws/docs/s1_final_fusion_v4_20261117.md；真机NOT VERIFIED。
+
+
 ## 2026-11-14 PC完整任务的YOLO接入（源码确认）
 
 `go2_test.sh --mode full`经PC时间包装器进入原Workflow：共用V2资产验证，

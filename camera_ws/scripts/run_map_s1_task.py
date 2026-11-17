@@ -55,7 +55,7 @@ def parser():
     p.add_argument('--ssh-key', default='/home/czx666/.ssh/id_ed25519_go2')
     p.add_argument('--host-python', default='/usr/bin/python3')
     p.add_argument('--arm-client',
-                   default='/home/unitree/s1-arm-control-v2/scripts/arm_task_client.py')
+                   default='/home/unitree/s1-arm-control-v4/scripts/arm_task_client.py')
     p.add_argument('--arm-socket', default='/tmp/s1-arm-integration.sock')
     p.add_argument('--task-host-script', default='/home/unitree/go2_map_s1/s1_task_host.py')
     p.add_argument('--go2-interface', default='eth0')
@@ -105,7 +105,7 @@ def main():
                 (['STAND_DOWN', 'S1_GRASP', 'ZERO_HOLD', 'STAND_UP'] if args.full else []),
                 s1_base_vehicle_xy_m=[-.06, 0],
                 desired_target_s1_xy_m=(None if args.grasp_side == 'auto' else
-                                       [0, .36 if args.grasp_side=='right' else -.36]),
+                                       [0, .32 if args.grasp_side=='right' else -.32]),
                 search_continuous=args.continuous_search,
                 s1_base_z=None, operator_docking_validation_acknowledged=bool(
                     args.docking_geometry_verified),

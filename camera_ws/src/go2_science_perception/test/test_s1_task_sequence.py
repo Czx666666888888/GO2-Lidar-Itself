@@ -41,7 +41,8 @@ def test_waits_for_busy_to_end_new_result_and_zero_before_standup():
 @pytest.mark.parametrize('terminal', [
     dict(state='FAULT_HOLD', busy=False, navigation_allowed=False),
     dict(state='FAULT_IO', busy=False, navigation_allowed=False),
-    zero('old'), dict(zero('new'), last_exit_code=3),
+    zero('old'), dict(zero('new'), last_task='dump'),
+    dict(zero('new'), last_exit_code=3),
     dict(zero('new'), last_result='VISUAL_ADAPTIVE_CONTACT_MISS_SAFE_RETURN')])
 def test_fault_old_task_or_nonzero_result_never_stands_up(terminal):
     calls, result = run([zero(), zero(), terminal])

@@ -6,7 +6,8 @@ from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import threading
 from go2_build_fingerprint import fingerprint
-from s1_v2_delivery import ensure_v2_package
+from s1_v4_delivery import (ensure_v4_package, REMOTE_PACKAGE, PACKAGE_VERSION,
+                            ARCHIVE_SHA256)
 from go2_camera_handoff import RELEASE_CHECK, service_requests, atomic_json
 from go2_three_grasps import run_three_grasps, progress_snapshot
 import fcntl
@@ -27,7 +28,7 @@ HOST = 'unitree@192.168.123.18'
 KEY = '/home/czx666/.ssh/id_ed25519_go2'
 REMOTE = '/home/unitree/go2_map_s1'
 ARM = '/home/unitree/s1-arm-control'  # legacy
-ARM_V2 = '/home/unitree/s1-arm-control-v2'
+ARM_V2 = REMOTE_PACKAGE
 ARM_PY = '/home/unitree/s1-arm-py310/bin/python'
 ARM_DEVICES = ('/dev/ttyUSB0', '/dev/ttyUSB1')
 SSH = ['ssh', '-i', KEY, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
@@ -300,7 +301,7 @@ class Workflow:
 
     def arm_command(self, command='status'):
         if command not in ('status','grasp'):
-            raise RuntimeError('S1 v2 supports only status/grasp; startup handles zero')
+            raise RuntimeError('S1 v4 supports only status/grasp; startup handles zero')
         result = remote(shlex.join(['/usr/bin/python3', ARM_V2+'/scripts/arm_task_client.py',
                                     command]), capture_output=True, text=True)
         return json.loads(result.stdout)
@@ -432,7 +433,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
                input=json.dumps(files),text=True)
 
     def ensure_s1(self, running, device='/dev/ttyUSB0', running_modes=None):
-        """S1 v2 itself reads feedback and performs controlled startup zero return."""
+        """S1 v4 itself reads feedback and performs controlled startup zero return."""
         side=self.args.grasp_side
         running_modes=running_modes or []
         entry='run_go2_left_grasp.py' if side=='left' else 'run_arm_integration.py'
@@ -443,33 +444,33 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
             state=self.status()
             if zero_hold(state):
                 if self.args.mode == 'full':
-                    ensure_v2_package(ROOT, SSH, HOST, running=True)
-                print('REUSE S1 v2 '+side+' ZERO_HOLD',flush=True)
+                    ensure_v4_package(ROOT, SSH, HOST, running=True)
+                print('REUSE S1 v4 '+side+' ZERO_HOLD',flush=True)
                 return
-            if state.get('busy') or state.get('state') in ('STARTING','QUEUED','GRASPING','RETURNING_ZERO'):
+            if state.get('busy') or state.get('state') in ('STARTING','QUEUED','GRASPING','DUMPING','RETURNING_ZERO'):
                 raise RuntimeError('S1正在初始化、回零或执行抓取，保留唯一串口所有者: '+str(state))
             raise RuntimeError('S1真实状态异常，禁止创建第二串口所有者: '+str(state))
-        package=ensure_v2_package(ROOT,SSH,HOST,running=False)
+        package=ensure_v4_package(ROOT,SSH,HOST,running=False)
         remote('mkdir -p '+REMOTE)
-        arm_log=REMOTE+'/s1_v2_'+side+'_'+self.folder.name+'.log'
+        arm_log=REMOTE+'/s1_v4_'+side+'_'+self.folder.name+'.log'
         argv=[ARM_PY,'-uB','scripts/'+entry,'--dev','auto','--execute']
         started=remote(shlex.join(['/usr/bin/python3','-c',detached_launcher(argv,package,arm_log)]),
                        capture_output=True,text=True)
         marker=next((line.split()[1] for line in started.stdout.splitlines()
                      if line.startswith('S1_PID ')),None)
         if not marker or not marker.isdigit():
-            raise RuntimeError('S1 v2启动未报告进程PID: '+started.stdout)
-        print('S1_V2_AUTO_ZERO_START '+side+' pid='+marker+' log='+HOST+':'+arm_log,flush=True)
+            raise RuntimeError('S1 v4启动未报告进程PID: '+started.stdout)
+        print('S1_V4_AUTO_ZERO_START '+side+' pid='+marker+' log='+HOST+':'+arm_log,flush=True)
         deadline=time.monotonic()+75
         last=None
         while time.monotonic()<deadline:
             try:
                 last=self.status()
                 if zero_hold(last):
-                    print('S1_V2_ZERO_HOLD_READY '+side,flush=True)
+                    print('S1_V4_ZERO_HOLD_READY '+side,flush=True)
                     return
                 if last.get('state') in ('FAULT_HOLD','FAULT_IO','STOPPING','STOPPED'):
-                    raise RuntimeError('S1 v2回零失败: '+str(last))
+                    raise RuntimeError('S1 v4回零失败: '+str(last))
             except (OSError,subprocess.CalledProcessError,ValueError):
                 # Initialization has not yet opened the socket. If the process died,
                 # report its log immediately rather than waiting the full timeout.
@@ -478,9 +479,9 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
                 except subprocess.CalledProcessError:
                     details=remote('tail -n 18 '+shlex.quote(arm_log),
                                    capture_output=True,text=True,timeout=8).stdout
-                    raise RuntimeError('S1 v2启动已退出: '+details)
+                    raise RuntimeError('S1 v4启动已退出: '+details)
             time.sleep(.5)
-        raise RuntimeError('S1 v2初始化或回零超时: '+str(last)+' log='+arm_log)
+        raise RuntimeError('S1 v4初始化或回零超时: '+str(last)+' log='+arm_log)
 
     def spawn(self, argv, label, **kwargs):
         if any(name == label and child.poll() is None for child, _, name in self.children):
@@ -551,7 +552,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
             return
         state = self.status()
         if state.get('busy') is not False or state.get('state') in (
-                'STARTING', 'QUEUED', 'GRASPING', 'RETURNING_ZERO'):
+                'STARTING', 'QUEUED', 'GRASPING', 'DUMPING', 'RETURNING_ZERO'):
             raise RuntimeError('S1 still active/unknown; keep D435 paused: '+str(state))
         self.cameras_released({'0b5c'})
         # Fail closed if any existing D435 owner survived an incomplete pause.
@@ -606,6 +607,7 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         self.folder.mkdir(parents=True, exist_ok=True)
         (self.folder/'manifest.json').write_text(json.dumps(dict(
             commit=head, branch=BRANCH, mode=self.args.mode,
+            arm_package=PACKAGE_VERSION, arm_archive_sha256=ARCHIVE_SHA256,
             time_mapping_mode=os.environ.get('GO2_TIME_MAPPING_MODE', 'legacy'),
             work_dir=str(self.work), physical_result='NOT VERIFIED'), indent=2))
         self.env_prefix = '; '.join('source '+shlex.quote(str(p))+' || exit' for p in [
@@ -725,7 +727,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             if inventory['task']:
                 raise RuntimeError('远端抓取任务仍在运行')
             if inventory['arm'] and any(root != ARM_V2 for root in inventory['arm_roots']):
-                raise RuntimeError('检测到历史S1服务，不能冒充v2自动回零；需先停止旧串口进程: '+str(inventory['arm_roots']))
+                raise RuntimeError('检测到历史S1服务，不能冒充v4自动回零；需先停止旧串口进程: '+str(inventory['arm_roots']))
             arm_device=select_arm_device(inventory['serial_devices'], inventory['arm_devices'])
             print('S1_SERIAL '+arm_device, flush=True)
             if not {'213622070598','231622302209'} <= set(inventory['cameras']):

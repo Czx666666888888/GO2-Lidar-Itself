@@ -22,7 +22,7 @@ def replace_once(text, old, new):
     return text.replace(old, new, 1)
 
 
-def compatibility_payload(root, bundle, *, dual_side=True):
+def compatibility_payload(root, bundle, *, dual_side=True, final_fusion=False):
     names = ('scripts/run_arm_integration.py', 's1_control/integration.py',
              'scripts/arm_task_client.py', 'scripts/verify_handoff.py')
     originals = {name: bundle.read('s1-arm-control/'+name) for name in names}
@@ -76,6 +76,22 @@ def compatibility_payload(root, bundle, *, dual_side=True):
                          'else "FAULT", error=str(exc))), flush=True)\n'
                          '        raise\n    finally:\n        if server is not None:')
     integration = originals[names[1]].decode()
+    if final_fusion:
+        # Keep dump on the original generic queue; latch side/miss only for grasp.
+        integration = replace_once(integration,
+            '    def request_grasp(self):\n        return self.request_task("grasp")',
+            '    def request_grasp(self):\n'
+            '        with self._lock:\n'
+            '            if self._state["state"] != "ZERO_HOLD":\n'
+            '                return {"accepted": False, "reason": self._state["state"]}\n'
+            '            self._state.update(state="QUEUED", busy=True, navigation_allowed=False)\n'
+            '        self.jobs.put("grasp")\n'
+            '        return {"accepted": True, "state": "QUEUED"}')
+        integration = replace_once(integration,
+            '            self._state.update(state="QUEUED", busy=True, navigation_allowed=False)\n'
+            '        self.jobs.put("grasp" if command == "grasp" else (command, payload))',
+            '            self._state.update(**dict(state="QUEUED", busy=True, navigation_allowed=False))\n'
+            '        self.jobs.put("grasp" if command == "grasp" else (command, payload))')
     integration = replace_once(integration, 'import time\n',
                                'import time\nfrom .startup_status import feedback_status, communication_error\n')
     integration = replace_once(integration, '    def snapshot(self):\n        with self._lock:',
@@ -147,10 +163,11 @@ def compatibility_payload(root, bundle, *, dual_side=True):
             '"left" if "left" in args.config else "right"))')
         entry = replace_once(entry, 'serial_mode="auto", grasp_side=',
                              'serial_mode="auto", grasp_sides_supported=["right", "left"], grasp_side=')
+        indent = '                ' if final_fusion else '            '
         entry = replace_once(entry,
-            '            session.run_task(lambda active: flow.main(flow_arguments(args, execute=True),',
-            '            task_args = selected_grasp_arguments(args, session.snapshot()["grasp_side"])\n'
-            '            session.run_task(lambda active: flow.main(flow_arguments(task_args, execute=True),')
+            indent+'session.run_task(lambda active: flow.main(flow_arguments(args, execute=True),',
+            indent+'task_args = selected_grasp_arguments(args, session.snapshot()["grasp_side"])\n'+
+            indent+'session.run_task(lambda active: flow.main(flow_arguments(task_args, execute=True),')
         integration = replace_once(integration, '    def request_grasp(self):',
             '    def request_grasp(self, side=None):\n'
             '        if side is not None and side not in ("right", "left"):\n'
@@ -214,6 +231,19 @@ def compatibility_payload(root, bundle, *, dual_side=True):
             '        payload = {"command": command}\n'
             '        if allow_missed: payload["allow_missed"] = True')
         changed.update({names[0]: entry.encode(), names[1]: integration.encode(), names[2]: client.encode()})
+    if final_fusion:
+        # Both tasks must reject a stale ZERO_HOLD after a serial/feedback fault.
+        integration = changed[names[1]].decode()
+        for signature in ('    def request_grasp(self, side=None, allow_missed=False):',
+                          '    def request_task(self, command, payload=None):'):
+            integration = replace_once(integration, signature,
+                signature+'\n'
+                '        if self.snapshot().get("readiness_state") != "ZERO_HOLD":\n'
+                '            return dict(accepted=False, reason="S1_NOT_READY")')
+        changed[names[1]] = integration.encode()
+        changed[names[0]] = changed[names[0]].replace(
+            b'service_version="v2_auto_integration"',
+            b'service_version="20261117_final_fusion_v4", task_commands_supported=["status", "grasp", "dump"]')
     for name, content in changed.items():
         compile(content, name, 'exec')
     return {name: dict(original_sha256=hashlib.sha256(originals[name]).hexdigest()
