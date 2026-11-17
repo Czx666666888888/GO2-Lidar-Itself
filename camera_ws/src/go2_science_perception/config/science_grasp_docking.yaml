@@ -5,7 +5,7 @@ science_target_approach:
     dock_s1_base_x: -0.06  # User-measured 0.36m behind nominal lidar +0.30m.
     dock_s1_base_y: 0.0
     dock_target_s1_x: 0.0
-    dock_target_s1_y: 0.32  # User-requested right-side target distance from S1 base.
+    dock_target_s1_y: 0.31  # User-requested right-side target distance from S1 base.
     dock_min_linear_speed: 0.20  # Far approach only; fine control/braking take priority.
     dock_fine_distance: 0.15
     dock_fine_forward_correction_enabled: true  # Correct fore/aft alongside lateral/yaw until arrival.
@@ -27,7 +27,7 @@ science_target_approach:
     dock_position_tolerance: 0.06  # +/-6cm longitudinal arrival in axis latch mode.
     dock_arrival_latch_enabled: true  # Preserve each accepted axis arrival sample.
     dock_axis_arrival_latch_enabled: true  # Both axes must latch before STOP_WAIT.
-    dock_lateral_position_tolerance: 0.02  # +/-2cm around mirrored +/-32cm S1 target.
+    dock_lateral_position_tolerance: 0.01  # +/-1cm around mirrored +/-31cm S1 target.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_stationary_reset_sec: 1.0  # Pause glitches; reset only after 1s continuously invalid.
     dock_settled_sec: 0.5
