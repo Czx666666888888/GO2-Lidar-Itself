@@ -40,6 +40,35 @@ def test_lateral_near_target_is_braked_below_nominal_and_keeps_correcting(side, 
         assert out['vy']*ey > 0
         assert abs(out['vy']) < .4
     assert not out['docking_lateral_arrival_latched']
+    assert out['docking_lateral_fine_raw_braking_limit_mps'] < .2
+    assert out['docking_lateral_fine_braking_floor_mps'] == .2
+    assert out['docking_lateral_fine_braking_limit_mps'] == .2
+    assert abs(out['vy']) == pytest.approx(.2)
+
+
+@pytest.mark.parametrize('sign', [-1, 1])
+def test_lateral_floor_stops_on_arrival_and_respects_measured_speed_braking(sign):
+    c = core()
+    for i in range(20):
+        out = step(c, 10.+i*.1, .05, sign*.025)
+    assert abs(out['vy']) == pytest.approx(.2)
+    step(c, 12., .05, sign*.025)
+    c.actual_speed = .15  # Pose-derived speed used by the existing brake guard.
+    out = c.step(12.01)
+    assert out['docking_lateral_fine_braking_limit_mps'] == .2
+    assert abs(out['docking_lateral_fine_target_mps']) < .2
+    out = step(c, 12.1, .05, sign*.005)
+    assert out['docking_lateral_arrival_latched']
+    assert out['vx'] == out['vy'] == 0.
+
+
+def test_lateral_braking_floor_never_exceeds_configured_nominal_speed():
+    c = core()
+    c.docking.p = replace(c.docking.p, lateral_fine_speed=.1)
+    for i in range(15):
+        out = step(c, 10.+i*.1, .05, .025)
+    assert out['docking_lateral_fine_braking_floor_mps'] == .1
+    assert abs(out['vy']) == pytest.approx(.1)
 
 
 @pytest.mark.parametrize('side', ['left', 'right'])

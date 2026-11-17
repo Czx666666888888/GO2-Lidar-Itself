@@ -403,16 +403,20 @@ class GraspDocking:
                         and self.longitudinal_arrival_sample is not None
                         and self.lateral_arrival_sample is None)
         if lateral_fine:
-            # Nominal request only. Do not bypass distance-based braking,
-            # measured-speed stopping distance or the existing vector slew.
+            # Floor the distance-based limit while lateral correction is active.
+            # Measured-speed braking, arrival stop and vector slew still apply.
             lateral_clearance = max(0., abs(ey)-self.p.lateral_position_tolerance/2)
             a, latency = core.p.max_deceleration, core.p.braking_latency
-            brake_limit = math.sqrt((a*latency)**2+2*a*lateral_clearance)-a*latency
+            raw_brake_limit = math.sqrt((a*latency)**2+2*a*lateral_clearance)-a*latency
+            brake_floor = min(.2, self.p.lateral_fine_speed)
+            brake_limit = max(brake_floor, raw_brake_limit)
             lateral_speed = min(self.p.lateral_fine_speed, brake_limit)
             if core.actual_speed**2/(2*a)+core.actual_speed*latency >= lateral_clearance:
                 lateral_speed = min(lateral_speed, max(0., core.actual_speed-a*dt))
             target_map = rotate_xy(core.robot[2], (0., math.copysign(lateral_speed, ey)))
             out.update(docking_lateral_fine_nominal_mps=self.p.lateral_fine_speed,
+                       docking_lateral_fine_raw_braking_limit_mps=raw_brake_limit,
+                       docking_lateral_fine_braking_floor_mps=brake_floor,
                        docking_lateral_fine_braking_limit_mps=brake_limit,
                        docking_lateral_fine_target_mps=math.copysign(lateral_speed, ey))
         out['docking_lateral_fine_active'] = lateral_fine
