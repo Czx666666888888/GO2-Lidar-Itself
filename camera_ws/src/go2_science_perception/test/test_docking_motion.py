@@ -72,15 +72,19 @@ def test_actual_dock_profiles_disable_only_disagreement_stop(name):
         for field in fields(DockSettings) if 'dock_'+field.name in params})
     assert settings.motion_disagreement_stop_enabled is False
     assert settings.motion_window_sec == settings.stable_window_sec == .5
-    assert settings.position_tolerance == .08
+    assert settings.position_tolerance == .06
+    assert settings.axis_arrival_latch_enabled
+    assert settings.lateral_position_tolerance == .02
     assert settings.settle_exit_tolerance == .10
     assert settings.settled_sec == .5
     assert DockSettings().motion_disagreement_stop_enabled is True
 
 
 @pytest.mark.parametrize('name', ['science_grasp_docking.yaml', 'science_grasp_docking_left.yaml'])
-@pytest.mark.parametrize('distance,completed', [(.079, True), (.08, True), (.081, False)])
-def test_eight_cm_actual_profiles_preserve_stopped_confirmation(name, distance, completed):
+@pytest.mark.parametrize('ex,ey,completed', [
+    (.059, .019, True), (.06, .02, True), (.061, .019, False),
+    (.059, .021, False), (.003, .0793, False), (-.06, -.02, True)])
+def test_actual_profiles_require_six_cm_longitudinal_and_two_cm_lateral(name, ex, ey, completed):
     from pathlib import Path
     from dataclasses import fields
     import yaml
@@ -95,8 +99,8 @@ def test_eight_cm_actual_profiles_preserve_stopped_confirmation(name, distance, 
     c.target = c.anchor_initial = (1., 0.)
     c.lock_id, c.search_origin, c.state, c.started = 1, (0., 0., 0.), 'LOCK_TARGET', 10.
     goal = docking_goal(c.target, 0., settings)
-    # Both components are nonzero: the criterion is the combined planar norm.
-    point = (goal[0]-.6*distance, goal[1]-.8*distance)
+    # Each axis uses its own threshold; a 7.93cm lateral residual must not finish.
+    point = (goal[0]-ex, goal[1]-ey)
     for i in range(6):
         tick(c, 10.+i*.1, point)
     c.visual_time = 10.5

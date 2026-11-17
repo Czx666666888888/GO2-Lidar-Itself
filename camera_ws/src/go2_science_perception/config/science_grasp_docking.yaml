@@ -11,8 +11,8 @@ science_target_approach:
     dock_fine_forward_correction_enabled: true  # Correct fore/aft alongside lateral/yaw until arrival.
     dock_fine_min_linear_speed: 0.18  # Braking/measured-speed/slew limits still take priority.
     dock_fine_max_linear_speed: 0.30  # Remove the previous 0.08 cap; retain overall cap.
-    dock_settle_exit_tolerance: 0.10  # Retain 2cm hysteresis outside the 8cm goal.
-    dock_settle_wait_sec: 2.0  # Resume position correction only outside the 8cm goal.
+    dock_settle_exit_tolerance: 0.10  # Legacy radial exit band; axis latch mode retains accepted samples.
+    dock_settle_wait_sec: 2.0  # Legacy radial stop-wait recovery; dual-axis arrival must latch first.
     dock_forward_step_enabled: false  # Use continuous vx correction; discrete forward steps stay off.
     forward_step_profile_file: 'forward_step_estimated_trial.json'
     dock_allow_estimated_forward_profile: true  # Explicit user request; not measured calibration.
@@ -24,8 +24,10 @@ science_target_approach:
     dock_stable_window_sec: 0.5
     dock_settle_exit_confirm_sec: 0.3
     dock_visual_loss_stop_sec: 0.0  # Locked MAP docking: retain 5m budget, no visual-age fault.
-    dock_position_tolerance: 0.08  # User-restored 8cm combined planar error; still requires stop.
-    dock_arrival_latch_enabled: true  # Remember entry; later position drift does not cancel arrival.
+    dock_position_tolerance: 0.06  # +/-6cm longitudinal arrival in axis latch mode.
+    dock_arrival_latch_enabled: true  # Preserve each accepted axis arrival sample.
+    dock_axis_arrival_latch_enabled: true  # Both axes must latch before STOP_WAIT.
+    dock_lateral_position_tolerance: 0.02  # +/-2cm around mirrored +/-32cm S1 target.
     dock_yaw_tolerance: 0.17453292519943295  # 10 degrees.
     dock_stationary_reset_sec: 1.0  # Pause glitches; reset only after 1s continuously invalid.
     dock_settled_sec: 0.5

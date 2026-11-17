@@ -483,3 +483,11 @@ The entries below are a structured transcription of the root `README.md`. No ros
 单包构建退出0；安装左右目标±0.32m、自动选侧共享几何及交接模块hash一致。
 没有连接GO2、打开相机/串口或真实动作，物理停车/抓取/卸料NOT VERIFIED。
 原始输出与边界见camera_ws/docs/s1_final_fusion_v4_20261117.md。
+
+
+## 2026-11-17 双轴到位软件验证
+
+基线658e9a7，前后6cm/横向2cm独立历史到位；横向目标仍±32cm。
+202项定向检查通过，单包构建及安装参数/源码hash一致。合并测试的pytest/原生加载故障与
+隔离重跑记录见camera_ws/docs/dual_axis_arrival_20261117.md。无设备连接或真实动作，
+物理定位/横移/停车/抓取仍NOT VERIFIED。

@@ -26,6 +26,8 @@ class DockSettings:
     settled_sec: float = 0.5
     stationary_reset_sec: float = 0.0  # Zero preserves immediate-reset compatibility.
     arrival_latch_enabled: bool = False  # Current task may remember one in-range pose.
+    axis_arrival_latch_enabled: bool = False  # Opt-in independent S1 X/Y arrival memory.
+    lateral_position_tolerance: float = 0.02
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
     fine_distance: float = 0.15
     fine_forward_correction_enabled: bool = True
@@ -55,7 +57,7 @@ class DockSettings:
     def __post_init__(self):
         if not all(math.isfinite(v) for v in vars(self).values()):
             raise ValueError('Dock geometry must be finite')
-        if min(self.position_tolerance, self.yaw_tolerance,
+        if min(self.position_tolerance, self.lateral_position_tolerance, self.yaw_tolerance,
                self.settled_sec, self.progress_timeout) <= 0:
             raise ValueError('Dock tolerances and settling time must be positive')
         if self.min_linear_speed < 0:

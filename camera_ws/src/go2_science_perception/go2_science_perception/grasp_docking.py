@@ -20,6 +20,7 @@ class GraspDocking:
         self.stationary_last_good = None
         self.stationary_bad_since = None
         self.arrival_sample = None
+        self.longitudinal_arrival_sample = self.lateral_arrival_sample = None
         self.stop_wait_started = None
         self.exit_candidate_since = None
         self.visual_settle_started = None
@@ -34,6 +35,18 @@ class GraspDocking:
         self.probe_speed_at = self.probe_speed_origin = None
         self.probe_gate_zero = None
         self.probe_peak_request = self.probe_peak_outlet = 0.
+
+    def clear_arrival(self):
+        self.arrival_sample = None
+        self.longitudinal_arrival_sample = self.lateral_arrival_sample = None
+
+    def arrival_status(self):
+        return dict(docking_arrival_latched=self.arrival_sample is not None,
+                    docking_arrival_sample=self.arrival_sample,
+                    docking_longitudinal_arrival_latched=self.longitudinal_arrival_sample is not None,
+                    docking_lateral_arrival_latched=self.lateral_arrival_sample is not None,
+                    docking_longitudinal_arrival_sample=self.longitudinal_arrival_sample,
+                    docking_lateral_arrival_sample=self.lateral_arrival_sample)
 
     def reset_stationary(self):
         self.stationary_since = self.stationary_last_good = self.stationary_bad_since = None
@@ -160,13 +173,14 @@ class GraspDocking:
                    distance=report['position_error_m'], docking_fixed_timeout_sec=None,
                    camera_distance_xy=math.dist(core.target, core.camera)
                    if core.camera is not None else None)
+        axis_mode = self.p.arrival_latch_enabled and self.p.axis_arrival_latch_enabled
         out.update(docking_arrival_latch_enabled=self.p.arrival_latch_enabled,
-                   docking_arrival_latched=self.arrival_sample is not None,
-                   docking_arrival_sample=self.arrival_sample)
+                   docking_axis_arrival_latch_enabled=axis_mode,
+                   **self.arrival_status())
         if not active:
             if core.state != 'STOP':
-                self.arrival_sample = None
-                out.update(docking_arrival_latched=False, docking_arrival_sample=None)
+                self.clear_arrival()
+                out.update(self.arrival_status())
             self.forward.reset()
             self.stop_wait_started = self.stationary_since = None
             self.reset_stationary()
@@ -176,17 +190,44 @@ class GraspDocking:
         distance, yaw_error = report['position_error_m'], report['yaw_error_rad']
         if distance <= self.p.fine_distance and not self.p.fine_forward_correction_enabled:
             self.lateral_only = True
-        position_ok = distance <= self.p.position_tolerance+1e-12
+        goal = report['vehicle_goal_map_pose']
+        dx, dy = goal[0]-core.robot[0], goal[1]-core.robot[1]
+        ex, ey = rotate_xy(-core.robot[2], (dx, dy))
+        longitudinal_ok = lateral_ok = False
+        if axis_mode:
+            # S1 axes oppose the vehicle axes. Test the actual predicted S1
+            # offset so +/-2cm means 30..34cm for either mirrored side.
+            ex = self.p.target_s1_x-report['predicted_target_s1_xy'][0]
+            ey = self.p.target_s1_y-report['predicted_target_s1_xy'][1]
+            longitudinal_ok = abs(ex) <= self.p.position_tolerance+1e-12
+            lateral_ok = abs(ey) <= self.p.lateral_position_tolerance+1e-12
+            position_ok = longitudinal_ok and lateral_ok
+        else:
+            position_ok = distance <= self.p.position_tolerance+1e-12
         yaw_ok = abs(yaw_error) <= self.p.yaw_tolerance+1e-12
-        if self.p.arrival_latch_enabled and position_ok and self.arrival_sample is None:
-            self.arrival_sample = dict(monotonic=now, odom_monotonic=core.odom_time,
-                                       position_error_m=distance,
-                                       yaw_error_rad=yaw_error, target_map_xy=list(core.target),
-                                       vehicle_map_pose=list(core.robot))
+        sample = dict(monotonic=now, odom_monotonic=core.odom_time,
+                      position_error_m=distance, yaw_error_rad=yaw_error,
+                      target_map_xy=list(core.target), vehicle_map_pose=list(core.robot),
+                      body_error_xy_m=[ex, ey], predicted_target_s1_xy=report['predicted_target_s1_xy'])
+        if axis_mode:
+            if longitudinal_ok and self.longitudinal_arrival_sample is None:
+                self.longitudinal_arrival_sample = dict(sample)
+            if lateral_ok and self.lateral_arrival_sample is None:
+                self.lateral_arrival_sample = dict(sample)
+            both_latched = (self.longitudinal_arrival_sample is not None and
+                            self.lateral_arrival_sample is not None)
+            if both_latched and self.arrival_sample is None:
+                self.arrival_sample = dict(sample)
+        elif self.p.arrival_latch_enabled and position_ok and self.arrival_sample is None:
+            self.arrival_sample = sample
+        out.update(docking_body_error_xy=[ex, ey],
+                   docking_longitudinal_in_tolerance=longitudinal_ok if axis_mode else None,
+                   docking_lateral_in_tolerance=lateral_ok if axis_mode else None,
+                   docking_longitudinal_tolerance_m=self.p.position_tolerance,
+                   docking_lateral_tolerance_m=self.p.lateral_position_tolerance if axis_mode else None)
         arrival_latched = self.p.arrival_latch_enabled and self.arrival_sample is not None
-        arrival_ok = position_ok or arrival_latched
-        out.update(docking_arrival_latched=arrival_latched,
-                   docking_arrival_sample=self.arrival_sample)
+        arrival_ok = arrival_latched if axis_mode else position_ok or arrival_latched
+        out.update(self.arrival_status())
         if now-core.visual_time > core.p.visual_timeout:
             if core.lost_at is None:
                 core.lost_at = now
@@ -239,8 +280,8 @@ class GraspDocking:
         out['docking_progress_timeout_enabled'] = False
         self.forward.observe(core, now)
         if core.state == 'FAULT':
-            self.arrival_sample = None
-            out.update(docking_arrival_latched=False, docking_arrival_sample=None)
+            self.clear_arrival()
+            out.update(self.arrival_status())
             self.stop_wait_started = self.stationary_since = None
             self.reset_stationary()
             self.velocity_map = (0.0, 0.0)
@@ -250,10 +291,6 @@ class GraspDocking:
             return out
 
         core.state = 'APPROACH_TO_GRASP_POSE'
-        goal = report['vehicle_goal_map_pose']
-        dx, dy = goal[0]-core.robot[0], goal[1]-core.robot[1]
-        ex, ey = rotate_xy(-core.robot[2], (dx, dy))
-        out['docking_body_error_xy'] = [ex, ey]
         # Optional arrival memory keeps translation at zero after entering range.
         # Current heading and stopped feedback remain required for completion.
         exit_reason = None
@@ -335,7 +372,14 @@ class GraspDocking:
         fine = fine or self.lateral_only
         if not arrival_ok:
             a, latency = core.p.max_deceleration, core.p.braking_latency
-            clearance = max(0.0, distance-self.p.position_tolerance/2)
+            if axis_mode:
+                clearance = math.hypot(
+                    max(0., abs(ex)-self.p.position_tolerance/2)
+                    if self.longitudinal_arrival_sample is None else 0.,
+                    max(0., abs(ey)-self.p.lateral_position_tolerance/2)
+                    if self.lateral_arrival_sample is None else 0.)
+            else:
+                clearance = max(0.0, distance-self.p.position_tolerance/2)
             safe = math.sqrt((a*latency)**2+2*a*clearance)-a*latency
             # Minimum applies to the requested planar magnitude, before all
             # braking/slew limits; never force it on either axis separately.
@@ -348,6 +392,13 @@ class GraspDocking:
         # Kx=Ky=kp_linear. Map-frame slew limiting also accounts for rotation of
         # the body axes between ticks; both acceleration and braking are vector bounds.
         target_map = (desired*dx/distance, desired*dy/distance) if distance else (0.0, 0.0)
+        if axis_mode:
+            remaining_x = ex if self.longitudinal_arrival_sample is None else 0.
+            remaining_y = ey if self.lateral_arrival_sample is None else 0.
+            remaining = math.hypot(remaining_x, remaining_y)
+            target_map = (rotate_xy(core.robot[2],
+                          (desired*remaining_x/remaining, desired*remaining_y/remaining))
+                          if remaining else (0., 0.))
         if self.lateral_only:
             _, body_vy = rotate_xy(-core.robot[2], target_map)
             target_map = rotate_xy(core.robot[2], (0., body_vy))

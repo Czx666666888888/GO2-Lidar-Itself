@@ -1,5 +1,13 @@
 # Current Architecture
 
+## 2026-11-17 双轴历史到位（源码/离线验证）
+
+左右抓取停靠分别锁存预测S1前后误差≤6cm、横向误差≤2cm（Y目标±32cm），
+两方向均有到位样本后才进入原航向/停稳确认，原STOP→释放控制→姿态反馈交接不变。
+已锁存方向制动、未到位方向继续修正；新任务和FAULT清除。普通MAP/SEARCH不改。
+证据与历史记忆/当前误差边界见camera_ws/docs/dual_axis_arrival_20261117.md；真机NOT VERIFIED。
+
+
 ## 2026-11-17 S1 v4接入（源码/离线确认）
 
 PC full入口经s1_v4_delivery固定原ZIP与兼容层，使用独立s1-arm-control-v4。
