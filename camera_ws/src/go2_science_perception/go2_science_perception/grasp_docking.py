@@ -408,7 +408,7 @@ class GraspDocking:
             lateral_clearance = max(0., abs(ey)-self.p.lateral_position_tolerance/2)
             a, latency = core.p.max_deceleration, core.p.braking_latency
             raw_brake_limit = math.sqrt((a*latency)**2+2*a*lateral_clearance)-a*latency
-            brake_floor = min(.2, self.p.lateral_fine_speed)
+            brake_floor = min(.3, self.p.lateral_fine_speed)
             brake_limit = max(brake_floor, raw_brake_limit)
             lateral_speed = min(self.p.lateral_fine_speed, brake_limit)
             if core.actual_speed**2/(2*a)+core.actual_speed*latency >= lateral_clearance:

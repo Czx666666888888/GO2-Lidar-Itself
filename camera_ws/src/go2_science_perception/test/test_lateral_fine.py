@@ -33,17 +33,17 @@ def test_pure_lateral_can_reach_point_four_with_original_acceleration(side, sign
 @pytest.mark.parametrize('ey', [-.025, .025])
 def test_lateral_near_target_is_braked_below_nominal_and_keeps_correcting(side, ey):
     c = core(side)
-    for i in range(15):
+    for i in range(25):
         out = step(c, 10.+i*.1, .05, ey)
         assert out['docking_lateral_fine_active']
         assert 0 < abs(out['vy']) <= out['docking_lateral_fine_braking_limit_mps']+1e-10
         assert out['vy']*ey > 0
         assert abs(out['vy']) < .4
     assert not out['docking_lateral_arrival_latched']
-    assert out['docking_lateral_fine_raw_braking_limit_mps'] < .2
-    assert out['docking_lateral_fine_braking_floor_mps'] == .2
-    assert out['docking_lateral_fine_braking_limit_mps'] == .2
-    assert abs(out['vy']) == pytest.approx(.2)
+    assert out['docking_lateral_fine_raw_braking_limit_mps'] < .3
+    assert out['docking_lateral_fine_braking_floor_mps'] == .3
+    assert out['docking_lateral_fine_braking_limit_mps'] == .3
+    assert abs(out['vy']) == pytest.approx(.3)
 
 
 @pytest.mark.parametrize('sign', [-1, 1])
@@ -51,12 +51,12 @@ def test_lateral_floor_stops_on_arrival_and_respects_measured_speed_braking(sign
     c = core()
     for i in range(20):
         out = step(c, 10.+i*.1, .05, sign*.025)
-    assert abs(out['vy']) == pytest.approx(.2)
+    assert abs(out['vy']) == pytest.approx(.3)
     step(c, 12., .05, sign*.025)
     c.actual_speed = .15  # Pose-derived speed used by the existing brake guard.
     out = c.step(12.01)
-    assert out['docking_lateral_fine_braking_limit_mps'] == .2
-    assert abs(out['docking_lateral_fine_target_mps']) < .2
+    assert out['docking_lateral_fine_braking_limit_mps'] == .3
+    assert abs(out['docking_lateral_fine_target_mps']) < .3
     out = step(c, 12.1, .05, sign*.005)
     assert out['docking_lateral_arrival_latched']
     assert out['vx'] == out['vy'] == 0.
