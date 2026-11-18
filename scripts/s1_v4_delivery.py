@@ -7,16 +7,16 @@ import subprocess
 import zipfile
 from pathlib import Path
 
-from s1_v2_compat import compatibility_payload
+from s1_v2_compat import compatibility_payload, replace_once
 
 PACKAGE_VERSION = '20261117_final_fusion_v4'
 ARCHIVE_SHA256 = '6950d2cb8135f6ee56ccc0535dc1da6dd6a68e17478fea8cacbd5ff0bc14c90b'
 ARCHIVE = 'camera_ws/s1_service/deliveries/S1_arm_final_fusion_20261117_v4.zip'
 REMOTE_PACKAGE = '/home/unitree/s1-arm-control-v4'
-COMPAT_VERSION = 'v4_multitarget_dump_2'
+COMPAT_VERSION = 'v4_multitarget_dump_3'
 
 
-def delivery_payload(root, *, previous=False):
+def delivery_payload(root, *, previous=False, legacy_status=False):
     path = Path(root) / ARCHIVE
     if hashlib.sha256(path.read_bytes()).hexdigest() != ARCHIVE_SHA256:
         raise RuntimeError('S1 v4 archive hash mismatch; preserve')
@@ -43,7 +43,23 @@ def delivery_payload(root, *, previous=False):
         content = source.replace(old, old.replace(b'0.40', b'0.80'), 1)
         files[name].update(content=base64.b64encode(content).decode(),
                            sha256=hashlib.sha256(content).hexdigest())
-    return path, dict(version='v4_multitarget_dump_1' if previous else COMPAT_VERSION,
+    if not previous and not legacy_status:
+        name = 's1_control/integration.py'
+        source = base64.b64decode(files[name]['content']).decode()
+        # Reset result metadata under the same lock as the accepted queue transition.
+        # The controller's safety latch (_fault) is independent of these public fields.
+        queue_state = 'state="QUEUED", busy=True, navigation_allowed=False'
+        cleared_state = queue_state + ',\n                               last_result=None, last_log=None, last_exit_code=None, error=None'
+        source = replace_once(source, f'self._state.update({queue_state})',
+                              f'self._state.update({cleared_state})')
+        source = replace_once(source, f'self._state.update(**dict({queue_state}))',
+                              f'self._state.update({cleared_state})')
+        content = source.encode()
+        files[name].update(content=base64.b64encode(content).decode(),
+                           sha256=hashlib.sha256(content).hexdigest())
+    version = ('v4_multitarget_dump_1' if previous else
+               'v4_multitarget_dump_2' if legacy_status else COMPAT_VERSION)
+    return path, dict(version=version,
                       archive_sha256=ARCHIVE_SHA256, files=files)
 
 
@@ -54,7 +70,7 @@ root=pathlib.Path(sys.argv[1])
 if not root.exists(): print('MISSING');raise SystemExit(0)
 meta=json.loads((root/'S1_V2_COMPAT.json').read_text())
 expected=json.loads(sys.stdin.read())
-previous=expected.pop('__previous__',None)
+previous=expected.pop('__previous__',{}).get(meta['version'])
 upgrade=previous is not None and meta==previous
 if (not upgrade and meta['version']!=sys.argv[2]) or meta['archive_sha256']!=sys.argv[3]:
     raise SystemExit('Different S1 v4 delivery; preserve')
@@ -68,7 +84,7 @@ for line in (root/'SHA256SUMS').read_text().splitlines():
     digest=expected.get(name,{}).get('sha256',digest)
     if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest:
         raise SystemExit('Modified S1 v4 upstream; preserve: '+name)
-print('UPGRADE' if upgrade else 'READY')
+print('UPGRADE '+meta['version'] if upgrade else 'READY')
 '''
 
 INSTALL = r'''
@@ -122,10 +138,13 @@ def ensure_v4_package(root, ssh, host, *, running=False):
                 for name, item in data['files'].items()}
     check_command = ['/usr/bin/python3', '-c', CHECK, REMOTE_PACKAGE,
                      COMPAT_VERSION, ARCHIVE_SHA256]
-    previous = delivery_payload(root, previous=True)[1]
-    previous['files'] = {name: {k: v for k, v in item.items() if k != 'content'}
-                         for name, item in previous['files'].items()}
-    check_input = dict(expected, __previous__=previous)
+    prior_deliveries = {}
+    for options in (dict(previous=True), dict(legacy_status=True)):
+        previous = delivery_payload(root, **options)[1]
+        previous['files'] = {name: {k: v for k, v in item.items() if k != 'content'}
+                             for name, item in previous['files'].items()}
+        prior_deliveries[previous['version']] = previous
+    check_input = dict(expected, __previous__=prior_deliveries)
     argv = [*ssh, host, shlex.join(check_command)]
     result = subprocess.run(argv, input=json.dumps(check_input), capture_output=True,
                             text=True, timeout=30, check=True)
@@ -133,10 +152,11 @@ def ensure_v4_package(root, ssh, host, *, running=False):
         return REMOTE_PACKAGE
     if running:
         raise RuntimeError('S1 service is running; cannot install v4 over a live owner')
-    if result.stdout.strip() == 'UPGRADE':
+    status, _, version = result.stdout.strip().partition(' ')
+    if status == 'UPGRADE' and version in prior_deliveries:
         upgrade_command = ['/usr/bin/python3', '-c', UPGRADE, REMOTE_PACKAGE]
         subprocess.run([*ssh, host, shlex.join(upgrade_command)],
-                       input=json.dumps(dict(previous=previous, current=data)),
+                       input=json.dumps(dict(previous=prior_deliveries[version], current=data)),
                        text=True, timeout=30, check=True)
         subprocess.run(argv, input=json.dumps(check_input), capture_output=True,
                        text=True, timeout=30, check=True)
@@ -184,5 +204,5 @@ backup=root/'.v2-compat-backups'/previous['version']/'S1_V2_COMPAT.json'
 backup.parent.mkdir(parents=True,exist_ok=True)
 if not backup.exists():shutil.copy2(meta,backup)
 temp=meta.with_suffix('.upgrade-tmp');temp.write_text(json.dumps(current,indent=2)+'\n');temp.replace(meta)
-print('S1_V4_GRIP_FORCE_UPGRADED')
+print('S1_V4_ADAPTER_UPGRADED')
 '''

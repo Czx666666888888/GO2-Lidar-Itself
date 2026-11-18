@@ -76,6 +76,24 @@ def test_dump_is_independent_and_never_replaces_busy_grasp(session):
 
 
 @pytest.mark.parametrize('task', ['grasp', 'dump'])
+def test_accepting_new_task_clears_old_result_but_rejecting_busy_task_does_not(session, task):
+    previous = dict(last_result='old failure', last_log='/old/run.json',
+                    last_exit_code=1, error='old failure')
+    session._update(**previous)
+    request = session.request_grasp if task == 'grasp' else lambda: session.request_task('dump', {})
+    assert request()['accepted']
+    state = session.snapshot()
+    assert state['state'] == 'QUEUED'
+    assert all(state[key] is None for key in previous)
+
+    current = dict(last_result='current failure', last_log='/current/run.json',
+                   last_exit_code=2, error='current failure')
+    session._update(**current)
+    assert not request()['accepted']
+    assert all(session.snapshot()[key] == value for key, value in current.items())
+
+
+@pytest.mark.parametrize('task', ['grasp', 'dump'])
 def test_feedback_failure_rejects_both_tasks(session, task):
     session.arm.get_pos = lambda: [float('nan')] * 7
     reply = session.request_grasp('right') if task == 'grasp' else session.request_task('dump', {})
@@ -162,12 +180,16 @@ def test_installer_race_with_new_owner_never_writes(payload, tmp_path, monkeypat
 
 
 @pytest.mark.parametrize('active_owner', [False, True])
-def test_force_upgrade_preserves_every_other_resource(installed, payload, monkeypatch, active_owner):
+@pytest.mark.parametrize('previous_options', [dict(previous=True), dict(legacy_status=True)])
+def test_upgrade_preserves_every_other_resource(installed, payload, active_owner, previous_options):
     target, expected = installed
-    previous = delivery.delivery_payload(ROOT, previous=True)[1]
+    previous = delivery.delivery_payload(ROOT, **previous_options)[1]
     for name, item in previous['files'].items():
         (target / name).write_bytes(base64.b64decode(item.pop('content')))
     (target / 'S1_V2_COMPAT.json').write_text(json.dumps(previous))
+    check = check_installed(target, dict(expected, __previous__={previous['version']: previous}))
+    assert check.returncode == 0, check.stderr
+    assert check.stdout.strip() == 'UPGRADE ' + previous['version']
     before = {name: (target / name).read_bytes() for name in expected}
     if active_owner:
         import os
@@ -183,8 +205,13 @@ def test_force_upgrade_preserves_every_other_resource(installed, payload, monkey
         assert json.loads((target / 'S1_V2_COMPAT.json').read_text()) == previous
     else:
         assert result.returncode == 0, result.stderr
-        assert changed == {'scripts/run_go2_visual_alignment.py'}
-        name = next(iter(changed))
-        assert (target / name).read_bytes() == before[name].replace(
-            b'setdefault("secure_force_nm", 0.40)', b'setdefault("secure_force_nm", 0.80)', 1)
+        assert 's1_control/integration.py' in changed
+        changed.remove('s1_control/integration.py')
+        if previous_options.get('previous'):
+            name = 'scripts/run_go2_visual_alignment.py'
+            assert changed == {name}
+            assert (target / name).read_bytes() == before[name].replace(
+                b'setdefault("secure_force_nm", 0.40)', b'setdefault("secure_force_nm", 0.80)', 1)
+        else:
+            assert not changed
         assert check_installed(target, expected).returncode == 0
