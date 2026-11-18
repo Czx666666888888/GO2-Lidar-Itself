@@ -1,5 +1,6 @@
 """Offline regressions on the actual node methods, without creating DDS participants."""
 from pathlib import Path
+import math
 import sys
 import time
 from types import SimpleNamespace as NS
@@ -30,16 +31,100 @@ class NavigationRegressionTests(unittest.TestCase):
         n=self.explorer();n.last_rec=None;n.path_hist=[];n.path_record_step=.3;n.loop_close_radius=.5;n.pos=(0.,0.);n._record_path()
         for i in range(1,8):n.pos=(i*.31,0);n._record_path()
         self.assertEqual(len(n.path_hist),8);self.assertEqual(n.path_hist[0],n.home)
-    def test_single_bfs_field_matches_candidate_bfs(self):
-        n=self.explorer();n.pos=(0.,0.);n.snap_radius=.6
-        n.grid={(x,y):1 for x in range(9) for y in range(5)}
-        n._blocked={(4,y) for y in range(4)}
-        distances=n._reachable_distances()
-        for cell in n.grid:
-            expected=n._bfs(*cell)
-            actual=distances.get(cell)
-            if expected is None:self.assertIsNone(actual)
-            else:self.assertAlmostEqual(actual,expected)
+    def corridor(self):
+        n = self.explorer()
+        n.pos = n.home
+        n.home_yaw = 0.
+        n.grid = {(x, y): 1 for x in range(-22, 23) for y in range(-15, 16)}
+        return n
+
+    def test_forward_goal_is_deterministic_and_uses_initial_heading(self):
+        n = self.corridor()
+        n.yaw = math.pi
+        for _ in range(2):
+            self.assertEqual(n._select_goal(), (2., 0.))
+        n.home_yaw = math.pi
+        self.assertAlmostEqual(n._select_goal()[0], -2.)
+
+    def test_clear_space_behind_wall_is_not_a_goal(self):
+        n = self.corridor()
+        for y in range(-15, 16):
+            n.grid[4, y] = 2
+        self.assertIsNone(n._select_goal())
+
+    def test_no_goal_across_unknown_strip(self):
+        n = self.corridor()
+        for y in range(-15, 16):
+            del n.grid[4, y]
+        self.assertIsNone(n._select_goal())
+
+    def test_front_obstacle_leaves_a_forward_side_route(self):
+        n = self.corridor()
+        n.grid[10, 0] = 2
+        x, y = n._select_goal()
+        self.assertGreater(x, 1.)
+        self.assertGreater(abs(y), .4)
+
+    def test_return_lookahead_keeps_corner_and_path_order(self):
+        n = self.corridor()
+        n.path_hist = [(0.6, 0.3), (0.6, 0.), (0.3, 0.)]
+        self.assertEqual(n._next_return_goal(), (0.6, 0.))
+        self.assertEqual(n.path_hist, [(0.6, 0.3)])
+
+    def test_new_obstacle_prevents_merging_return_points(self):
+        n = self.corridor()
+        n.path_hist = [(0.7, 0.), (0.3, 0.)]
+        n.grid[7, 0] = 2
+        self.assertEqual(n._next_return_goal(), (0.3, 0.))
+        self.assertEqual(n.path_hist, [(0.7, 0.)])
+
+    def test_return_turn_is_stable_across_pi_and_threshold(self):
+        n = self.corridor()
+        n.return_goal = (-1., 0.)
+        n.turn_direction = 0.
+        for yaw in (1., -1., 139., 142.):
+            n.yaw = math.radians(yaw)
+            self.assertEqual(n._turn_to_return_goal(), 1.)
+        n.yaw = math.radians(160.)
+        self.assertEqual(n._turn_to_return_goal(), 0.)
+
+    def test_outbound_keeps_goal_then_returns_on_stall(self):
+        n = self.corridor()
+        n.current_goal = (2., 0.)
+        n.start_time = n.startup_delay = n.progress_time = 0.
+        n.best_remaining, n.next_plan = 2., 20.
+        n.no_progress_timeout, n.return_after = 8., 30.
+        n.arrive_dis = .25
+        n._record_path = lambda: None
+        reasons = []
+        n._begin_return = reasons.append
+        n._outbound_step(7.)
+        self.assertEqual(n.current_goal, (2., 0.))
+        self.assertFalse(reasons)
+        n._outbound_step(8.)
+        self.assertEqual(len(reasons), 1)
+
+    def test_simulated_outbound_and_return_complete_at_home(self):
+        n = self.corridor()
+        n.mode, n.outbound_reached = 'EXPLORE', False
+        n.current_goal = n.start_time = n.last_rec = n.progress_time = None
+        n.startup_delay = n.next_plan = 0.
+        n.footprint_radius, n.path_record_step, n.arrive_dis = .4, .3, .25
+        n.return_trim_dis, n.return_after, n.no_progress_timeout = .45, 30., 8.
+        n.goal_pub = n.status_pub = NS(publish=lambda _: None)
+        n._outbound_step(0.)
+        self.assertEqual(n.current_goal, (2., 0.))
+        for i, x in enumerate((.32, .65, 1., 1.35, 1.79), start=1):
+            n.pos = (x, 0.)
+            n._outbound_step(float(i))
+        self.assertEqual(n.mode, 'RETURN')
+        for _ in range(10):
+            n.pos = n.return_goal
+            n._return_step()
+            if n.mode == 'DONE':
+                break
+        self.assertEqual(n.mode, 'DONE')
+        self.assertLessEqual(math.dist(n.pos, n.home), n.return_arrive_dis)
 
     def gate(self):
         n=object.__new__(Gate);n.state=1;n.last_cmd_time=time.time()-.2;n.last_cmd=(0.,0.,0.)
@@ -60,6 +145,30 @@ class NavigationRegressionTests(unittest.TestCase):
         n=self.gate();n.max_speed=.1;n.min_speed=.2;n.cb(self.cmd(.01));self.assertLessEqual(abs(n.sent[-1][0]),.1)
     def test_front_stop_is_immediate_even_with_previous_forward_velocity(self):
         n=self.gate();n.front_blocked=True;n.max_accel=.5;n.last_cmd=(.3,0,0);n.cb(self.cmd(.3));self.assertEqual(n.sent[-1][0],0)
+
+    def test_side_obstacle_blocks_forced_turn_until_clear(self):
+        from sensor_msgs.msg import PointField
+        from sensor_msgs_py import point_cloud2
+        from std_msgs.msg import Header
+        fields = [PointField(name=name, offset=i*4, datatype=PointField.FLOAT32, count=1)
+                  for i, name in enumerate(("x", "y", "z", "intensity"))]
+        n = self.gate()
+        n._pose = (0., 0., 0.)
+        n.front_stop_enable = True
+        n.front_stop_min, n.front_stop_max = .15, .80
+        n.front_stop_deg, n.front_stop_pts = 30, 6
+        n.phase, n.rotate = 'RETURN', .45
+        n.seen = {'rotate': time.monotonic()}
+        n.last_cmd = (.2, .1, .3)
+        for y, blocked in ((.36, True), (.80, False)):
+            cloud = point_cloud2.create_cloud(Header(), fields, [(0., y, .5, .5)])
+            n.cb_terrain(cloud)
+            self.assertEqual(n.turn_blocked, blocked)
+            n.cb(self.cmd(.2))
+            if blocked:
+                self.assertEqual(n.sent[-1], (0., 0., 0.))
+            else:
+                self.assertGreater(n.sent[-1][2], 0.)
     def test_cloud_transform_preserves_fractional_point_time(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "autonomy_stack/transform"))
         from transform_everything import Repuber

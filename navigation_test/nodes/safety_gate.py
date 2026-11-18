@@ -15,6 +15,8 @@ from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Bool, Float32, String
 from go2_keyboard_teleop.safety_gate import SafetyGate, ARMED, DISARMED, FAULT
 
+# Circumscribed radius of the local planner's 0.70 x 0.40 m body plus its clearance.
+TURN_CLEARANCE = math.hypot(0.35, 0.20) + 0.08
 
 class NavigationGate(SafetyGate):
     def __init__(self):
@@ -28,6 +30,7 @@ class NavigationGate(SafetyGate):
         self.front_stop_min, self.front_stop_max = .15, .80
         self.front_stop_deg, self.front_stop_pts = 30, 6
         self.front_blocked = False
+        self.turn_blocked = True
         self._pose = None
         self.rotate = 0.
         self.create_subscription(Odometry, "/base_state_estimation", self.cb_odom, 1)
@@ -72,21 +75,26 @@ class NavigationGate(SafetyGate):
         rmin = self.front_stop_min; rmax = self.front_stop_max
         half = math.radians(self.front_stop_deg)
         cnt = 0
+        turn_blocked = False
         try:
             for p in point_cloud2.read_points(msg, field_names=['x','y','intensity'], skip_nans=True):
                 if p[2] >= 1.45 or p[2] <= 0.3:      # 只要真实障碍, 排除unknown/地面
                     continue
                 dx = p[0]-px; dy = p[1]-py
                 d = math.hypot(dx, dy)
+                if d <= TURN_CLEARANCE:
+                    turn_blocked = True
                 if d < rmin or d > rmax:
                     continue
                 a = (math.atan2(dy, dx) - yaw + math.pi) % (2*math.pi) - math.pi
                 if abs(a) < half:
                     cnt += 1
-                    if cnt > self.front_stop_pts:
+                    if cnt > self.front_stop_pts and turn_blocked:
                         break
         except Exception:
+            self.turn_blocked = True
             return
+        self.turn_blocked = turn_blocked or not msg.width or not msg.height
         self.seen["terrain"] = time.monotonic()
         if not self.front_blocked and cnt > self.front_stop_pts:
             self.front_blocked = True
@@ -98,11 +106,14 @@ class NavigationGate(SafetyGate):
     def cb(self, msg):
         if self.state != ARMED:
             return
-        if self.phase == "HOLD":
+        forced_turn = (self.phase == "RETURN" and self.rotate != 0.
+                       and time.monotonic() - self.seen["rotate"] < 1.5)
+        if self.phase == "HOLD" or (forced_turn and self.turn_blocked):
+            self.last_cmd_time = time.time()
             self.last_cmd = (0., 0., 0.)
             self._send(*self.last_cmd)
             return
-        if self.phase == "RETURN" and self.rotate and time.monotonic() - self.seen["rotate"] < 1.5:
+        if forced_turn:
             msg.twist.linear.x = msg.twist.linear.y = 0.
             msg.twist.angular.z = self.rotate
             self.last_cmd = (0., 0., self.last_cmd[2])
