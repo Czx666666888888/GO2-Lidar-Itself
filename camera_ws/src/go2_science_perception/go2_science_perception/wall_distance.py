@@ -65,3 +65,19 @@ def nearest_wall(target, points):
                 else:
                     walls.append((perpendicular, offset, strength, (distance, endpoints)))
     return min((wall[3] for wall in walls), default=None, key=lambda item: item[0])
+
+
+def wall_grasp_side(target, endpoints, heading):
+    """Use the arm on the target's wall-facing side relative to the body heading."""
+    (ax, ay), (bx, by) = endpoints
+    vx, vy = bx - ax, by - ay
+    length_sq = vx*vx + vy*vy
+    if not length_sq:
+        return None
+    tx, ty = target
+    fraction = max(0., min(1., ((tx-ax)*vx + (ty-ay)*vy)/length_sq))
+    dx, dy = ax + fraction*vx - tx, ay + fraction*vy - ty
+    lateral = -math.sin(heading)*dx + math.cos(heading)*dy
+    if abs(lateral) <= .01:
+        return None
+    return 'left' if lateral > 0. else 'right'

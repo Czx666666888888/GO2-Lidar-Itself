@@ -22,7 +22,7 @@ from .docking_pose_planner import TerrainFootprint, staging_candidates
 from .full_nbv_explore import return_tail_index
 from .grasp_pose_geometry import DockSettings, docking_goal, rotate_xy, shared_side_settings, wrap
 from .motion_arbiter import MotionArbiter
-from .wall_distance import nearest_wall
+from .wall_distance import nearest_wall, wall_grasp_side
 
 
 LOCAL_PATH_TOPIC = '/nav/path'
@@ -59,8 +59,10 @@ class MissionManager:
         if self.args.grasp_side != 'auto':
             self.sides = {self.args.grasp_side: self.sides[self.args.grasp_side]}
         approach = yaml.safe_load((config/'science_target_approach.yaml').read_text())
-        self.association_radius = approach['science_target_approach']['ros__parameters'][
-            'anchor_association_radius']
+        approach_params = approach['science_target_approach']['ros__parameters']
+        self.association_radius = approach_params['anchor_association_radius']
+        self.memory_spread_limit = approach_params['anchor_max_spread']
+        self.memory_range = approach_params['max_target_range']
         search = yaml.safe_load((config/'science_target_search.yaml').read_text())
         self.direct_range = search['science_target_approach']['ros__parameters']['search_trigger_range_m']
         self.completed = json.loads(self.args.completed_targets_json)
@@ -78,7 +80,12 @@ class MissionManager:
         self.camera_ranges = deque(maxlen=128)
         self.wall_points = np.empty((0, 2))
         self.last_direct_scan = 0
+        self.direct_blockers = {}
         self.active_side = None
+        self.side_hint = None
+        self.memory_tracks = []
+        self.memory_visit = None
+        self.memory_visited = set()
         self.explore_goal = None
         self.goal = None
         self.goal_ns = 0
@@ -226,47 +233,112 @@ class MissionManager:
                 continue
             distance = self.camera_range_for(target)
             if distance is None or distance > self.direct_range:
+                self.direct_blocked(target, 'no_matching_rgbd' if distance is None
+                                    else 'outside_camera_range', camera_range_m=distance)
                 continue
             wall = nearest_wall(target['position'][:2], self.wall_points)
             if wall is None or not .01 - 1e-6 <= wall[0] <= .35 + 1e-6:
+                self.direct_blocked(target, 'no_wall_segment' if wall is None
+                                    else 'outside_wall_range', distance_m=wall[0] if wall else None)
                 continue
+            self.direct_blockers.pop(target['id'], None)
             self.anchor = self.track = target
             self.stage = self.active_side = None
+            self.side_hint = (wall_grasp_side(target['position'][:2], wall[1], self.pose[2])
+                              if self.args.grasp_side == 'auto' else self.args.grasp_side)
+            self.memory_visit = None
             self.motion_blocked_at = None
             self.change('TARGET_STOP')
             self.hold_navigation()
             self.deadline = time.monotonic() + 5.
             self.run.event('DIRECT_GRASP_ADMITTED', target_id=target['id'],
                            target_map=target['position'][:2], distance_m=wall[0],
-                           wall_segment_map=wall[1], camera_range_m=distance)
+                           wall_segment_map=wall[1], camera_range_m=distance,
+                           side=self.side_hint)
             return True
         return False
+
+    def direct_blocked(self, target, reason, **details):
+        identity = target['id']
+        if self.direct_blockers.get(identity) != reason:
+            self.direct_blockers[identity] = reason
+            self.run.event('DIRECT_GRASP_SKIPPED', target_id=identity, reason=reason,
+                           target_map=target['position'][:2], **details)
 
     def tracks(self, message):
         try:
             data = json.loads(message.data)
             if data['frame'] != 'map':
-                self.eligible_tracks = []
+                self.eligible_tracks = self.memory_tracks = []
                 self.track = None
                 return
-            tracks = [t for t in data['tracks']
-                      if t['state'] == 'CONFIRMED' and not t['visited']
-                      and self.fresh(t['observed_ns'], 1.2)
-                      and len(t['position']) == 3 and all(math.isfinite(v) for v in t['position'])
-                      and not any(math.dist(t['position'][:2], xy[:2]) < .15 for xy in self.completed)]
-            distinct = [t for t in tracks if all(
+            pending = [t for t in data['tracks'] if not t['visited']
+                       and len(t['position']) == 3 and all(math.isfinite(v) for v in t['position'])
+                       and not any(math.dist(t['position'][:2], xy[:2]) < .15 for xy in self.completed)]
+            fresh = [t for t in pending if t['state'] == 'CONFIRMED'
+                     and self.fresh(t['observed_ns'], 1.2)]
+            tracks = [t for t in fresh if all(
                 u['id'] == t['id'] or math.dist(u['position'][:2], t['position'][:2])
-                >= 2 * self.association_radius for u in tracks)]
-            tracks = [t for t in distinct if (t['id'] == self.anchor['id'] if self.anchor
-                                              else self.can_retry_target(t['id']))]
+                >= 2*self.association_radius for u in fresh
+            ) and (t['id'] == self.anchor['id'] if self.anchor else self.can_retry_target(t['id']))]
             self.eligible_tracks = sorted(tracks, key=lambda t: math.dist(t['position'][:2],
                                                                          self.pose[:2])) if self.pose else []
             self.track = self.eligible_tracks[0] if self.eligible_tracks else None
+            self.memory_tracks = [t for t in pending if t['state'] == 'STALE'
+                                  and t.get('memory_confirmed')
+                                  and self.fresh(t['observed_ns'], 300.)
+                                  and t.get('memory_spread_m', math.inf) < self.memory_spread_limit
+                                  and all(u['id'] == t['id'] or
+                                          math.dist(u['position'][:2], t['position'][:2])
+                                          >= 2*self.association_radius for u in pending)]
             if self.anchor:
+                if self.side_hint:
+                    tracks = [dict(t, grasp_side_hint=self.side_hint) for t in tracks]
                 self.tracks_pub.publish(String(data=json.dumps({'frame': 'map', 'tracks': tracks})))
         except (KeyError, ValueError, TypeError):
-            self.eligible_tracks = []
+            self.eligible_tracks = self.memory_tracks = []
             self.track = None
+
+    def revisit_memory(self):
+        """Use the existing navigation for a view of a missed target in this MAP session."""
+        now = time.monotonic()
+        if self.memory_visit:
+            target_id, deadline = self.memory_visit
+            distance = math.dist(self.pose[:2], self.goal[:2])
+            if now >= deadline or now-self.last_progress > 8.:
+                self.run.event('MEMORY_REVISIT_END', target_id=target_id)
+                self.memory_visit = None
+                self.goal = None
+                self.goal_ns = 0
+                self.arbiter.flush()
+            elif distance <= .30:
+                self.arbiter.enabled = False
+                self.memory_visit = (target_id, min(deadline, now+3.))
+                return True
+            else:
+                self.drive(distance)
+                return True
+
+        for target in sorted(self.memory_tracks, key=lambda t: math.dist(t['position'][:2],
+                                                                        self.pose[:2])):
+            if target['id'] in self.memory_visited or not self.fresh(target['observed_ns'], 300.):
+                continue
+            px, py = self.pose[:2]
+            tx, ty = target['position'][:2]
+            distance = math.hypot(tx-px, ty-py)
+            if not 1.15 < distance <= self.memory_range:
+                continue
+            # The view waypoint remains on the current side of the target.
+            x, y = tx - .85*(tx-px)/distance, ty - .85*(ty-py)/distance
+            if self.terrain.cells.get(self.terrain.cell(x, y)) != 1:
+                continue
+            self.memory_visited.add(target['id'])
+            self.memory_visit = (target['id'], now+15.)
+            self.send_goal((x, y, self.pose[3]))
+            self.run.event('MEMORY_REVISIT', target_id=target['id'], xyz=(x, y),
+                           target_map=(tx, ty))
+            return True
+        return False
 
     def change(self, state, mode='IDLE'):
         self.state = state
@@ -458,7 +530,7 @@ class MissionManager:
         self.run.event('TARGET_DEFERRED', status='UNREACHABLE', reason=reason,
                        target_id=target['id'], target_map=target['position'][:2],
                        vehicle_map=self.pose[:2], terrain_cells=len(self.terrain.cells), **details)
-        self.track = self.anchor = self.stage = None
+        self.track = self.anchor = self.stage = self.side_hint = None
         if self.state != 'EXPLORE':
             self.goal = None
             self.goal_ns = 0
@@ -633,7 +705,7 @@ class MissionManager:
                 self.finished = True
         elif self.state == 'EXPLORE':
             self.record_path()
-            if self.prioritize_grasp():
+            if self.prioritize_grasp() or self.revisit_memory():
                 return
             if self.explore_goal and self.explore_goal[1] > self.goal_ns:
                 self.send_goal(self.explore_goal[0])
@@ -696,7 +768,8 @@ class MissionManager:
             if report.get('state') in NEAR_STATES:
                 side = report.get('grasp_side')
                 if (report.get('target_id') != self.anchor['id'] or side not in self.sides
-                        or (self.stage is not None and side != self.stage.side)):
+                        or (self.stage is not None and side != self.stage.side)
+                        or (self.side_hint is not None and side != self.side_hint)):
                     self.fail('STOP_CONFIRM selected a different identity or side')
                 self.active_side = side
                 self.run.event('GRASP_SIDE_LOCKED', target_id=self.anchor['id'], side=side)

@@ -194,7 +194,10 @@ class ApproachControl:
         ranked = []
         for track in valid:
             point = track.get('latest_observation', track['position'])[:2]
+            preferred = track.get('grasp_side_hint')
             for side, settings in options.items():
+                if preferred in ('left', 'right') and preferred in options and side != preferred:
+                    continue
                 goal = docking_goal(point, heading, settings)
                 ranked.append(dict(target_id=track['id'], side=side, goal=list(goal),
                                    distance_m=math.dist(self.robot[:2], goal[:2])))

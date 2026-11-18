@@ -11,6 +11,8 @@ STATUS_LABELS = {
     'TARGET_DEFERRED': '目标暂缓',
     'DIRECT_GRASP_ADMITTED': '墙距符合，暂停探索并直接接近',
     'GRASP_SIDE_LOCKED': '抓取侧已确认',
+    'MEMORY_REVISIT': '前往回看记忆目标',
+    'MEMORY_REVISIT_END': '记忆目标回看结束',
     'STAGING_PROBE': '停靠试算',
     'STAGING_SIDE_FALLBACK': '切换抓取侧',
     'STAGING_SIDE_SELECTED': '已选抓取侧',

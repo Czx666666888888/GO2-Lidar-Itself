@@ -1,3 +1,5 @@
+import json
+import math
 from types import SimpleNamespace
 
 from builtin_interfaces.msg import Time
@@ -301,6 +303,9 @@ def test_wall_qualified_target_claims_navigation_without_a_staging_candidate(mon
 
     mission = MissionManager.__new__(MissionManager)
     mission.stage = SimpleNamespace(side='right')
+    mission.args = SimpleNamespace(grasp_side='auto')
+    mission.pose = (0., 0., 0., 0.)
+    mission.direct_blockers = {}
     mission.cloud_ns, mission.last_direct_scan = 2, 1
     mission.direct_range = 1.8
     mission.wall_points = []
@@ -319,8 +324,10 @@ def test_wall_qualified_target_claims_navigation_without_a_staging_candidate(mon
     assert mission.state == 'TARGET_STOP'
     assert mission.stage is None
     assert mission.anchor['id'] == 2
-    assert events[0][0] == 'hold'
-    assert events[1][1]['distance_m'] == .35
+    assert events[0][1]['reason'] == 'outside_wall_range'
+    assert events[1][0] == 'hold'
+    assert events[2][1]['distance_m'] == .35
+    assert events[2][1]['side'] == mission.side_hint == 'right'
 
 
 def test_direct_handoff_waits_for_measured_stop_and_keeps_selected_identity():
@@ -361,3 +368,66 @@ def test_direct_grasp_skips_footprint_sweep_but_checks_telemetry():
     mission.stage = SimpleNamespace(side='right')
     assert not mission.command_clear(cmd)
     assert mission.motion_blocked_at is not None
+
+
+def test_wall_side_hint_overrides_shortest_dock_and_keeps_body_away_from_wall():
+    from go2_science_perception.approach_control import ApproachControl, Settings
+    from go2_science_perception.grasp_docking import GraspDocking
+    from go2_science_perception.grasp_pose_geometry import shared_side_settings
+    from go2_science_perception.wall_distance import wall_grasp_side
+
+    docking = GraspDocking(DockSettings())
+    options = shared_side_settings(docking.p)
+    core = ApproachControl(Settings(), docking, options)
+    core.robot = (0., 0., 0.)
+    target = dict(id=2, position=(1., .2, 0.))
+    for wall_y, expected, direction in ((.4, 'left', -1), (0., 'right', 1)):
+        segment = ((.5, wall_y), (1.5, wall_y))
+        side = wall_grasp_side(target['position'][:2], segment, 0.)
+        assert side == expected
+        assert wall_grasp_side(target['position'][:2], segment, math.pi) != side
+        core._search_candidates([dict(target, grasp_side_hint=side)])
+        assert core.grasp_side == expected
+        assert len(core.side_candidates) == 1
+        assert direction * (core.side_candidates[0]['goal'][1] - target['position'][1]) > 0
+    assert wall_grasp_side((1., .2), ((1.2, 0.), (1.2, .4)), 0.) is None
+
+
+def test_memory_revisit_uses_an_unvisited_map_waypoint_before_confirming():
+    def target(identity, x, state='STALE'):
+        return dict(id=identity, position=(x, 0., 0.), state=state, visited=False,
+                    observed_ns=1, memory_confirmed=True, memory_spread_m=.01)
+
+    def snapshot(*targets):
+        return SimpleNamespace(data=json.dumps(dict(frame='map', tracks=targets)))
+
+    mission = MissionManager.__new__(MissionManager)
+    mission.pose = (0., 0., 0., 0.)
+    mission.completed = [(1., 0.)]
+    mission.anchor = None
+    mission.association_radius = .12
+    mission.memory_spread_limit, mission.memory_range = .08, 5.
+    mission.fresh = mission.can_retry_target = lambda *args: True
+    mission.memory_visit = None
+    mission.memory_visited = set()
+    mission.terrain = floor()
+    mission.send_goal = lambda point: setattr(mission, 'goal', point)
+    mission.run = SimpleNamespace(event=lambda *_args, **_kwargs: None)
+    published = []
+    mission.tracks_pub = SimpleNamespace(publish=published.append)
+    mission.tracks(snapshot(target(1, 1.), target(2, 2.), target(3, 3.)))
+    assert not mission.eligible_tracks
+    assert [t['id'] for t in mission.memory_tracks] == [2, 3]
+    assert mission.revisit_memory()
+    assert mission.goal == (1.15, 0., 0.)
+    assert mission.memory_visit[0] == 2
+    assert mission.anchor is None
+    assert not published
+
+    mission.tracks(snapshot(target(2, 2., 'CONFIRMED'), target(3, 3.)))
+    assert [t['id'] for t in mission.eligible_tracks] == [2]
+    mission.anchor = mission.eligible_tracks[0]
+    mission.side_hint = 'left'
+    mission.tracks(snapshot(target(2, 2., 'CONFIRMED'), target(3, 3., 'CONFIRMED')))
+    forwarded = json.loads(published[-1].data)['tracks']
+    assert [(t['id'], t['grasp_side_hint']) for t in forwarded] == [(2, 'left')]
