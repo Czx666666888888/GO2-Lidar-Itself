@@ -1,22 +1,21 @@
 """Sequential post-docking handoff to existing GO2 SDK and S1 service; no serial I/O."""
 import time
 
-SAFE_MISSES = {'VISUAL_NO_TARGET_SAFE_RETURN',
-               'VISUAL_ADAPTIVE_CONTACT_MISS_SAFE_RETURN',
-               'VISUAL_ADAPTIVE_SECURE_LOST_SAFE_RETURN'}
-
 ARM_MOTION_DONE = 'VISUAL_ADAPTIVE_GRASP_BOX_MOTION_DONE_PLACEMENT_UNVERIFIED'
 
 
 def require_zero_hold(state):
     if (state.get('state') != 'ZERO_HOLD' or state.get('busy') is not False or
-            state.get('navigation_allowed') is not True):
+            state.get('navigation_allowed') is not True or
+            state.get('at_zero') is not True or
+            state.get('communication_state') != 'OK' or
+            state.get('readiness_state') != 'ZERO_HOLD'):
         raise RuntimeError('S1 is not idle ZERO_HOLD: ' + str(state))
 
 
 def finish_docked_task(arm_request, posture, log, timeout=300.0, poll=0.25,
-                       monotonic=time.monotonic, sleep=time.sleep, allow_missed=False):
-    """RPC acceptance is never completion; faults never trigger an automatic stand-up."""
+                       monotonic=time.monotonic, sleep=time.sleep):
+    """Stand up after a new terminal result and verified arm zero hold."""
     before = arm_request('status')
     require_zero_hold(before)
     log('STAND_DOWN_REQUEST', {})
@@ -24,7 +23,8 @@ def finish_docked_task(arm_request, posture, log, timeout=300.0, poll=0.25,
     if down.get('confirmed') is not True:
         raise RuntimeError('StandDown feedback not confirmed')
     log('STAND_DOWN_CONFIRMED', down)
-    require_zero_hold(arm_request('status'))
+    before = arm_request('status')
+    require_zero_hold(before)
     log('GRASP_START_REQUEST', {})
     accepted = arm_request('grasp')
     log('GRASP_REQUEST', accepted)
@@ -40,25 +40,26 @@ def finish_docked_task(arm_request, posture, log, timeout=300.0, poll=0.25,
             running_observed = True
         if state.get('state') in ('FAULT_HOLD', 'FAULT_IO', 'STOPPING', 'STOPPED'):
             raise RuntimeError('S1 fault/stopped; no StandUp: ' + str(state))
-        if state.get('busy') is False:
+        if state.get('state') == 'ZERO_HOLD' and state.get('busy') is False:
             require_zero_hold(state)
-            missed = (allow_missed and state.get('last_exit_code') == 3
-                      and state.get('last_result') in SAFE_MISSES
-                      and state.get('at_zero') is True
-                      and state.get('communication_state') == 'OK'
-                      and state.get('readiness_state') == 'ZERO_HOLD')
-            if (state.get('last_task', 'grasp') != 'grasp' or
-                    (not missed and (state.get('last_exit_code') != 0 or
-                                 state.get('last_result') != ARM_MOTION_DONE)) or
-                    not state.get('last_log') or state['last_log'] == before.get('last_log')):
-                raise RuntimeError('No new successful complete grasp result; keep GO2 down')
+            task, path = state.get('last_task'), state.get('last_log')
+            exit_code, grasp_result = state.get('last_exit_code'), state.get('last_result')
+            if (task != 'grasp' or not isinstance(path, str) or not path or path == before.get('last_log')
+                    or type(exit_code) is not int or not isinstance(grasp_result, str) or not grasp_result):
+                raise RuntimeError('No new terminal grasp result; keep GO2 down')
+            completed = exit_code == 0 and grasp_result == ARM_MOTION_DONE
             log('GRASP_RETURNED_ZERO_HOLD', state)
-            # Check again immediately before initiating StandUp.
-            require_zero_hold(arm_request('status'))
+            if not completed:
+                log('GRASP_FAILED_SAFE_RETURN', dict(exit_code=exit_code, result=grasp_result, log=path))
+            confirmed = arm_request('status')
+            require_zero_hold(confirmed)
+            if any(confirmed.get(key) != state[key]
+                   for key in ('last_task', 'last_log', 'last_exit_code', 'last_result')):
+                raise RuntimeError('S1 result changed before StandUp; keep GO2 down')
             up = posture('up')
             if up.get('confirmed') is not True:
                 raise RuntimeError('StandUp feedback not confirmed')
-            result = dict(task_motion_complete=True, outcome='MISSED' if missed else 'COMPLETED',
+            result = dict(task_motion_complete=True, outcome='COMPLETED' if completed else 'MISSED',
                           placement_confirmed=None,
                           arm_result=state, stand_down=down, stand_up=up)
             log('TASK_COMPLETE', result)

@@ -206,7 +206,7 @@ def main():
             time.sleep(0.05)
         raise RuntimeError('Posture feedback timeout; no subsequent action')
 
-    result = finish_docked_task(request, posture, log, timeout=args.arm_timeout, allow_missed=args.allow_missed)
+    result = finish_docked_task(request, posture, log, timeout=args.arm_timeout)
     log('RESULT', result)
     def elapsed(start, end):
         return (event_times[end]-event_times[start]

@@ -8,7 +8,7 @@ from go2_science_perception.approach_control import ApproachControl, Settings
 from go2_science_perception.grasp_docking import GraspDocking
 from go2_science_perception.grasp_pose_geometry import DockSettings, shared_side_settings
 from go2_science_perception.science_target_manager import TargetTracker
-from go2_science_perception.s1_task_sequence import finish_docked_task, SAFE_MISSES
+from go2_science_perception.s1_task_sequence import finish_docked_task
 
 
 def track(identity, x, y=0., visited=False):
@@ -79,25 +79,31 @@ def test_memory_recheck_requires_three_distinct_unique_observations():
     assert c.anchor_updates == 1
 
 
-@pytest.mark.parametrize('outcome', sorted(SAFE_MISSES))
-def test_only_known_safe_miss_with_new_log_and_zero_feedback_can_stand_up(outcome):
-    before = dict(state='ZERO_HOLD', busy=False, navigation_allowed=True, last_log='old')
+@pytest.mark.parametrize('outcome', [
+    'VISUAL_NO_TARGET_SAFE_RETURN',
+    'VISUAL_ADAPTIVE_CONTACT_MISS_SAFE_RETURN',
+    'VISUAL_ADAPTIVE_SECURE_LOST_SAFE_RETURN',
+])
+def test_known_safe_miss_with_new_log_and_zero_feedback_can_stand_up(outcome):
+    before = dict(state='ZERO_HOLD', busy=False, navigation_allowed=True, last_log='old',
+                  at_zero=True, communication_state='OK', readiness_state='ZERO_HOLD', last_task='grasp')
     after = dict(before, last_log='new', last_result=outcome, last_exit_code=3,
                  at_zero=True, communication_state='OK', readiness_state='ZERO_HOLD')
     states = iter([before,before,after,after])
     def request(command):
         return {'accepted':True} if command == 'grasp' else next(states)
     posture = Mock(return_value={'confirmed':True})
-    result = finish_docked_task(request, posture, Mock(), allow_missed=True, sleep=lambda _:None)
+    result = finish_docked_task(request, posture, Mock(), sleep=lambda _:None)
     assert result['outcome'] == 'MISSED' and result['task_motion_complete']
     assert posture.call_args.args == ('up',)
 
 
 def test_communication_fault_is_not_a_miss_and_never_stands_up():
-    before = dict(state='ZERO_HOLD', busy=False, navigation_allowed=True, last_log='old')
+    before = dict(state='ZERO_HOLD', busy=False, navigation_allowed=True, last_log='old',
+                  at_zero=True, communication_state='OK', readiness_state='ZERO_HOLD', last_task='grasp')
     states = iter([before,before,dict(state='FAULT_IO',busy=False)])
     request = lambda cmd: {'accepted':True} if cmd=='grasp' else next(states)
     posture = Mock(return_value={'confirmed':True})
     with pytest.raises(RuntimeError):
-        finish_docked_task(request, posture, Mock(), allow_missed=True, sleep=lambda _:None)
+        finish_docked_task(request, posture, Mock(), sleep=lambda _:None)
     assert posture.call_args_list[-1].args == ('down',)
