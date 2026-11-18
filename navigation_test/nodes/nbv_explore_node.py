@@ -65,14 +65,33 @@ class ExploreNode(Node):
 
     # ---- 数据回调 ----
     def cb_terrain(self, msg: PointCloud2):
-        pts = point_cloud2.read_points(
-            msg, field_names=["x", "y", "z", "intensity"], skip_nans=True)
-        for p in pts:
-            x, y, it = p[0], p[1], p[3]
-            ix = int(round(x / RES)); iy = int(round(y / RES))
-            s = 0 if it >= UNKNOWN_INT else (2 if it >= OBSTACLE_THRE else 1)
-            key = (ix, iy)
-            self.grid[key] = max(self.grid.get(key, 0), s)
+        try:
+            pts = point_cloud2.read_points(
+                msg, field_names=["x", "y", "intensity"], skip_nans=True)
+        except Exception:
+            return
+        if pts is None or len(pts) == 0:
+            return
+        finite = np.isfinite(pts["x"]) & np.isfinite(pts["y"]) & np.isfinite(pts["intensity"])
+        x = pts["x"][finite].astype(np.float64)
+        y = pts["y"][finite].astype(np.float64)
+        it = pts["intensity"][finite]
+        ix = np.round(x / RES).astype(np.int32)
+        iy = np.round(y / RES).astype(np.int32)
+        # 0=unknown, 1=free, 2=obstacle；向量化分类
+        s = np.where(it >= UNKNOWN_INT, 0,
+                     np.where(it >= OBSTACLE_THRE, 2, 1)).astype(np.int8)
+        # 按 s 降序排列，同一格只写首次（即最大值）
+        order = np.argsort(-s, kind="stable")
+        seen: set = set()
+        for idx in order:
+            key = (int(ix[idx]), int(iy[idx]))
+            if key in seen:
+                continue
+            seen.add(key)
+            sv = int(s[idx])
+            if sv > self.grid.get(key, 0):
+                self.grid[key] = sv
 
     def cb_odom(self, msg: Odometry):
         self.odom_frame = msg.header.frame_id or self.odom_frame
@@ -106,7 +125,7 @@ class ExploreNode(Node):
         """Prefer the longest forward projection within a known clear corridor."""
         best = None
         best_forward = 0.
-        for angle in (0, 20, -20, 40, -40):
+        for angle in (0, 20, -20, 40, -40, 60, -60, 80, -80):
             heading = self.home_yaw + math.radians(angle)
             dx, dy = math.cos(heading), math.sin(heading)
             for step in range(1, 41):  # sample every half cell, up to 2 m

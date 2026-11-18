@@ -43,7 +43,7 @@ def generate_launch_description():
                 obstacleInflate=str(footprint["hard_clearance"])),
         script(root / "nodes/obstacle_memory_node.py", "obstacle_memory_node"),
         script(root / "nodes/nbv_explore_node.py", "nbv_explore_node",
-               {"startup_delay": 2., "return_after": 30.}),
+               {"startup_delay": 2., "return_after": 60., "no_progress_timeout": 20.}),
         script(root / "nodes/safety_gate.py", "navigation_test_gate",
                {"dry_run": os.environ.get("NAV_EXECUTE") != "1",
                 "cmd_vel_topic": "/navigation_test/cmd_vel", "arm_topic": "/navigation_test/arm",

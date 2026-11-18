@@ -29,7 +29,7 @@ class NavigationGate(SafetyGate):
         self.finished = None
         self.front_stop_enable = True
         self.front_stop_min, self.front_stop_max = .15, .80
-        self.front_stop_deg, self.front_stop_pts = 30, 6
+        self.front_stop_deg, self.front_stop_pts = 30, 10
         self.front_blocked = False
         self.body_gap = None
         self.turn_blocked = True

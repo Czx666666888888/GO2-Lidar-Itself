@@ -74,7 +74,7 @@ class ObstacleMemoryNode(Node):
         self.sub_terrain = self.create_subscription(
             PointCloud2, '/terrain_map', self.cb_terrain, qos)
         self.sub_odom = self.create_subscription(
-            Odometry, '/state_estimation', self.cb_odom, 10)
+            Odometry, '/base_state_estimation', self.cb_odom, 10)
         self.pub = self.create_publisher(PointCloud2, '/added_obstacles', 5)
 
         self.timer = self.create_timer(1.0 / max(self.publish_rate, 0.5), self.publish)
