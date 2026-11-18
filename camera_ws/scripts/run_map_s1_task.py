@@ -147,7 +147,7 @@ def main():
     if args.return_only:
         plan.update(mode='return', stages=['RETURN', 'RETURN_SETTLE', 'IDLE'])
     elif args.navigation_trail:
-        plan['stages'][:1] = ['EXPLORE', 'NAV_TO_TARGET']
+        plan['stages'][:1] = ['EXPLORE', 'TARGET_STOP']
     if args.forward_response_check:
         plan.update(mode='forward_response_check',
                     stages=['FORWARD_RESPONSE_CHECK', 'ZERO_REQUEST', 'MEASURED_STOP'],

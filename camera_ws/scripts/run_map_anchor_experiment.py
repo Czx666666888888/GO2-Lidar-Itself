@@ -344,7 +344,8 @@ class Experiment:
                 self.event('MISSION_HEARTBEAT', state=mission.state,
                            phase=self.control.get('docking_phase'),
                            target_id=target['id'] if target else None,
-                           side=mission.stage.side if mission.stage else None, xyz=mission.goal)
+                           side=mission.stage.side if mission.stage else mission.active_side,
+                           xyz=mission.goal)
                 next_status = now + 2.
             if self.mission.finished:
                 return

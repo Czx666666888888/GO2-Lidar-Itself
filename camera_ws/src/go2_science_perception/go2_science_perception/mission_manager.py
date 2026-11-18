@@ -1,9 +1,11 @@
 """Own FULL goals, validate docking handoff and authorize the existing controllers."""
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import fields
 import json
 import math
 import time
+
+import numpy as np
 
 from geometry_msgs.msg import PointStamped
 from nav_msgs.msg import Odometry, Path
@@ -20,6 +22,7 @@ from .docking_pose_planner import TerrainFootprint, staging_candidates
 from .full_nbv_explore import return_tail_index
 from .grasp_pose_geometry import DockSettings, docking_goal, rotate_xy, shared_side_settings, wrap
 from .motion_arbiter import MotionArbiter
+from .wall_distance import nearest_wall
 
 
 LOCAL_PATH_TOPIC = '/nav/path'
@@ -58,6 +61,8 @@ class MissionManager:
         approach = yaml.safe_load((config/'science_target_approach.yaml').read_text())
         self.association_radius = approach['science_target_approach']['ros__parameters'][
             'anchor_association_radius']
+        search = yaml.safe_load((config/'science_target_search.yaml').read_text())
+        self.direct_range = search['science_target_approach']['ros__parameters']['search_trigger_range_m']
         self.completed = json.loads(self.args.completed_targets_json)
         self.tf = Buffer()
         self.listener = TransformListener(self.tf, self.node)
@@ -69,6 +74,11 @@ class MissionManager:
         self.raw_path = None
         self.raw_cloud = None
         self.track = None
+        self.eligible_tracks = []
+        self.camera_ranges = deque(maxlen=128)
+        self.wall_points = np.empty((0, 2))
+        self.last_direct_scan = 0
+        self.active_side = None
         self.explore_goal = None
         self.goal = None
         self.goal_ns = 0
@@ -105,6 +115,7 @@ class MissionManager:
             (PointCloud2, '/terrain_map', self.cloud, qos_profile_sensor_data),
             (PointStamped, '/mission/nbv_goal', self.nbv_goal, 10),
             (String, '/science/target_tracks', self.tracks, 10),
+            (String, '/science/map_measurement_debug', self.camera_range, 10),
             (Marker, '/viz_path_topic', self.far_path, 10),
             (PointStamped, '/mission/far_way_point', self.far_waypoint, 10),
             (Path, LOCAL_PATH_TOPIC, self.local_path, qos_profile_sensor_data),
@@ -172,6 +183,8 @@ class MissionManager:
         try:
             points = point_cloud2.read_points(message, field_names=('x', 'y', 'intensity'), skip_nans=True)
             self.terrain.update(points['x'], points['y'], points['intensity'])
+            occupied = (points['intensity'] >= .20) & (points['intensity'] < 1.45)
+            self.wall_points = np.column_stack((points['x'][occupied], points['y'][occupied]))
         except (AssertionError, ValueError, KeyError, TypeError):
             self.cloud_ns = 0
             return
@@ -184,10 +197,55 @@ class MissionManager:
                 math.isfinite(value) for value in (point.x, point.y, point.z)):
             self.explore_goal = ((point.x, point.y, point.z), stamp(message.header))
 
+    def camera_range(self, message):
+        try:
+            data = json.loads(message.data)
+            xyz, camera = data['map_xyz'], data['camera_xyz']
+            ns = data['stamp_ns']
+            if (data['target_frame'] == 'map' and self.fresh(ns, 1.2)
+                    and len(xyz) == len(camera) == 3 and camera[2] > 0
+                    and all(math.isfinite(v) for v in (*xyz, *camera))):
+                self.camera_ranges.append((ns, tuple(xyz), math.hypot(*camera)))
+        except (KeyError, ValueError, TypeError):
+            return
+
+    def camera_range_for(self, track):
+        observation = track.get('latest_observation')
+        if observation is None:
+            return None
+        return next((distance for ns, xyz, distance in reversed(self.camera_ranges)
+                     if ns == track['observed_ns'] and math.dist(xyz, observation) <= 1e-6), None)
+
+    def prioritize_grasp(self):
+        """Claim the first fresh, wall-qualified target in the original approach range."""
+        if self.last_direct_scan == self.cloud_ns:
+            return False
+        self.last_direct_scan = self.cloud_ns
+        for target in self.eligible_tracks:
+            if not self.fresh(target['observed_ns'], 1.2) or not self.can_retry_target(target['id']):
+                continue
+            distance = self.camera_range_for(target)
+            if distance is None or distance > self.direct_range:
+                continue
+            wall = nearest_wall(target['position'][:2], self.wall_points)
+            if wall is None or not .01 - 1e-6 <= wall[0] <= .35 + 1e-6:
+                continue
+            self.anchor = self.track = target
+            self.stage = self.active_side = None
+            self.change('TARGET_STOP')
+            self.hold_navigation()
+            self.deadline = time.monotonic() + 5.
+            self.run.event('DIRECT_GRASP_ADMITTED', target_id=target['id'],
+                           target_map=target['position'][:2], distance_m=wall[0],
+                           wall_segment_map=wall[1], camera_range_m=distance)
+            return True
+        return False
+
     def tracks(self, message):
         try:
             data = json.loads(message.data)
             if data['frame'] != 'map':
+                self.eligible_tracks = []
                 self.track = None
                 return
             tracks = [t for t in data['tracks']
@@ -200,11 +258,13 @@ class MissionManager:
                 >= 2 * self.association_radius for u in tracks)]
             tracks = [t for t in distinct if (t['id'] == self.anchor['id'] if self.anchor
                                               else self.can_retry_target(t['id']))]
-            self.track = min(tracks, key=lambda t: math.dist(t['position'][:2], self.pose[:2]),
-                             default=None) if self.pose else None
+            self.eligible_tracks = sorted(tracks, key=lambda t: math.dist(t['position'][:2],
+                                                                         self.pose[:2])) if self.pose else []
+            self.track = self.eligible_tracks[0] if self.eligible_tracks else None
             if self.anchor:
                 self.tracks_pub.publish(String(data=json.dumps({'frame': 'map', 'tracks': tracks})))
         except (KeyError, ValueError, TypeError):
+            self.eligible_tracks = []
             self.track = None
 
     def change(self, state, mode='IDLE'):
@@ -494,7 +554,8 @@ class MissionManager:
         x, y, angle = self.pose[:3]
         dx, dy = rotate_xy(angle + .5*horizon*wz, (horizon*vx, horizon*vy))
         clear = self.terrain.sweep_clear(self.pose, (x+dx, y+dy, angle+horizon*wz),
-                                         clearance=self.terrain.grasp_clearance)
+                                         clearance=self.terrain.grasp_clearance,
+                                         require_known=self.stage is not None)
         if clear:
             self.motion_blocked_at = None
         elif self.motion_blocked_at is None:
@@ -570,20 +631,12 @@ class MissionManager:
                 self.finished = True
         elif self.state == 'EXPLORE':
             self.record_path()
-            if self.track and self.fresh(self.track['observed_ns'], 1.2):
-                rejected = Counter()
-                options = self.evaluate_staging(rejected)
-                if options:
-                    self.anchor = self.track
-                    self.rejected = []
-                    self.probe(options)
-                    return
-                self.defer_target('No staging pose passes the geometry and clearance checks',
-                                  rejected=dict(rejected))
+            if self.prioritize_grasp():
+                return
             if self.explore_goal and self.explore_goal[1] > self.goal_ns:
                 self.send_goal(self.explore_goal[0])
             self.arbiter.enabled = bool(self.goal and self.live_path())
-        elif self.state in ('PROBE', 'NAV_TO_TARGET', 'STOP_CONFIRM'):
+        elif self.state in ('PROBE', 'NAV_TO_TARGET', 'TARGET_STOP', 'STOP_CONFIRM'):
             self.record_path()
             self.stage_step()
         elif self.state in ('APPROACH', 'DOCK'):
@@ -598,7 +651,7 @@ class MissionManager:
             elif (report.get('state') not in NEAR_STATES
                   or time.monotonic()-self.run.last_control_received > .55
                   or report.get('target_id') != self.anchor['id']
-                  or report.get('grasp_side') != self.stage.side):
+                  or report.get('grasp_side') != self.active_side):
                 self.fail('Original controller lost the selected handoff identity or side')
             else:
                 if report.get('docking_phase') and self.state != 'DOCK':
@@ -611,17 +664,39 @@ class MissionManager:
         self.arbiter.enabled = self.live_path()
         self.had_path |= self.arbiter.enabled
 
+    def hold_navigation(self):
+        hold = self.point((self.pose[0], self.pose[1], self.pose[3]))
+        self.goal_pub.publish(hold)
+        self.way_pub.publish(hold)
+        self.goal = None
+
+    def begin_stop_confirm(self, now):
+        self.change('STOP_CONFIRM')
+        self.hold_navigation()
+        self.run.start.publish(Empty())
+        self.deadline = now + 12.
+
     def stage_step(self):
         now = time.monotonic()
         target_valid = (self.track and self.fresh(self.track['observed_ns'], 1.2)
                         and math.dist(self.track['position'][:2], self.anchor['position'][:2]) <= .12)
+        if self.state == 'TARGET_STOP':
+            if target_valid and self.stopped_for_handoff():
+                self.begin_stop_confirm(now)
+            elif now >= self.deadline:
+                self.defer_target('Target or measured stop unavailable for direct approach')
+            return
         if self.state == 'STOP_CONFIRM':
-            if not target_valid or not self.stage_clear(self.pose):
+            if not target_valid or (self.stage is not None and not self.stage_clear(self.pose)):
                 self.fail('UNREACHABLE: stop-confirm channel or target lost')
             report = self.run.control
             if report.get('state') in NEAR_STATES:
-                if report.get('target_id') != self.anchor['id'] or report.get('grasp_side') != self.stage.side:
+                side = report.get('grasp_side')
+                if (report.get('target_id') != self.anchor['id'] or side not in self.sides
+                        or (self.stage is not None and side != self.stage.side)):
                     self.fail('STOP_CONFIRM selected a different identity or side')
+                self.active_side = side
+                self.run.event('GRASP_SIDE_LOCKED', target_id=self.anchor['id'], side=side)
                 self.change('APPROACH', 'APPROACH')
             elif report.get('state') in ('STOP', 'FAULT') or now > self.deadline:
                 self.fail('Original STOP_CONFIRM did not admit approach')
@@ -655,12 +730,7 @@ class MissionManager:
             if not aligned or (target_valid and not self.stage_clear(self.pose)):
                 self.replan('Parking heading or last approach segment invalid')
             elif target_valid and self.stopped_for_handoff():
-                self.change('STOP_CONFIRM')
-                hold = self.point((self.pose[0], self.pose[1], self.pose[3]))
-                self.goal_pub.publish(hold)
-                self.way_pub.publish(hold)
-                self.run.start.publish(Empty())
-                self.deadline = now + 12.
+                self.begin_stop_confirm(now)
             elif now - self.last_progress > 5.:
                 self.replan('Target observation or measured stop unavailable at staging')
         elif now - self.last_progress > 8.:

@@ -278,3 +278,74 @@ def test_full_prefers_valid_left_and_probes_right_only_after_left_fails():
     mission.next_probe()
     assert mission.stage is right
     assert any(event == 'STAGING_SIDE_FALLBACK' for event, _ in events)
+
+
+def test_direct_grasp_uses_nearest_supported_wall_and_limits():
+    import numpy as np
+    from go2_science_perception.wall_distance import nearest_wall
+
+    samples = np.arange(0., 1.01, .025)
+    corner = [(v, 0.) for v in samples] + [(0., v) for v in samples]
+    distance, ends = nearest_wall((.20, .10), corner)
+    assert abs(distance-.10) < .01
+    assert max(abs(p[1]) for p in ends) < .01
+    distance, _ = nearest_wall((.01, .24), corner)
+    assert abs(distance-.01) < .007
+    assert nearest_wall((0., .25), [(x, 0.) for x in samples[:10]]) is None
+    assert nearest_wall((0., .2), [(-1., 0.), (-.9, 0.), (0., 0.), (.1, 0.),
+                                    (.8, 0.), (.9, 0.)]) is None
+
+
+def test_wall_qualified_target_claims_navigation_without_a_staging_candidate(monkeypatch):
+    from go2_science_perception import mission_manager
+
+    mission = MissionManager.__new__(MissionManager)
+    mission.stage = SimpleNamespace(side='right')
+    mission.cloud_ns, mission.last_direct_scan = 2, 1
+    mission.direct_range = 1.8
+    mission.wall_points = []
+    mission.eligible_tracks = [{'id': 1, 'position': (.1, .1, 0.), 'observed_ns': 1},
+                               {'id': 2, 'position': (.2, .1, 0.), 'observed_ns': 1}]
+    mission.fresh = mission.can_retry_target = lambda *args: True
+    mission.camera_range_for = lambda _: 1.
+    mission.change = lambda state: setattr(mission, 'state', state)
+    events = []
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.hold_navigation = lambda: events.append(('hold', {}))
+    monkeypatch.setattr(mission_manager, 'nearest_wall',
+                        lambda target, _: (.005 if target[0] < .2 else .35, ((0., 0.), (1., 0.))))
+
+    assert mission.prioritize_grasp()
+    assert mission.state == 'TARGET_STOP'
+    assert mission.stage is None
+    assert mission.anchor['id'] == 2
+    assert events[0][0] == 'hold'
+    assert events[1][1]['distance_m'] == .35
+
+
+def test_direct_handoff_waits_for_measured_stop_and_keeps_selected_identity():
+    mission = MissionManager.__new__(MissionManager)
+    mission.state = 'TARGET_STOP'
+    mission.deadline = float('inf')
+    mission.stage = None
+    mission.anchor = mission.track = {'id': 1, 'position': (.2, .1, 0.), 'observed_ns': 1}
+    mission.fresh = lambda *args: True
+    stopped = [False]
+    mission.stopped_for_handoff = lambda: stopped[0]
+    mission.begin_stop_confirm = lambda _: setattr(mission, 'state', 'STOP_CONFIRM')
+    mission.stage_step()
+    assert mission.state == 'TARGET_STOP'
+    stopped[0] = True
+    mission.stage_step()
+    assert mission.state == 'STOP_CONFIRM'
+    assert mission.anchor['id'] == 1
+
+
+def test_direct_sweep_allows_unknown_terrain_but_still_blocks_occupied_cells():
+    terrain = TerrainFootprint(dict(length=.70, width=.40, hard_clearance=.08,
+                                    parking_clearance=.01, grasp_clearance=.01))
+    begin, end = (0., 0., 0.), (.20, 0., 0.)
+    assert not terrain.sweep_clear(begin, end, clearance=.01)
+    assert terrain.sweep_clear(begin, end, clearance=.01, require_known=False)
+    terrain.cells[(4, 0)] = 2
+    assert not terrain.sweep_clear(begin, end, clearance=.01, require_known=False)

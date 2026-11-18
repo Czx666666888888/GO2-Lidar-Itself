@@ -75,7 +75,8 @@ class TerrainFootprint:
                     return True
         return False
 
-    def clear(self, pose, margin, *, starting_pose=None, evidence=None, exact_cells=True):
+    def clear(self, pose, margin, *, starting_pose=None, evidence=None, exact_cells=True,
+              require_known=True):
         res = self.resolution
         # Broad check only for grasping. Keep the existing conservative
         # envelope for return sweeps that use the default hard clearance.
@@ -87,7 +88,9 @@ class TerrainFootprint:
             for iy in range(cy - radius, cy + radius + 1):
                 x, y = ix * res, iy * res
                 state = self.cells.get((ix, iy), 0)
-                if state == 1 or not self.overlaps(pose, x, y, padded_margin):
+                if state == 1 or (state == 0 and not require_known):
+                    continue
+                if not self.overlaps(pose, x, y, padded_margin):
                     continue
                 if exact_cells and not self.cell_overlaps(pose, x, y, margin):
                     continue
@@ -112,7 +115,7 @@ class TerrainFootprint:
                             grid_resolution_m=res, blockers=blockers)
         return not blockers
 
-    def sweep_clear(self, start, end, *, clearance=None, evidence=None):
+    def sweep_clear(self, start, end, *, clearance=None, evidence=None, require_known=True):
         exact_cells = clearance is not None
         if clearance is None:
             clearance = self.hard_clearance
@@ -124,7 +127,7 @@ class TerrainFootprint:
             pose = (start[0] + t * (end[0] - start[0]),
                     start[1] + t * (end[1] - start[1]), start[2] + t * turn)
             if not self.clear(pose, clearance, starting_pose=start, evidence=evidence,
-                              exact_cells=exact_cells):
+                              exact_cells=exact_cells, require_known=require_known):
                 return False
         return True
 

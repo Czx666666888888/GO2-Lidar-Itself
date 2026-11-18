@@ -973,7 +973,7 @@ def main():
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
               '检测器='+args.detector +
-              (' → NBV探索 → FAR导航到MAP停靠区 → STOP_CONFIRM → 原MAP接近/停靠 → STOP'
+              (' → NBV探索 → 墙距符合时停止导航 → STOP_CONFIRM → 原MAP接近/停靠 → STOP'
                if args.mode == 'full' else ' → 搜索（最多5m）→ STOP_CONFIRM → 三自由度停靠 → STOP') +
               (' → 停止并释放D435 → 趴下 → D455采图/S1抓取 → ZERO_HOLD → 起立'
                ' → 确认D455释放 → 恢复D435 → 继续探索；第3轮起立后沿MAP历史路径返航' if args.mode == 'full' else '') +

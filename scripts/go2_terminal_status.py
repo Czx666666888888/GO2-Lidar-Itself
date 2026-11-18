@@ -9,6 +9,8 @@ STATUS_LABELS = {
     'MISSION_GOAL': '导航目标',
     'MISSION_FAILURE': '导航停止',
     'TARGET_DEFERRED': '目标暂缓',
+    'DIRECT_GRASP_ADMITTED': '墙距符合，暂停探索并直接接近',
+    'GRASP_SIDE_LOCKED': '抓取侧已确认',
     'STAGING_PROBE': '停靠试算',
     'STAGING_SIDE_FALLBACK': '切换抓取侧',
     'STAGING_SIDE_SELECTED': '已选抓取侧',
@@ -73,12 +75,14 @@ def show_status(stream, round_label):
         fields = []
         for key, title in (('state', '状态'), ('phase', '子阶段'), ('target_id', '目标'),
                            ('side', '侧别'), ('outcome', '结果'), ('xyz', 'MAP目标'),
-                           ('direction', '姿态方向'), ('reason', '原因'), ('rejected', '候选排除')):
+                           ('direction', '姿态方向'), ('distance_m', '墙距m'), ('reason', '原因'), ('rejected', '候选排除')):
             val = row.get(key)
             if val is None:
                 continue
             if key == 'xyz':
                 val = '(' + ', '.join(f'{item:.2f}' for item in val[:2]) + ')'
+            if key == 'distance_m':
+                val = f'{val:.3f}'
             fields.append(f'{title}={val}')
         print(f'[{round_label}] {label}' + (' | ' + ' | '.join(fields) if fields else ''), flush=True)
 
