@@ -12,6 +12,7 @@ from full_video_evidence import save_front_evidence
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]/"scripts"))
 from go2_camera_handoff import CameraHandoff, atomic_json
+from go2_terminal_status import POSTURE_LABELS, STATUS_PREFIX, complete_lines
 
 
 def arm_command(args, command):
@@ -23,6 +24,29 @@ def arm_command(args, command):
                 args.arm_host, shlex.join(argv)]
     result = subprocess.run(argv, capture_output=True, text=True, timeout=4, check=True)
     return json.loads(result.stdout)
+
+
+
+def relay_posture(stream, event, last_state):
+    for line in complete_lines(stream):
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        step, data = row.get('event'), row.get('data')
+        if step not in POSTURE_LABELS or not isinstance(data, dict):
+            continue
+        if step == 'ARM_STATUS':
+            state = data.get('state')
+            now = time.monotonic()
+            if state == last_state[0] and now-last_state[1] < 2.:
+                continue
+            last_state = (state, now)
+        event('POSTURE_STATUS', step=step, state=data.get('state'),
+              direction=data.get('direction'), outcome=data.get('outcome'))
+    return last_state
 
 
 def parser():
@@ -210,14 +234,16 @@ def main():
                                        lambda m: stopped.__setitem__(0, stopped[0] or m.data != 0), 1)
         process = None
         try:
-            with log.open('x') as stream:
+            with log.open('x') as stream, log.open(encoding='utf-8') as live:
                 process = subprocess.Popen(command, stdin=subprocess.PIPE,
                                            stdout=stream, stderr=subprocess.STDOUT, text=True)
                 experiment.event('POSTURE_HOST_STARTED')
                 deadline = time.monotonic()+args.arm_timeout+90
                 next_heartbeat = 0.0
+                last_state = (None, -float('inf'))
                 while process.poll() is None:
                     rclpy.spin_once(supervisor, timeout_sec=0.05)
+                    last_state = relay_posture(live, experiment.event, last_state)
                     if stopped[0] or time.monotonic() > deadline:
                         process.stdin.write('{"stop":true}\n')
                         process.stdin.flush()
@@ -229,6 +255,7 @@ def main():
                         except BrokenPipeError:
                             process.wait(timeout=4)
                         next_heartbeat = time.monotonic()+0.5
+                relay_posture(live, experiment.event, last_state)
                 completed = process
         finally:
             if process is not None:
@@ -273,4 +300,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as exc:
+        print(STATUS_PREFIX+json.dumps({'event': 'TASK_ERROR', 'reason': str(exc)}), flush=True)
+        raise

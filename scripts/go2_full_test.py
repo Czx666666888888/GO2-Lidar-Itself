@@ -10,6 +10,7 @@ from s1_fusion_delivery import (ensure_fusion_package, REMOTE_PACKAGE, PACKAGE_V
                             ARCHIVE_SHA256)
 from go2_camera_handoff import RELEASE_CHECK, service_requests, atomic_json
 from go2_three_grasps import run_three_grasps, progress_snapshot
+from go2_terminal_status import follow_status
 import fcntl
 import json
 import os
@@ -871,29 +872,39 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         if return_only:
             command.append('--return-only')
         print('开始真实运动；Ctrl+C请求停止。物理遥控急停保持可用。', flush=True)
-        task_log = (self.folder/('round_%02d_coordinator.log' % self.current_round)).open('x')
-        task = subprocess.Popen(self.shell(shlex.join(command)), stdout=task_log, stderr=subprocess.STDOUT)
-        try:
-            self.wait_job(task)
-        finally:
-            if task.poll() is None:
-                task.send_signal(signal.SIGINT)
-                deadline = time.monotonic()+20
-                warned = False
+        path = self.folder/('round_%02d_coordinator.log' % self.current_round)
+        round_label = '返航' if return_only else f'第 {self.current_round or 1} 轮'
+        with path.open('x') as task_log, path.open(encoding='utf-8') as live:
+            task = subprocess.Popen(self.shell(shlex.join(command)), stdout=task_log,
+                                    stderr=subprocess.STDOUT)
+            stop_status = threading.Event()
+            status_thread = threading.Thread(target=follow_status, args=(live, round_label, stop_status),
+                                             daemon=True)
+            status_thread.start()
+            try:
+                try:
+                    self.wait_job(task)
+                finally:
+                    if task.poll() is None:
+                        task.send_signal(signal.SIGINT)
+                        deadline = time.monotonic()+20
+                        warned = False
 
-                def reject_new_pause():
-                    raise RuntimeError('Full task cancelled; no new arm handoff')
+                        def reject_new_pause():
+                            raise RuntimeError('Full task cancelled; no new arm handoff')
 
-                while task.poll() is None:
-                    # The cancelled coordinator still needs its finally/resume ack.
-                    if self.args.mode == 'full':
-                        service_requests(self.camera_handoff_directory,
-                                         reject_new_pause, self.resume_front_camera)
-                    if not warned and time.monotonic() > deadline:
-                        print('任务未退出：立即物理急停；保留定位和S1，等待原任务退出。', flush=True)
-                        warned = True
-                    time.sleep(.1)
-            task_log.close()
+                        while task.poll() is None:
+                            # The cancelled coordinator still needs its finally/resume ack.
+                            if self.args.mode == 'full':
+                                service_requests(self.camera_handoff_directory,
+                                                 reject_new_pause, self.resume_front_camera)
+                            if not warned and time.monotonic() > deadline:
+                                print('任务未退出：立即物理急停；保留定位和S1，等待原任务退出。', flush=True)
+                                warned = True
+                            time.sleep(.1)
+            finally:
+                stop_status.set()
+                status_thread.join(timeout=2)
 
     def close(self):
         if self.camera_paused:

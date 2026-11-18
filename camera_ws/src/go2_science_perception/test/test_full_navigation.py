@@ -262,7 +262,7 @@ def test_full_prefers_valid_left_and_probes_right_only_after_left_fails():
     mission.anchor = {'id': 7}
     events = []
     mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
-    mission.change = lambda state, _: setattr(mission, 'state', state)
+    mission.change = lambda state, _='IDLE': setattr(mission, 'state', state)
     mission.send_goal = lambda point: None
     mission.publish_stage = lambda: None
 

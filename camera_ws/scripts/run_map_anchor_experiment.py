@@ -94,7 +94,7 @@ class Experiment:
         phase = (self.control.get('state'), self.control.get('docking_phase'))
         if phase != self.last_timing_phase:
             self.event('CONTROL_PHASE', state=phase[0], phase=phase[1],
-                       control_monotonic=self.control.get('control_monotonic'))
+                       reason=self.control.get('reason') or None, control_monotonic=self.control.get('control_monotonic'))
             previous = self.last_timing_phase or (None, None)
             if previous[0] == 'SEARCH' and phase[0] != 'SEARCH':
                 self.event('SEARCH_END')
@@ -110,8 +110,11 @@ class Experiment:
 
     def event(self, name, **data):
         row = dict(event=name, pc_monotonic=time.monotonic(), wall_time_ns=time.time_ns(), **data)
+        encoded = json.dumps(row)
         with (self.folder/f'handoff_{self.tag}.jsonl').open('a') as stream:
-            stream.write(json.dumps(row)+'\n')
+            stream.write(encoded+'\n')
+        if name != 'STAGING_CANDIDATE_REJECTED':
+            print('FULL_STATUS '+encoded, flush=True)
 
     def _recording(self, msg):
         self.recording = json.loads(msg.data)
@@ -324,6 +327,7 @@ class Experiment:
         self.mission.enabled = True
         self.mission.startup_deadline = time.monotonic() + 10
         deadline = time.monotonic() + self.args.search_timeout + 90
+        next_status = 0.
         while time.monotonic() < deadline:
             self.spin(.04)
             if (self.node.count_publishers('/cmd_vel_raw') != 1
@@ -333,6 +337,15 @@ class Experiment:
             if self.control.get('state') == 'FAULT':
                 raise RuntimeError('Original controller fault: '+str(self.control.get('reason')))
             self.mission.step()
+            now = time.monotonic()
+            if now >= next_status:
+                mission = self.mission
+                target = mission.anchor or mission.track
+                self.event('MISSION_HEARTBEAT', state=mission.state,
+                           phase=self.control.get('docking_phase'),
+                           target_id=target['id'] if target else None,
+                           side=mission.stage.side if mission.stage else None, xyz=mission.goal)
+                next_status = now + 2.
             if self.mission.finished:
                 return
         self.mission.fail('FULL navigation deadline expired')

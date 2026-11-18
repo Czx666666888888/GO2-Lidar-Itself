@@ -111,3 +111,55 @@ def test_full_view_starts_two_independent_optional_children(tmp_path, monkeypatc
     finally:
         for _, stream, _ in w.children:
             stream.close()
+
+
+def test_show_status_waits_for_complete_record_and_skips_unrelated_output(tmp_path, capsys):
+    from go2_terminal_status import show_status
+
+    path = tmp_path/'round_01_coordinator.log'
+    with path.open('w') as writer, path.open(encoding='utf-8') as reader:
+        writer.write('unrelated child output\nFULL_STATUS {"event":"MISSION_PHASE",')
+        writer.flush()
+        show_status(reader, '第 1 轮')
+        assert not capsys.readouterr().out
+
+        writer.write('"state":"EXPLORE"}\n')
+        writer.flush()
+        show_status(reader, '第 1 轮')
+        assert capsys.readouterr().out == '[第 1 轮] 导航阶段 | 状态=EXPLORE\n'
+        show_status(reader, '第 1 轮')
+        assert not capsys.readouterr().out
+
+
+def test_live_status_is_shown_before_task_process_exits(tmp_path, monkeypatch):
+    import builtins
+    import subprocess
+    import threading
+    from go2_terminal_status import follow_status
+
+    report_received = threading.Event()
+    output = []
+    def capture(message, **kwargs):
+        output.append(message)
+        report_received.set()
+
+    monkeypatch.setattr(builtins, 'print', capture)
+    path = tmp_path/'round_00_coordinator.log'
+    stop = threading.Event()
+    code = ('print(\'FULL_STATUS {"event":"MISSION_PHASE","state":"RETURN"}\',flush=True); '
+            'import sys; sys.stdin.readline()')
+    with path.open('w') as writer, path.open(encoding='utf-8') as reader:
+        with subprocess.Popen([sys.executable, '-c', code], stdin=subprocess.PIPE,
+                              stdout=writer) as process:
+            thread = threading.Thread(target=follow_status, args=(reader, '返航', stop))
+            thread.start()
+            try:
+                assert report_received.wait(3.)
+                assert process.poll() is None
+                assert output == ['[返航] 导航阶段 | 状态=RETURN']
+            finally:
+                stop.set()
+                thread.join(timeout=3.)
+                process.stdin.close()
+                process.wait(timeout=3.)
+            assert not thread.is_alive()
