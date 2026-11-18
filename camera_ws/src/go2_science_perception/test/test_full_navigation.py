@@ -62,6 +62,16 @@ def test_only_selected_source_with_new_stamp_can_publish():
     arbiter.enabled = True
     arbiter.tick()
     assert sent[-1].twist.linear.x == 0
+    arbiter.select('REACQUIRE')
+    msg.header.stamp = Time(sec=1, nanosec=200)
+    now[0] += 100
+    arbiter.receive('nav', msg)
+    arbiter.receive('science', msg)
+    assert arbiter.latest is None
+    arbiter.receive('reacquire', msg)
+    assert arbiter.latest is not None
+    arbiter.select('IDLE')
+    assert arbiter.latest is None
 
 
 def test_staging_does_not_start_approach_with_blocked_last_segment():
@@ -73,7 +83,7 @@ def test_staging_does_not_start_approach_with_blocked_last_segment():
     mission.pose = stage.pose
     mission.had_path = True
     mission.sides = {'right': DockSettings()}
-    mission.anchor = mission.track = {'position': (1.5, 0, 0), 'observed_ns': 1}
+    mission.anchor = mission.track = {'id': 1, 'position': (1.5, 0, 0), 'observed_ns': 1}
     mission.fresh = lambda *_: True
     mission.stage_clear = lambda _: False
     mission.arbiter = SimpleNamespace(enabled=True)
@@ -629,3 +639,87 @@ def test_corner_heading_reaches_original_docking_after_stationary_target_lock():
     assert report['grasp_docking']['desired_yaw'] == pytest.approx(heading)
     assert report['wz'] < 0.
     assert not report['grasp_docking_complete']
+
+
+def test_red_block_reacquires_from_recorded_near_pose_without_switching_target(monkeypatch):
+    from go2_science_perception import mission_manager
+
+    now = [10.]
+    monkeypatch.setattr(mission_manager.time, 'monotonic', lambda: now[0])
+    mission = MissionManager.__new__(MissionManager)
+    mission.state = 'TARGET_STOP'
+    mission.deadline = 15.
+    mission.anchor = dict(id=3, position=(2.34709, .33934, 0.), observed_ns=8_900_000_000)
+    mission.track = mission.anchor
+    mission.pose = (1.82293, -.12260, -.21191, 0.)
+    mission.side_hint = 'left'
+    mission.now_ns = lambda: int(now[0]*1e9)
+    stationary = [False]
+    mission.stopped_for_handoff = lambda: stationary[0]
+    mission.direct_range = 1.8
+    mission.camera_range_for = lambda _: .70
+    mission.node = SimpleNamespace(get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(
+        to_msg=lambda: Time(sec=int(now[0])))))
+    commands, events = [], []
+    mission.arbiter = SimpleNamespace(enabled=False, receive=lambda *args: commands.append(args))
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.change = lambda state, mode='IDLE': setattr(mission, 'state', state)
+    mission.begin_stop_confirm = lambda _: mission.change('STOP_CONFIRM')
+
+    mission.stage_step()
+    assert mission.state == 'TARGET_STOP'
+    stationary[0] = True
+    now[0] = 10.2
+    mission.stage_step()
+    assert mission.state == 'TARGET_REACQUIRE'
+    assert events[-1][1]['target_id'] == 3
+    assert events[-1][1]['bearing_deg'] == pytest.approx(53.5, abs=.1)
+    mission.stage_step()
+    source, command = commands[-1]
+    assert source == 'reacquire'
+    assert command.twist.linear.x == command.twist.linear.y == 0.
+    assert command.twist.angular.z == .25
+
+    distance, error = mission.target_bearing()
+    assert distance == pytest.approx(.70, abs=.01)
+    mission.pose = (*mission.pose[:2], mission.pose[2]+error, 0.)
+    now[0] = 14.5
+    mission.track = dict(mission.anchor, id=7, observed_ns=14_400_000_000)
+    mission.stage_step()
+    assert mission.state == 'TARGET_REACQUIRE'
+    assert not mission.arbiter.enabled
+    mission.track = dict(mission.anchor, observed_ns=14_400_000_000)
+    stationary[0] = False
+    mission.stage_step()
+    assert mission.state == 'TARGET_REACQUIRE'
+    stationary[0] = True
+    mission.stage_step()
+    assert mission.state == 'STOP_CONFIRM'
+    assert mission.anchor['id'] == 3 and mission.side_hint == 'left'
+
+
+def test_reacquisition_turn_uses_body_sweep_and_defers_when_blocked(monkeypatch):
+    from go2_science_perception import mission_manager
+
+    monkeypatch.setattr(mission_manager.time, 'monotonic', lambda: 10.)
+    mission = MissionManager.__new__(MissionManager)
+    mission.arbiter = SimpleNamespace(mode='REACQUIRE')
+    mission.pose = (0., 0., 0., 0.)
+    mission.pose_ns = mission.cloud_ns = 1
+    mission.fresh = lambda ns, _: bool(ns)
+    mission.stage = None
+    mission.terrain = floor()
+    mission.motion_blocked_at = None
+    mission.deadline = 18.
+    cmd = TwistStamped()
+    cmd.twist.angular.z = .25
+    assert mission.command_clear(cmd)
+    mission.terrain.cells[(4, 0)] = 2
+    assert not mission.command_clear(cmd)
+
+    deferred = []
+    mission.defer_target = deferred.append
+    mission.target_reacquire_step(11., False)
+    assert 'prevents turning' in deferred[-1]
+    mission.target_reacquire_step(18., False)
+    assert 'not confirmed' in deferred[-1]

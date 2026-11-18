@@ -7,7 +7,8 @@ from rclpy.qos import qos_profile_sensor_data
 
 
 class MotionArbiter:
-    sources = {'NAV': 'nav', 'RETURN': 'nav', 'APPROACH': 'science', 'DOCK': 'science'}
+    sources = {'NAV': 'nav', 'RETURN': 'nav', 'APPROACH': 'science', 'DOCK': 'science',
+               'REACQUIRE': 'reacquire'}
 
     def __init__(self, node):
         self.node = node

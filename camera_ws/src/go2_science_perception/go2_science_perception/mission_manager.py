@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, TwistStamped
 from nav_msgs.msg import Odometry, Path
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.time import Time
@@ -27,6 +27,10 @@ from .wall_distance import corner_grasp_heading, wall_grasp_side, wall_segments
 
 LOCALIZATION_RECOVERY_TIMEOUT = 5.0
 LOCALIZATION_STABLE_TIME = .30
+REACQUIRE_MAX_DISTANCE = 1.15
+REACQUIRE_MAX_TURN = math.radians(75.)
+REACQUIRE_HEADING_TOLERANCE = math.radians(10.)
+REACQUIRE_TIMEOUT = 8.
 LOCAL_PATH_TOPIC = '/nav/path'
 NAV_TOPICS = ('/goal_point', '/way_point', LOCAL_PATH_TOPIC,
               '/nav/cmd_vel_raw', '/science/cmd_vel_raw')
@@ -91,6 +95,7 @@ class MissionManager:
         self.side_hint = self.dock_heading = None
         self.memory_tracks = []
         self.memory_visit = None
+        self.reacquire_stamp_ns = 0
         self.memory_visited = set()
         self.explore_goal = None
         self.goal = None
@@ -403,7 +408,7 @@ class MissionManager:
             px, py = self.pose[:2]
             tx, ty = target['position'][:2]
             distance = math.hypot(tx-px, ty-py)
-            if not 1.15 < distance <= self.memory_range:
+            if not REACQUIRE_MAX_DISTANCE < distance <= self.memory_range:
                 continue
             # The view waypoint remains on the current side of the target.
             x, y = tx - .85*(tx-px)/distance, ty - .85*(ty-py)/distance
@@ -692,11 +697,12 @@ class MissionManager:
                                             clearance=self.terrain.grasp_clearance))
 
     def command_clear(self, command):
-        if self.arbiter.mode not in ('APPROACH', 'DOCK'):
+        reacquiring = self.arbiter.mode == 'REACQUIRE'
+        if not reacquiring and self.arbiter.mode not in ('APPROACH', 'DOCK'):
             return True
         if not self.fresh(self.pose_ns, .55) or not self.fresh(self.cloud_ns, .85):
             return False
-        if self.stage is None:
+        if self.stage is None and not reacquiring:
             return True  # Wall-qualified direct grasp uses the original approach controller.
         twist = command.twist
         vx, vy, wz = twist.linear.x, twist.linear.y, twist.angular.z
@@ -706,7 +712,7 @@ class MissionManager:
         x, y, angle = self.pose[:3]
         dx, dy = rotate_xy(angle + .5*horizon*wz, (horizon*vx, horizon*vy))
         clear = self.terrain.sweep_clear(self.pose, (x+dx, y+dy, angle+horizon*wz),
-                                         clearance=self.terrain.grasp_clearance)
+                                         clearance=0. if reacquiring else self.terrain.grasp_clearance)
         if clear:
             self.motion_blocked_at = None
         elif self.motion_blocked_at is None:
@@ -784,7 +790,7 @@ class MissionManager:
             if self.explore_goal and self.explore_goal[1] > self.goal_ns:
                 self.send_goal(self.explore_goal[0])
             self.arbiter.enabled = bool(self.goal and self.live_path())
-        elif self.state in ('PROBE', 'NAV_TO_TARGET', 'TARGET_STOP', 'STOP_CONFIRM'):
+        elif self.state in ('PROBE', 'NAV_TO_TARGET', 'TARGET_STOP', 'TARGET_REACQUIRE', 'STOP_CONFIRM'):
             self.record_path()
             self.stage_step()
         elif self.state in ('APPROACH', 'DOCK'):
@@ -825,15 +831,65 @@ class MissionManager:
         self.run.start.publish(Empty())
         self.deadline = now + 12.
 
+    def target_bearing(self):
+        dx = self.anchor['position'][0] - self.pose[0]
+        dy = self.anchor['position'][1] - self.pose[1]
+        return math.hypot(dx, dy), wrap(math.atan2(dy, dx) - self.pose[2])
+
+    def begin_target_reacquire(self, now):
+        distance, error = self.target_bearing()
+        if not .30 <= distance <= REACQUIRE_MAX_DISTANCE or abs(error) > REACQUIRE_MAX_TURN:
+            return
+        self.reacquire_stamp_ns = self.now_ns()
+        self.motion_blocked_at = None
+        self.deadline = now + REACQUIRE_TIMEOUT
+        self.change('TARGET_REACQUIRE', 'REACQUIRE')
+        self.run.event('TARGET_REACQUIRE', target_id=self.anchor['id'],
+                       target_map=self.anchor['position'][:2], bearing_deg=math.degrees(error))
+
+    def target_reacquire_step(self, now, target_valid):
+        if now >= self.deadline:
+            self.defer_target('Remembered target was not confirmed after turning')
+            return
+        if self.motion_blocked_at is not None and now-self.motion_blocked_at > .8:
+            self.defer_target('Obstacle or unknown terrain prevents turning toward remembered target')
+            return
+        distance, error = self.target_bearing()
+        if not .30 <= distance <= REACQUIRE_MAX_DISTANCE or abs(error) > REACQUIRE_MAX_TURN:
+            self.defer_target('Remembered target moved outside the local reacquisition limits')
+            return
+        if abs(error) <= REACQUIRE_HEADING_TOLERANCE:
+            self.arbiter.enabled = False
+            distance = (self.camera_range_for(self.track)
+                        if target_valid and self.track['observed_ns'] > self.reacquire_stamp_ns
+                        else None)
+            if distance is not None and distance <= self.direct_range and self.stopped_for_handoff():
+                self.run.event('TARGET_REACQUIRED', target_id=self.anchor['id'])
+                self.begin_stop_confirm(now)
+            return
+        twist = TwistStamped()
+        twist.header.stamp = self.node.get_clock().now().to_msg()
+        twist.header.frame_id = 'vehicle'
+        twist.twist.angular.z = max(-.25, min(.25, error))
+        self.arbiter.receive('reacquire', twist)
+        self.arbiter.enabled = True
+
     def stage_step(self):
         now = time.monotonic()
-        target_valid = (self.track and self.fresh(self.track['observed_ns'], 1.2)
+        target_valid = (self.track and self.anchor and self.track['id'] == self.anchor['id']
+                        and self.fresh(self.track['observed_ns'], 1.2)
                         and math.dist(self.track['position'][:2], self.anchor['position'][:2]) <= .12)
         if self.state == 'TARGET_STOP':
-            if target_valid and self.stopped_for_handoff():
-                self.begin_stop_confirm(now)
-            elif now >= self.deadline:
+            if now >= self.deadline:
                 self.defer_target('Target or measured stop unavailable for direct approach')
+            elif self.stopped_for_handoff():
+                if target_valid:
+                    self.begin_stop_confirm(now)
+                else:
+                    self.begin_target_reacquire(now)
+            return
+        if self.state == 'TARGET_REACQUIRE':
+            self.target_reacquire_step(now, target_valid)
             return
         if self.state == 'STOP_CONFIRM':
             if not target_valid or (self.stage is not None and not self.stage_clear(self.pose)):

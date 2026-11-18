@@ -11,6 +11,8 @@ STATUS_LABELS = {
     'LOCALIZATION_PAUSED': '定位异常，停车等待恢复',
     'LOCALIZATION_RECOVERED': '定位已恢复',
     'TARGET_DEFERRED': '目标暂缓',
+    'TARGET_REACQUIRE': '朝 MAP 记忆目标转向回看',
+    'TARGET_REACQUIRED': '记忆目标已重新确认',
     'DIRECT_GRASP_ADMITTED': '墙距符合，暂停探索并直接接近',
     'GRASP_SIDE_LOCKED': '抓取侧已确认',
     'MEMORY_REVISIT': '前往回看记忆目标',
@@ -78,7 +80,7 @@ def show_status(stream, round_label):
             label = POSTURE_LABELS.get(row.get('step'), label)
         fields = []
         for key, title in (('state', '状态'), ('phase', '子阶段'), ('target_id', '目标'),
-                           ('side', '侧别'), ('corner_turn_deg', '拐角转向°'), ('outcome', '结果'), ('xyz', 'MAP目标'),
+                           ('side', '侧别'), ('corner_turn_deg', '拐角转向°'), ('bearing_deg', '回看转向°'), ('outcome', '结果'), ('xyz', 'MAP目标'),
                            ('direction', '姿态方向'), ('distance_m', '墙距m'), ('reason', '原因'), ('rejected', '候选排除')):
             val = row.get(key)
             if val is None:
