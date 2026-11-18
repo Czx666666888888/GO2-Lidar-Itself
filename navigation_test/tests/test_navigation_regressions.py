@@ -181,6 +181,8 @@ class NavigationRegressionTests(unittest.TestCase):
             n.front_stop_deg, n.front_stop_pts = 30., 6
             n.seen = {"odom": time.monotonic()}
             n.finished = None
+            n.exit_requested = False
+            n.hard_stop_pub = NS(publish=lambda _: None)
             faults = []
             n._fault = faults.append
             cloud = point_cloud2.create_cloud(Header(frame_id="map"), fields,
@@ -189,6 +191,21 @@ class NavigationRegressionTests(unittest.TestCase):
             n.cb_phase(String(data="DONE"))
             self.assertEqual(n.finished, result)
             self.assertEqual(len(faults), 1)
+            self.assertEqual(n.should_exit(), result != "BODY_CLEARANCE_STOP")
+            if result == "BODY_CLEARANCE_STOP":
+                n.cb_stop(NS(data=1))
+                self.assertTrue(n.should_exit())
+                self.assertEqual(n.finished, result)
+
+    def test_exploration_stays_paused_after_body_hard_stop(self):
+        n = self.corridor()
+        n.mode = "EXPLORE"
+        n.current_goal = (2., 0.)
+        n.cb_hard_stop(NS(data=True))
+        n.cb_return_home(NS(data=True))
+        n.cb_waypoint(NS())
+        self.assertEqual(n.mode, "FAULT_HOLD")
+        self.assertFalse(n.sent)
 
     def test_unknown_cloud_cannot_authorize_parking(self):
         from sensor_msgs.msg import PointCloud2

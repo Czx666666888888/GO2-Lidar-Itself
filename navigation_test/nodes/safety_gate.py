@@ -27,6 +27,7 @@ class NavigationGate(SafetyGate):
         self.phase = "WAIT"
         self.ready_to_track = False
         self.finished = None
+        self.exit_requested = False
         self.front_stop_enable = True
         self.front_stop_min, self.front_stop_max = .15, .80
         self.front_stop_deg, self.front_stop_pts = 30, 10
@@ -41,6 +42,16 @@ class NavigationGate(SafetyGate):
         self.create_subscription(PointStamped, "/way_point", self.cb_waypoint, 1)
         self.create_subscription(String, "/navigation_state", self.cb_phase, 1)
         self.create_subscription(Float32, "/escape_rotate", self.cb_rotate, 1)
+        self.hard_stop_pub = self.create_publisher(Bool, "/navigation_test/hard_stop", 1)
+
+    def should_exit(self):
+        return self.exit_requested or self.finished not in (None, "BODY_CLEARANCE_STOP")
+
+    def cb_stop(self, msg):
+        if msg.data != 0:
+            super().cb_stop(msg)
+            self.finished = self.finished or "OPERATOR_STOP"
+            self.exit_requested = True
 
     def cb_arm(self, msg):
         if not msg.data:
@@ -117,6 +128,7 @@ class NavigationGate(SafetyGate):
         if nearest <= HARD_CLEARANCE + 1e-6 and self.state == ARMED:
             self.finished = "BODY_CLEARANCE_STOP"
             self._fault(f"机身外沿净空 {nearest:.3f} m，触发硬停")
+            self.hard_stop_pub.publish(Bool(data=True))
             return
         self.seen["terrain"] = time.monotonic()
         if not self.front_blocked and cnt > self.front_stop_pts:
@@ -167,18 +179,24 @@ class NavigationGate(SafetyGate):
 def main():
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     node = NavigationGate()
+    result_path = Path(os.environ["NAV_RESULT"])
+    saved_result = None
     try:
-        while node.finished is None:
+        while not node.should_exit():
             rclpy.spin_once(node, timeout_sec=.1)
+            if node.finished == "BODY_CLEARANCE_STOP" and saved_result is None:
+                result_path.write_text(node.finished + "\n")
+                saved_result = node.finished
+                node.get_logger().warn("硬停已锁存，保留建图和查看窗口。使用 --stop 或 Ctrl-C 结束本轮")
     except KeyboardInterrupt:
-        node.finished = "INTERRUPTED"
+        node.finished = node.finished or "INTERRUPTED"
     finally:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         if node.state == ARMED:
             node._fault("导航测试结束")
         node.get_logger().info(f"导航测试结果 {node.finished}")
-        if node.finished:
-            Path(os.environ["NAV_RESULT"]).write_text(node.finished + "\n")
+        if node.finished and node.finished != saved_result:
+            result_path.write_text(node.finished + "\n")
         node.destroy_node()
         rclpy.shutdown()
 

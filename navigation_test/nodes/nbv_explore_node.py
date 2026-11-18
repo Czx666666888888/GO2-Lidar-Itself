@@ -40,6 +40,7 @@ class ExploreNode(Node):
         self.goal_pub = self.create_publisher(PointStamped, "/goal_point", 10)
         self.status_pub = self.create_publisher(String, "/navigation_state", 10)
         self.ret_sub = self.create_subscription(Bool, "/navigation_test/return_home", self.cb_return_home, 10)
+        self.hard_stop_sub = self.create_subscription(Bool, "/navigation_test/hard_stop", self.cb_hard_stop, 1)
         self.way_pub = self.create_publisher(PointStamped, "/way_point", 10)
         self.rot_pub = self.create_publisher(Float32, "/escape_rotate", 10)   # 返航时转身面向目标
         self.waypoint_sub = self.create_subscription(
@@ -163,6 +164,11 @@ class ExploreNode(Node):
     def _near_obstacle(self, ix, iy, radius):
         return any(self.grid.get((ix+i, iy+j)) == 2
                    for i in range(-radius, radius+1) for j in range(-radius, radius+1))
+
+    def cb_hard_stop(self, msg):
+        if msg.data:
+            self.mode = "FAULT_HOLD"
+            self.get_logger().warn("机身净空硬停，任务暂停")
 
     def cb_return_home(self, msg):
         if msg.data and self.mode == "EXPLORE" and self.home is not None:
