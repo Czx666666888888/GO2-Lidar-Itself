@@ -47,8 +47,15 @@ def test_archive_is_pinned_and_motion_resources_are_unchanged(payload):
             assert hashlib.sha256(base64.b64decode(item['content'])).hexdigest() == item['sha256']
         # Upstream algorithms/configuration/SDK remain protected by the ZIP manifest.
         assert 's1_control/box_dump.py' not in payload['files']
-        assert not any(name.startswith(('config/', 'calibration/', 'vendor/'))
-                       for name in payload['files'])
+        configuration_changes = {name for name in payload['files'] if name.startswith('config/')}
+        assert configuration_changes == {delivery.LEFT_GRASP_CONFIG}
+        assert not any(name.startswith(('calibration/', 'vendor/')) for name in payload['files'])
+        original = bundle.read('s1-arm-control/' + delivery.LEFT_GRASP_CONFIG)
+        updated = base64.b64decode(payload['files'][delivery.LEFT_GRASP_CONFIG]['content'])
+        expected = original.replace(b'"maximum_track_error_rad": 0.08,',
+                                    b'"maximum_track_error_rad": 0.12,', 1)
+        assert updated == expected
+        assert updated != original
         source = base64.b64decode(payload['files']['scripts/run_arm_integration.py']['content']).decode()
         assert 'task_commands_supported=["status", "grasp", "dump"]' in source
         assert 'elif request.get("command") == "dump"' in source
@@ -180,10 +187,13 @@ def test_installer_race_with_new_owner_never_writes(payload, tmp_path, monkeypat
 
 
 @pytest.mark.parametrize('active_owner', [False, True])
-@pytest.mark.parametrize('previous_options', [dict(previous=True), dict(legacy_status=True)])
-def test_upgrade_preserves_every_other_resource(installed, payload, active_owner, previous_options):
+@pytest.mark.parametrize('previous_version', delivery.PRIOR_VERSIONS)
+def test_upgrade_preserves_every_other_resource(installed, payload, active_owner, previous_version):
     target, expected = installed
-    previous = delivery.delivery_payload(ROOT, **previous_options)[1]
+    previous = delivery.delivery_payload(ROOT, version=previous_version)[1]
+    with zipfile.ZipFile(ROOT / delivery.ARCHIVE) as bundle:
+        config = delivery.LEFT_GRASP_CONFIG
+        (target / config).write_bytes(bundle.read('s1-arm-control/' + config))
     for name, item in previous['files'].items():
         (target / name).write_bytes(base64.b64decode(item.pop('content')))
     (target / 'S1_V2_COMPAT.json').write_text(json.dumps(previous))
@@ -205,9 +215,12 @@ def test_upgrade_preserves_every_other_resource(installed, payload, active_owner
         assert json.loads((target / 'S1_V2_COMPAT.json').read_text()) == previous
     else:
         assert result.returncode == 0, result.stderr
-        assert 's1_control/integration.py' in changed
-        changed.remove('s1_control/integration.py')
-        if previous_options.get('previous'):
+        assert delivery.LEFT_GRASP_CONFIG in changed
+        changed.remove(delivery.LEFT_GRASP_CONFIG)
+        if previous_version != delivery.PRIOR_VERSIONS[-1]:
+            assert 's1_control/integration.py' in changed
+            changed.remove('s1_control/integration.py')
+        if previous_version == delivery.PRIOR_VERSIONS[0]:
             name = 'scripts/run_go2_visual_alignment.py'
             assert changed == {name}
             assert (target / name).read_bytes() == before[name].replace(

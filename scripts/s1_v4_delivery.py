@@ -13,10 +13,14 @@ PACKAGE_VERSION = '20261117_final_fusion_v4'
 ARCHIVE_SHA256 = '6950d2cb8135f6ee56ccc0535dc1da6dd6a68e17478fea8cacbd5ff0bc14c90b'
 ARCHIVE = 'camera_ws/s1_service/deliveries/S1_arm_final_fusion_20261117_v4.zip'
 REMOTE_PACKAGE = '/home/unitree/s1-arm-control-v4'
-COMPAT_VERSION = 'v4_multitarget_dump_3'
+PRIOR_VERSIONS = ('v4_multitarget_dump_1', 'v4_multitarget_dump_2', 'v4_multitarget_dump_3')
+COMPAT_VERSION = 'v4_multitarget_dump_4'
+LEFT_GRASP_CONFIG = 'config/go2_left_full_flow_size_adaptive_20261112_v1.json'
 
 
-def delivery_payload(root, *, previous=False, legacy_status=False):
+def delivery_payload(root, *, version=COMPAT_VERSION):
+    if version not in (*PRIOR_VERSIONS, COMPAT_VERSION):
+        raise ValueError(f'Unknown S1 v4 adapter version: {version}')
     path = Path(root) / ARCHIVE
     if hashlib.sha256(path.read_bytes()).hexdigest() != ARCHIVE_SHA256:
         raise RuntimeError('S1 v4 archive hash mismatch; preserve')
@@ -34,7 +38,16 @@ def delivery_payload(root, *, previous=False, legacy_status=False):
             if hashlib.sha256(bundle.read('s1-arm-control/' + name)).hexdigest() != digest:
                 raise RuntimeError('S1 upstream manifest mismatch: ' + name)
         files = compatibility_payload(root, bundle, final_fusion=True)
-    if not previous:
+        if version == COMPAT_VERSION:
+            source = bundle.read('s1-arm-control/' + LEFT_GRASP_CONFIG)
+            content = replace_once(source.decode(),
+                                   '"maximum_track_error_rad": 0.08,',
+                                   '"maximum_track_error_rad": 0.12,').encode()
+            files[LEFT_GRASP_CONFIG] = dict(
+                original_sha256=hashlib.sha256(source).hexdigest(),
+                content=base64.b64encode(content).decode(),
+                sha256=hashlib.sha256(content).hexdigest())
+    if version != PRIOR_VERSIONS[0]:
         name = 'scripts/run_go2_visual_alignment.py'
         source = base64.b64decode(files[name]['content'])
         old = b'record["adaptive_secure_no_lift"].setdefault("secure_force_nm", 0.40)'
@@ -43,7 +56,7 @@ def delivery_payload(root, *, previous=False, legacy_status=False):
         content = source.replace(old, old.replace(b'0.40', b'0.80'), 1)
         files[name].update(content=base64.b64encode(content).decode(),
                            sha256=hashlib.sha256(content).hexdigest())
-    if not previous and not legacy_status:
+    if version in (PRIOR_VERSIONS[-1], COMPAT_VERSION):
         name = 's1_control/integration.py'
         source = base64.b64decode(files[name]['content']).decode()
         # Reset result metadata under the same lock as the accepted queue transition.
@@ -57,8 +70,6 @@ def delivery_payload(root, *, previous=False, legacy_status=False):
         content = source.encode()
         files[name].update(content=base64.b64encode(content).decode(),
                            sha256=hashlib.sha256(content).hexdigest())
-    version = ('v4_multitarget_dump_1' if previous else
-               'v4_multitarget_dump_2' if legacy_status else COMPAT_VERSION)
     return path, dict(version=version,
                       archive_sha256=ARCHIVE_SHA256, files=files)
 
@@ -139,8 +150,8 @@ def ensure_v4_package(root, ssh, host, *, running=False):
     check_command = ['/usr/bin/python3', '-c', CHECK, REMOTE_PACKAGE,
                      COMPAT_VERSION, ARCHIVE_SHA256]
     prior_deliveries = {}
-    for options in (dict(previous=True), dict(legacy_status=True)):
-        previous = delivery_payload(root, **options)[1]
+    for version in PRIOR_VERSIONS:
+        previous = delivery_payload(root, version=version)[1]
         previous['files'] = {name: {k: v for k, v in item.items() if k != 'content'}
                              for name, item in previous['files'].items()}
         prior_deliveries[previous['version']] = previous
@@ -196,7 +207,8 @@ for name,item in current['files'].items():
         raise SystemExit('S1 upgrade content mismatch')
     target=root/name
     if target.read_bytes()==content:continue
-    backup=root/'.v2-compat-backups'/previous['files'][name]['sha256']/name
+    digest=previous['files'].get(name,{}).get('sha256',item['original_sha256'])
+    backup=root/'.v2-compat-backups'/digest/name
     backup.parent.mkdir(parents=True,exist_ok=True)
     if not backup.exists():shutil.copy2(target,backup)
     temp=target.with_suffix(target.suffix+'.upgrade-tmp');temp.write_bytes(content);temp.replace(target)
