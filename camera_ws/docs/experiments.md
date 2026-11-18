@@ -2393,3 +2393,10 @@ final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open
 - `full_1795017911066424480` 使用 `106dcd3`，运动前检查通过，图像预览和 RViz2 启动。第一轮任务在等待导航话题的 10 秒期限后报 `Navigation chain incomplete or competing goal, path or velocity source`，一直未进入 EXPLORE。安全门记录零速和清理停止，未启动停靠或抓取。
 - Point-LIO 即使关闭路径消息输出也会注册 `/path` 发布端，FULL 下 localPlanner 原本也注册此话题。现在 FULL 的 localPlanner、pathFollower、MissionManager 和 RViz2 使用 `/nav/path`，Point-LIO 保留原 `/path`。话题检查失败时记录异常话题及其发布节点。
 - 186 项针对性测试通过。使用实际 Point-LIO 和规划节点启动隔离 ROS 域，确认 `/path` 只有 laserMapping 发布，`/nav/path` 只有 localPlanner 发布，由 pathFollower 和 MissionManager 订阅。修复后的实机运动为 NOT VERIFIED。
+
+### 2026-11-19 无可达停靠位时继续探索及导航显示
+
+- 最新实机记录 `full_1795018235885670019` 使用 `37896b4`，约 42 毫秒内由 EXPLORE 转入 PROBE 并报 UNREACHABLE，早于首个 NBV 选点及任何 FAR 停靠试算。安全门记录零速。RViz2 已启动，之后随任务清理关闭。历史记录无法区分候选具体卡在哪个净空格。
+- 候选为空时记录目标级 UNREACHABLE，并继续当前探索。机身移动 0.35 m 或经过 6 秒可重新评估该目标。几何和净空约束、单一控制源及原 STOP_CONFIRM 的停止条件保持。新增候选排除原因、任务目标与试算结果日志。
+- `--view` 的 RViz2 以 `map` 为固定坐标系，展示注册点云、导航地形、NBV 提议、FAR 目标、局部航点、选中停靠位、FAR 全局路径与局部路径。点云显示使用 Best Effort，兼容发布方的可靠和尽力交付 QoS。
+- 187 项针对性测试通过，RViz2 显示配置已按本机 Humble 插件和实际话题接口检查。修复后的实机探索和图形窗口实际渲染为 NOT VERIFIED。

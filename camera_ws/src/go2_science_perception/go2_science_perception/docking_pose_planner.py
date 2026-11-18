@@ -71,7 +71,7 @@ class TerrainFootprint:
         return True
 
 
-def staging_candidates(target, robot, sides, terrain):
+def staging_candidates(target, robot, sides, terrain, *, rejected=None):
     """Check the final S1 geometry and the full near-approach sweep before FAR trials."""
     bearing = math.atan2(target[1] - robot[1], target[0] - robot[0])
     options = []
@@ -83,9 +83,16 @@ def staging_candidates(target, robot, sides, terrain):
             x, y = target_in_s1(target, dock, settings)
             if not (settings.region_x_min - 1e-6 <= x <= settings.region_x_max + 1e-6
                     and settings.region_y_min - 1e-6 <= y <= settings.region_y_max + 1e-6):
+                if rejected is not None:
+                    rejected['s1_geometry'] += 1
                 continue
             stage = (dock[0] - offset[0], dock[1] - offset[1], yaw)
-            if (terrain.clear(stage, terrain.parking_clearance)
-                    and terrain.sweep_clear(stage, dock)):
+            if not terrain.clear(stage, terrain.parking_clearance):
+                if rejected is not None:
+                    rejected['parking_clearance'] += 1
+            elif not terrain.sweep_clear(stage, dock):
+                if rejected is not None:
+                    rejected['approach_corridor'] += 1
+            else:
                 options.append(StagingPose(stage, dock, side))
     return sorted(options, key=lambda candidate: math.dist(robot[:2], candidate.pose[:2]))

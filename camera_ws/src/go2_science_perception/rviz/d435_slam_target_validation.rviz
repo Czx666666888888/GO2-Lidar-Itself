@@ -3,54 +3,99 @@ Panels:
     Name: Displays
 Visualization Manager:
   Class: ""
+  Enabled: true
   Displays:
     - Alpha: 1
       Class: rviz_default_plugins/Grid
       Name: Grid
       Plane: XY
       Reference Frame: map
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/PointCloud2
       Name: Registered Scan
       Topic:
+        Reliability Policy: Best Effort
         Value: /registered_scan
       Size (Pixels): 3
       Style: Points
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/Marker
       Name: Coarse Target Map Marker
       Topic:
         Value: /science/target_coarse_point_map_marker
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Name: Confirmed Science Targets
       Topic:
         Value: /science/confirmed_targets
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Name: Selected Science Target
       Topic:
         Value: /science/selected_target_marker
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Name: Science Standoff Goal
       Topic:
         Value: /science/standoff_goal_marker
+      Enabled: true
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Navigation Terrain
+      Topic:
+        Reliability Policy: Best Effort
+        Value: /terrain_map
+      Style: Flat Squares
+      Size (m): 0.06
+      Color Transformer: Intensity
+      Enabled: true
+      Value: true
+    - Class: rviz_default_plugins/PointStamped
+      Name: NBV Exploration Goal
+      Topic:
+        Value: /mission/nbv_goal
+      Color: 255; 196; 48
+      Radius: 0.10
+      Enabled: true
+      Value: true
+    - Class: rviz_default_plugins/PointStamped
+      Name: Active FAR Goal
+      Topic:
+        Value: /goal_point
+      Color: 95; 240; 102
+      Radius: 0.12
+      Enabled: true
+      Value: true
+    - Class: rviz_default_plugins/PointStamped
+      Name: Active Local Waypoint
+      Topic:
+        Value: /way_point
+      Color: 55; 200; 255
+      Radius: 0.08
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/Marker
       Name: FULL Staging Pose
       Topic:
         Value: /mission/staging_pose
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/Marker
       Name: FAR Map Path
       Topic:
         Value: /viz_path_topic
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/Path
       Name: Planned Local Path
       Topic:
         Value: /nav/path
+      Enabled: true
       Value: true
     - Class: rviz_default_plugins/TF
       Name: TF

@@ -1,4 +1,5 @@
 """Own FULL goals, validate docking handoff and authorize the existing controllers."""
+from collections import Counter
 from dataclasses import fields
 import json
 import math
@@ -79,6 +80,7 @@ class MissionManager:
         self.ranked = []
         self.stage = None
         self.anchor = None
+        self.deferred_targets = {}
         self.deadline = 0.
         self.last_progress = 0.
         self.best_distance = float('inf')
@@ -194,7 +196,8 @@ class MissionManager:
             distinct = [t for t in tracks if all(
                 u['id'] == t['id'] or math.dist(u['position'][:2], t['position'][:2])
                 >= 2 * self.association_radius for u in tracks)]
-            tracks = [t for t in distinct if not self.anchor or t['id'] == self.anchor['id']]
+            tracks = [t for t in distinct if (t['id'] == self.anchor['id'] if self.anchor
+                                              else self.can_retry_target(t['id']))]
             self.track = min(tracks, key=lambda t: math.dist(t['position'][:2], self.pose[:2]),
                              default=None) if self.pose else None
             if self.anchor:
@@ -231,9 +234,10 @@ class MissionManager:
         else:
             self.goal_pub.publish(point)
             self.last_send = time.monotonic()
-        self.target_pub.publish(String(data=json.dumps(dict(
-            frame='map', state=self.state, xyz=xyz,
-            target_id=self.anchor['id'] if self.anchor else None))))
+        task_goal = dict(frame='map', state=self.state, xyz=xyz,
+                         target_id=self.anchor['id'] if self.anchor else None)
+        self.target_pub.publish(String(data=json.dumps(task_goal)))
+        self.run.event('MISSION_GOAL', **task_goal)
 
     def far_path(self, message):
         ns = stamp(message.header)
@@ -362,13 +366,31 @@ class MissionManager:
         self.deadline = time.monotonic() + 5.
         self.settled_at = None
 
-    def probe(self, blacklist=()):
+    def can_retry_target(self, target_id):
+        if target_id not in self.deferred_targets:
+            return True
+        position, retry_at = self.deferred_targets[target_id]
+        return (time.monotonic() >= retry_at or
+                self.pose is not None and math.dist(position, self.pose[:2]) >= .35)
+
+    def defer_target(self, reason, **details):
+        target = self.anchor or self.track
+        self.deferred_targets[target['id']] = (self.pose[:2], time.monotonic() + 6.)
+        self.run.event('TARGET_DEFERRED', status='UNREACHABLE', reason=reason,
+                       target_id=target['id'], target_map=target['position'][:2],
+                       vehicle_map=self.pose[:2], terrain_cells=len(self.terrain.cells), **details)
+        self.track = self.anchor = self.stage = None
+        if self.state != 'EXPLORE':
+            self.goal = None
+            self.goal_ns = 0
+            self.arbiter.flush()
+            self.change('EXPLORE', 'NAV')
+
+    def probe(self, options):
         self.change('PROBE')
         self.stage = None
         self.ranked = []
-        self.pending = [p for p in staging_candidates(self.track['position'][:2],
-                        self.pose, self.sides, self.terrain)
-                        if not any(math.dist(p.pose[:2], old.pose[:2]) < .13 for old in blacklist)]
+        self.pending = options
         self.next_probe()
 
     def publish_stage(self):
@@ -387,6 +409,7 @@ class MissionManager:
         if self.pending:
             self.stage = self.pending.pop(0)
             self.send_goal((*self.stage.pose[:2], self.pose[3]))
+            self.run.event('STAGING_PROBE', pose=self.stage.pose, side=self.stage.side)
             self.deadline = time.monotonic() + 2.4
         elif self.ranked:
             _, self.stage = min(self.ranked, key=lambda item: item[0])
@@ -394,12 +417,21 @@ class MissionManager:
             self.publish_stage()
             self.send_goal((*self.stage.pose[:2], self.pose[3]))
         else:
-            self.fail('UNREACHABLE: no staging pose with known clearance, S1 geometry and FAR/local path')
+            self.defer_target('No staging candidate produced both a FAR route and a local path')
 
     def replan(self, reason):
         self.run.event('STAGING_REPLAN', reason=reason)
         self.rejected.append(self.stage)
-        self.probe(self.rejected)
+        if not self.track or not self.fresh(self.track['observed_ns'], 1.2):
+            self.defer_target('Target observation unavailable for replanning')
+            return
+        options = [p for p in staging_candidates(self.track['position'][:2], self.pose,
+                                                self.sides, self.terrain)
+                   if not any(math.dist(p.pose[:2], old.pose[:2]) < .13 for old in self.rejected)]
+        if options:
+            self.probe(options)
+        else:
+            self.defer_target('No alternate staging pose passes the geometry and clearance checks')
 
     def stage_clear(self, pose):
         stage = self.stage
@@ -501,12 +533,16 @@ class MissionManager:
         elif self.state == 'EXPLORE':
             self.record_path()
             if self.track and self.fresh(self.track['observed_ns'], 1.2):
-                options = staging_candidates(self.track['position'][:2], self.pose, self.sides, self.terrain)
-                if options or math.dist(self.track['position'][:2], self.pose[:2]) < 2.5:
+                rejected = Counter()
+                options = staging_candidates(self.track['position'][:2], self.pose, self.sides,
+                                             self.terrain, rejected=rejected)
+                if options:
                     self.anchor = self.track
                     self.rejected = []
-                    self.probe()
+                    self.probe(options)
                     return
+                self.defer_target('No staging pose passes the geometry and clearance checks',
+                                  rejected=dict(rejected))
             if self.explore_goal and self.explore_goal[1] > self.goal_ns:
                 self.send_goal(self.explore_goal[0])
             self.arbiter.enabled = bool(self.goal and self.live_path())
@@ -561,6 +597,8 @@ class MissionManager:
                     self.pending.clear()
                 self.next_probe()
             elif now > self.deadline:
+                self.run.event('STAGING_PROBE_TIMEOUT', pose=self.stage.pose,
+                               far_path=self.far_cost is not None, local_path=bool(self.local_ns))
                 self.next_probe()
             return
         distance = math.dist(self.stage.pose[:2], self.pose[:2])

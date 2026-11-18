@@ -124,3 +124,31 @@ def test_full_nav_does_not_use_point_lio_path_topic():
         remap = launch.find(f"./node[@name='{name}']/remap[@from='/path']")
         assert remap is not None and remap.attrib['to'] == LOCAL_PATH_TOPIC
     assert '/path' not in NAV_TOPICS
+
+
+def test_no_feasible_staging_defers_only_the_target_and_resumes_explore():
+    mission = MissionManager.__new__(MissionManager)
+    mission.state = 'PROBE'
+    mission.pose = (0., 0., 0.)
+    mission.terrain = floor()
+    mission.anchor = mission.track = {'id': 1, 'position': (1.5, 0., 0.)}
+    mission.deferred_targets = {}
+    mission.stage = SimpleNamespace()
+    mission.pending = mission.ranked = []
+    mission.goal = (1., 0., 0.)
+    mission.goal_ns = 1
+    events = []
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.arbiter = SimpleNamespace(flush=lambda: events.append(('zero', {})))
+    mission.change = lambda state, mode: setattr(mission, 'state', state)
+
+    mission.next_probe()
+
+    assert mission.state == 'EXPLORE'
+    assert mission.anchor is None and mission.goal is None and mission.goal_ns == 0
+    assert events[0][1]['status'] == 'UNREACHABLE'
+    assert events[-1][0] == 'zero'
+    assert not mission.can_retry_target(1)
+    assert mission.can_retry_target(2)
+    mission.pose = (.36, 0., 0.)
+    assert mission.can_retry_target(1)
