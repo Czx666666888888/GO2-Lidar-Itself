@@ -238,7 +238,8 @@ class Experiment:
             '-p', 'multi_target_memory:='+str(getattr(self.args, 'multi_target_memory', False)).lower(),
             '-p', 'resume_memory:='+str(getattr(self.args, 'multi_target_memory', False) and not self.mission and
                 bool(json.loads(getattr(self.args, 'completed_targets_json', '[]')))).lower(),
-            *(['-r', '/cmd_vel_raw:=/science/cmd_vel_raw',
+            *(['-p', 'dock_require_current_arrival:=true',
+               '-r', '/cmd_vel_raw:=/science/cmd_vel_raw',
                '-r', '/science/target_tracks:=/mission/target_tracks']
               if self.mission else []),
             *(['-p', 'dock_forward_response_check:=true',

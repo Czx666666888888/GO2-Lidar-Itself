@@ -1,5 +1,5 @@
 """Independent six/one-centimetre arrival memory; no hardware or ROS init."""
-from dataclasses import fields
+from dataclasses import fields, replace
 from pathlib import Path
 import math
 
@@ -117,3 +117,51 @@ def test_both_axis_latches_do_not_replace_current_heading_requirement():
         out = step(c, 10.+i*.1, .05, .005, yaw=math.radians(15))
         assert out['docking_arrival_latched']
         assert not out['grasp_docking_complete'] and out['state'] != 'STOP'
+
+
+@pytest.mark.parametrize('side', ['left', 'right'])
+def test_full_reopens_the_early_lateral_latch_and_completes_only_on_both_live_axes(side):
+    c = core(side)
+    c.docking.p = replace(c.docking.p, require_current_arrival=True)
+    out = step(c, 10., .15, .005)
+    assert out['docking_lateral_arrival_latched']
+    # The red block's early lateral sample was in range. By longitudinal
+    # arrival, the logged lateral error had drifted to about 21 cm.
+    for i in range(1, 13):
+        out = step(c, 10.+i*.1, max(.05, .15-.01*i), min(.2116, .005+.02*i))
+    assert out['docking_longitudinal_arrival_latched']
+    assert not out['docking_lateral_arrival_latched']
+    assert not out['grasp_docking_complete'] and out['docking_phase'] != 'STOP_WAIT'
+    assert out['vy'] > 0.
+
+    for i in range(13, 40):
+        out = step(c, 10.+i*.1, .05, max(.005, .2116-.02*(i-12)))
+        if out['grasp_docking_complete']:
+            break
+    assert out['state'] == 'STOP'
+    assert out['docking_pose_in_tolerance']
+    assert out['docking_longitudinal_in_tolerance'] and out['docking_lateral_in_tolerance']
+
+
+def test_full_drift_during_stop_wait_restarts_correction_and_the_settle_window():
+    c = core('left')
+    c.docking.p = replace(c.docking.p, require_current_arrival=True)
+    for i in range(4):
+        out = step(c, 10.+i*.1, .02, .005)
+    assert out['docking_phase'] == 'STOP_WAIT'
+    drift = step(c, 10.4, .02, .033)
+    assert drift['docking_stop_wait_exit_reason'] == 'current_pose_outside_tolerance'
+    assert not drift['docking_lateral_arrival_latched']
+    assert not drift['grasp_docking_complete']
+    assert drift['vy'] > 0.
+    for i in range(5, 10):
+        out = step(c, 10.+i*.1, .02, .005)
+        assert not out['grasp_docking_complete']
+    for i in range(10, 23):
+        out = step(c, 10.+i*.1, .02, .005)
+        if out['grasp_docking_complete']:
+            break
+    assert out['grasp_docking_complete']
+    drift_after_stop = step(c, 12.4, .02, .033)
+    assert not drift_after_stop['grasp_docking_complete']
+    assert drift_after_stop['vx'] == drift_after_stop['vy'] == drift_after_stop['wz'] == 0.

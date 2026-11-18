@@ -177,19 +177,7 @@ class GraspDocking:
         out.update(docking_arrival_latch_enabled=self.p.arrival_latch_enabled,
                    docking_axis_arrival_latch_enabled=axis_mode,
                    **self.arrival_status())
-        if not active:
-            if core.state != 'STOP':
-                self.clear_arrival()
-                out.update(self.arrival_status())
-            self.forward.reset()
-            self.stop_wait_started = self.stationary_since = None
-            self.reset_stationary()
-            self.velocity_map = (0.0, 0.0)
-            core.vx = core.vy = 0.0
-            return out
         distance, yaw_error = report['position_error_m'], report['yaw_error_rad']
-        if distance <= self.p.fine_distance and not self.p.fine_forward_correction_enabled:
-            self.lateral_only = True
         goal = report['vehicle_goal_map_pose']
         dx, dy = goal[0]-core.robot[0], goal[1]-core.robot[1]
         ex, ey = rotate_xy(-core.robot[2], (dx, dy))
@@ -205,6 +193,27 @@ class GraspDocking:
         else:
             position_ok = distance <= self.p.position_tolerance+1e-12
         yaw_ok = abs(yaw_error) <= self.p.yaw_tolerance+1e-12
+        if not active:
+            if self.p.require_current_arrival and completed:
+                out['grasp_docking_complete'] = position_ok and yaw_ok
+            if core.state != 'STOP':
+                self.clear_arrival()
+                out.update(self.arrival_status())
+            self.forward.reset()
+            self.stop_wait_started = self.stationary_since = None
+            self.reset_stationary()
+            self.velocity_map = (0.0, 0.0)
+            core.vx = core.vy = 0.0
+            return out
+        if distance <= self.p.fine_distance and not self.p.fine_forward_correction_enabled:
+            self.lateral_only = True
+        if self.p.require_current_arrival:
+            if not position_ok:
+                self.arrival_sample = None
+            if axis_mode and not longitudinal_ok:
+                self.longitudinal_arrival_sample = None
+            if axis_mode and not lateral_ok:
+                self.lateral_arrival_sample = None
         sample = dict(monotonic=now, odom_monotonic=core.odom_time,
                       position_error_m=distance, yaw_error_rad=yaw_error,
                       target_map_xy=list(core.target), vehicle_map_pose=list(core.robot),
@@ -226,7 +235,8 @@ class GraspDocking:
                    docking_longitudinal_tolerance_m=self.p.position_tolerance,
                    docking_lateral_tolerance_m=self.p.lateral_position_tolerance if axis_mode else None)
         arrival_latched = self.p.arrival_latch_enabled and self.arrival_sample is not None
-        arrival_ok = arrival_latched if axis_mode else position_ok or arrival_latched
+        arrival_ok = (position_ok if self.p.require_current_arrival else
+                      arrival_latched if axis_mode else position_ok or arrival_latched)
         out.update(self.arrival_status())
         if now-core.visual_time > core.p.visual_timeout:
             if core.lost_at is None:
@@ -291,8 +301,7 @@ class GraspDocking:
             return out
 
         core.state = 'APPROACH_TO_GRASP_POSE'
-        # Optional arrival memory keeps translation at zero after entering range.
-        # Current heading and stopped feedback remain required for completion.
+        # Reopen correction on FULL if either axis drifts out of its band.
         exit_reason = None
         if self.stop_wait_started is not None:
             self.forward.stop(core, now, 'entered final stop wait')
@@ -308,7 +317,9 @@ class GraspDocking:
                            (self.stationary_bad_since is not None and
                             now-self.stationary_bad_since >= self.p.stationary_reset_sec))
             exit_confirm = max(self.p.settle_exit_confirm_sec, self.p.stationary_reset_sec)
-            if (not arrival_latched and outside and
+            if self.p.require_current_arrival and not position_ok:
+                exit_reason = 'current_pose_outside_tolerance'
+            elif (not arrival_latched and outside and
                     now-self.exit_candidate_since >= exit_confirm):
                 exit_reason = 'position_outside_exit_band_persisted'
             elif not yaw_ok and reset_ready:

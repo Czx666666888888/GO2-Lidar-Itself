@@ -27,6 +27,7 @@ class DockSettings:
     stationary_reset_sec: float = 0.0  # Zero preserves immediate-reset compatibility.
     arrival_latch_enabled: bool = False  # Current task may remember one in-range pose.
     axis_arrival_latch_enabled: bool = False  # Opt-in independent S1 X/Y arrival memory.
+    require_current_arrival: bool = False  # FULL revalidates arrival against the current pose.
     lateral_position_tolerance: float = 0.02
     lateral_fine_speed: float = 0.0  # Dock-only nominal lateral speed; zero retains legacy.
     min_linear_speed: float = 0.0  # Opt-in through the docking profile.
