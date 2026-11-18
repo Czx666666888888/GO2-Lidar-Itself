@@ -218,3 +218,47 @@ def test_response_observer_uses_humble_message_only_callback():
     fake.get_publishers_info_by_topic = lambda _: [SimpleNamespace(node_name='other')]
     ScienceTargetApproach._sport_output(fake, msg)
     assert errors and 'attribution ambiguous' in errors[-1]
+
+
+def test_gate_exit_timeout_still_cleans_planners_and_recorder(tmp_path):
+    import subprocess
+
+    m = runner_module()
+    e = m.Experiment.__new__(m.Experiment)
+    e.args = SimpleNamespace(grasp_pose=True)
+    e.folder, e.tag = tmp_path, 'cleanup'
+    e.control = dict(state='FAULT')
+    e.recording, e.reports, e.children = {}, [], []
+    e.timer = e.mission = None
+    e.stop, e.arm, e.finish = Publisher(), Publisher(), Publisher()
+    actions = []
+    e.spin = lambda seconds: None
+    e.halt_planners = lambda: actions.append('planners')
+    e.node = SimpleNamespace(destroy_node=lambda: actions.append('node'))
+
+    def halt(index):
+        actions.append(index)
+        if index == 0:
+            raise subprocess.TimeoutExpired('gate', 3)
+
+    e.halt = halt
+    with pytest.raises(subprocess.TimeoutExpired):
+        e.close()
+    assert actions == [1, 0, 'planners', 2, 'node']
+
+
+def test_planner_session_is_signaled_when_launcher_already_exited(monkeypatch):
+    m = runner_module()
+    e = m.Experiment.__new__(m.Experiment)
+    e.nav_process = SimpleNamespace(pid=42, poll=lambda: 1)
+    signals = []
+
+    def killpg(pid, sig):
+        assert pid == 42
+        signals.append(sig)
+        if sig == 0:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(m.os, 'killpg', killpg)
+    e.halt_planners()
+    assert signals == [m.signal.SIGTERM, 0]

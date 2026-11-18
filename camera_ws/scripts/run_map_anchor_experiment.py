@@ -2,6 +2,7 @@
 """Explicitly start one recorded MAP-anchor experiment through the existing gate."""
 
 import argparse
+from contextlib import ExitStack
 import json
 import os
 import re
@@ -146,7 +147,41 @@ class Experiment:
                 process.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 process.terminate()
-                process.wait(timeout=3)
+                try:
+                    process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=2)
+                    raise
+
+    def halt_planners(self):
+        """Stop this run's ROS launch session even if its launcher has exited."""
+        process = self.nav_process
+        if process is None:
+            return
+        if process.poll() is None:
+            process.send_signal(signal.SIGINT)
+            try:
+                process.wait(timeout=9)
+            except subprocess.TimeoutExpired:
+                pass
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        deadline = time.monotonic() + 2.
+        while time.monotonic() < deadline:
+            process.poll()
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                return
+            time.sleep(.05)
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait(timeout=2)
 
     def run(self):
         """Record, spatially lock and execute once; no extra interactive prompt."""
@@ -305,9 +340,7 @@ class Experiment:
     def release_navigation(self):
         """Release actual owners and await graph removal, not a fixed delay."""
         self.event('NAVIGATION_RELEASE_START')
-        self.halt(1)
-        self.arm.publish(Bool(data=False))
-        self.halt(0)
+        self.halt_motion(settle=0.)
         deadline = time.monotonic()+2.
         while True:
             local = [e for e in self.node.get_publishers_info_by_topic('/api/sport/request')
@@ -321,37 +354,17 @@ class Experiment:
                 return
             self.spin(.02)
 
-    def close(self):
-        """Finalize evidence even when setup or execution fails."""
-        self.navigation_guard = None
-        if self.mission:
-            self.mission.enabled = False
-            self.mission.arbiter.close()
-            self.spin(.18)
-        fast_handoff = (getattr(self.args, 'grasp_pose', False) and
-                        self.control.get('state') == 'STOP' and
-                        self.control.get('grasp_docking_complete') is True)
-        self.stop.publish(Int8(data=1))
-        if not fast_handoff:
-            self.spin(0.2)
-        if self.timer:
-            self.timer.cancel()
-        if fast_handoff:
-            self.release_navigation()
-        else:
+    def halt_motion(self, settle):
+        with ExitStack() as cleanup:
+            cleanup.callback(self.halt, 0)
+            if settle:
+                cleanup.callback(self.spin, settle)
+            cleanup.callback(self.arm.publish, Bool(data=False))
             self.halt(1)
-            self.spin(0.2)
-            self.arm.publish(Bool(data=False))
-            self.spin(0.2)
-            self.halt(0)
-        if self.nav_process and self.nav_process.poll() is None:
-            # ros2 launch owns the planner children and forwards the shutdown.
-            self.nav_process.send_signal(signal.SIGINT)
-            try:
-                self.nav_process.wait(timeout=12)
-            except subprocess.TimeoutExpired:
-                os.killpg(self.nav_process.pid, signal.SIGTERM)
-                self.nav_process.wait(timeout=4)
+            if settle:
+                self.spin(settle)
+
+    def finish_recording(self, fast_handoff):
         self.finish.publish(Empty())
         if fast_handoff:
             deadline = time.monotonic()+2.
@@ -359,9 +372,33 @@ class Experiment:
                 self.spin(.02)
         else:
             self.spin(0.8)
-        self.halt(2)
-        for _, stream in self.children:
-            stream.close()
+
+    def close(self):
+        """Stop and release each owned process even when another shutdown fails."""
+        self.navigation_guard = None
+        fast_handoff = (getattr(self.args, 'grasp_pose', False) and
+                        self.control.get('state') == 'STOP' and
+                        self.control.get('grasp_docking_complete') is True)
+        with ExitStack() as cleanup:
+            cleanup.callback(self.node.destroy_node)
+            for _, stream in self.children:
+                cleanup.callback(stream.close)
+            cleanup.callback(self.halt, 2)
+            cleanup.callback(self.finish_recording, fast_handoff)
+            cleanup.callback(self.halt_planners)
+            if fast_handoff:
+                cleanup.callback(self.release_navigation)
+            else:
+                cleanup.callback(self.halt_motion, .2)
+            if self.timer:
+                cleanup.callback(self.timer.cancel)
+            if self.mission:
+                self.mission.enabled = False
+                self.mission.arbiter.close()
+                self.spin(.18)
+            self.stop.publish(Int8(data=1))
+            if not fast_handoff:
+                self.spin(0.2)
         summary = {'control_reports': self.reports, 'final': self.control,
                    'recording': self.recording, 'physical_result': 'PENDING_USER_OBSERVATION',
                    'flow_metrics': flow_metrics(self.reports)}
@@ -369,7 +406,6 @@ class Experiment:
         (self.folder / f'run_{self.tag}.json').write_text(json.dumps(summary, indent=2))
         print('FINISHED', json.dumps(summary['final']),
               json.dumps(self.recording), flush=True)
-        self.node.destroy_node()
 
 
 def main():
