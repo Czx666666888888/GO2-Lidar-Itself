@@ -37,6 +37,16 @@ Visualization Manager:
       Topic:
         Value: /science/standoff_goal_marker
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Name: FULL Staging Pose
+      Topic:
+        Value: /mission/staging_pose
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Name: FAR Map Path
+      Topic:
+        Value: /viz_path_topic
+      Value: true
     - Class: rviz_default_plugins/Path
       Name: Planned Local Path
       Topic:

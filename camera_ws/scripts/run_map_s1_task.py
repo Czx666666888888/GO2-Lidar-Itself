@@ -39,6 +39,8 @@ def parser():
     p.add_argument('--continuous-search', action='store_true')
     p.add_argument('--completed-targets-json', default='[]')
     p.add_argument('--round-result', type=Path)
+    p.add_argument('--navigation-trail', type=Path)
+    p.add_argument('--return-only', action='store_true')
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
     p.add_argument('--response-distance-limit', type=float, default=.20)
@@ -75,6 +77,8 @@ def parser():
 def main():
     p = parser()
     args = p.parse_args()
+    if args.return_only and args.navigation_trail is None:
+        p.error('--return-only needs --navigation-trail')
     if args.execute and args.full and args.camera_handoff_directory is None:
         p.error("Full camera switching requires the go2_test.sh --execute --mode full entry")
     if not .10 <= args.response_distance_limit <= .50:
@@ -116,6 +120,10 @@ def main():
                 sdk_cyclonedds_home=args.sdk_cyclonedds_home,
                 docking_fixed_timeout_sec=None, legacy_timeout_argument_ignored=args.timeout,
                 execute=args.execute, arm_service_validation='NOT VERIFIED')
+    if args.return_only:
+        plan.update(mode='return', stages=['RETURN', 'RETURN_SETTLE', 'IDLE'])
+    elif args.navigation_trail:
+        plan['stages'][:1] = ['EXPLORE', 'NAV_TO_TARGET']
     if args.forward_response_check:
         plan.update(mode='forward_response_check',
                     stages=['FORWARD_RESPONSE_CHECK', 'ZERO_REQUEST', 'MEASURED_STOP'],
@@ -144,12 +152,16 @@ def main():
             final = dict(experiment.control)
         finally:
             experiment.close()
-            if args.full:
+            if args.full and not args.return_only:
                 save_front_evidence(experiment.folder, experiment.recording)
     except BaseException:
         if rclpy.ok():
             rclpy.shutdown()
         raise
+    if args.return_only:
+        rclpy.shutdown()
+        print('RETURN_ARRIVED: map position inside home radius', flush=True)
+        return
     # The original controller AND gate must be gone before SDK posture control.
     if any(proc.poll() is None for proc, _ in experiment.children):
         raise RuntimeError('Navigation children still alive; no posture handoff')

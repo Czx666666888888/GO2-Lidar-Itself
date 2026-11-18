@@ -1,0 +1,106 @@
+<launch>
+
+  <arg name="vehicleLength" default="0.70"/>
+  <arg name="vehicleWidth" default="0.40"/>
+  <arg name="obstacleInflate" default="0.08"/>
+  <arg name="sensorOffsetX" default="0.0"/>
+  <arg name="sensorOffsetY" default="0.0"/>
+  <arg name="cameraOffsetZ" default="0.0"/>
+  <arg name="twoWayDrive" default="false"/>  <!-- 关闭倒车: 目标常落到身后导致频繁后退, 改为只转身前进 -->
+  <arg name="maxSpeed" default="0.1"/>
+  <arg name="autonomyMode" default="false"/>
+  <arg name="autonomySpeed" default="1.0"/>
+  <arg name="joyToSpeedDelay" default="2.0"/>
+  <arg name="goalCloseDis" default="0.5"/>  <!-- 100->0.5: 只在快到目标时允许全向; 正常必须朝向前方±23°才走(避免斜着走) -->
+  <arg name="goalX" default="0.0"/>
+  <arg name="goalY" default="0.0"/>
+  <arg name="is_real_robot" default="false"/>
+
+  <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
+    <remap from="/joy" to="/mission/inactive_joy"/>
+    <remap from="/speed" to="/mission/inactive_speed"/>
+    <remap from="/check_obstacle" to="/mission/inactive_check_obstacle"/>
+    <param name="pathFolder" value="$(find-pkg-share local_planner)/paths" />
+    <param name="vehicleLength" value="$(var vehicleLength)" />
+    <param name="vehicleWidth" value="$(var vehicleWidth)" />
+    <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
+    <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
+    <param name="twoWayDrive" value="$(var twoWayDrive)" />
+    <param name="laserVoxelSize" value="0.05" />
+    <param name="terrainVoxelSize" value="0.2" />
+    <param name="useTerrainAnalysis" value="true" />
+    <param name="checkObstacle" value="true" />
+    <param name="checkRotObstacle" value="true" />
+    <param name="obstacleInflate" value="$(var obstacleInflate)" /><!-- 0.12->0.08: 1m通道里0.12膨胀后净宽仅0.76m, localPlanner常判无路 -->
+    <param name="inertiaFactor" value="1.3" />   <!-- 方向惯性: 抑制 path 帧间跳变(1.0=关) -->
+    <param name="adjacentRange" value="3.0" />
+    <param name="obstacleHeightThre" value="0.3" />
+    <param name="groundHeightThre" value="0.1" />
+    <param name="costHeightThre" value="0.1" />
+    <param name="costScore" value="0.02" />
+    <param name="useCost" value="false" />
+    <param name="pointPerPathThre" value="2" />
+    <param name="minRelZ" value="-0.5" />
+    <param name="maxRelZ" value="0.25" />
+    <param name="maxSpeed" value="$(var maxSpeed)" />
+    <param name="dirWeight" value="0.02" />
+    <param name="dirThre" value="90.0" />
+    <param name="dirToVehicle" value="false" />
+    <param name="pathScale" value="0.75" />
+    <param name="minPathScale" value="0.5" />
+    <param name="pathScaleStep" value="0.25" />
+    <param name="pathScaleBySpeed" value="true" />
+    <param name="minPathRange" value="1.0" />
+    <param name="pathRangeStep" value="0.5" />
+    <param name="pathRangeBySpeed" value="true" />
+    <param name="pathCropByGoal" value="true" />
+    <param name="autonomyMode" value="$(var autonomyMode)" />
+    <param name="autonomySpeed" value="$(var autonomySpeed)" />
+    <param name="joyToSpeedDelay" value="$(var joyToSpeedDelay)" />
+    <param name="joyToCheckObstacleDelay" value="5.0" />
+    <param name="goalClearRange" value="0.15" /><!-- 0.5->0.15: 原值>far航点距离(0.3), 航点一生成就被判"已到达" -> 路径为空 -> 狗停住 -->
+    <param name="goalX" value="$(var goalX)" />
+    <param name="goalY" value="$(var goalY)" />
+  </node>
+
+  <node pkg="local_planner" exec="pathFollower" name="pathFollower" output="screen">
+    <remap from="/speed" to="/mission/inactive_speed"/>
+    <remap from="/cmd_vel_raw" to="/nav/cmd_vel_raw"/>
+    <remap from="/joy" to="/mission/inactive_joy"/>
+    <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
+    <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
+    <param name="pubSkipNum" value="1" />
+    <param name="twoWayDrive" value="$(var twoWayDrive)" />
+    <param name="lookAheadDis" value="0.5" />
+    <param name="yawRateGain" value="0.8" /><!-- 1.5->0.8: 降低转向增益, 12°偏差只发0.17rad/s, 不再过猛 -->
+    <param name="stopYawRateGain" value="0.8" />
+    <param name="maxYawRate" value="80.0" />
+    <param name="maxSpeed" value="$(var maxSpeed)" />
+    <param name="maxAccel" value="2.0" />
+    <param name="switchTimeThre" value="1.0" />
+    <param name="dirDiffThre" value="0.25" /><!-- 0.5->0.25(14°): 必须基本正对路径才前进, 避免边走边大角度转 -> 弧线撞墙 -->
+    <param name="omniDirDiffThre" value="1.57" />
+    <param name="noRotSpeed" value="10.0"/>
+    <param name="stopDisThre" value="0.08" /><!-- 0.2->0.08: far航点常只有0.1~0.2m, 原值导致pathFollower静止死锁 -->
+    <param name="slowDwnDisThre" value="0.35" /><!-- 0.75->0.35: far航点仅0.3m, 原值把速度压到0.22(低于Go2步态门槛0.25) -->
+    <param name="useInclRateToSlow" value="false" />
+    <param name="inclRateThre" value="120.0" />
+    <param name="slowRate1" value="0.25" />
+    <param name="slowRate2" value="0.5" />
+    <param name="slowTime1" value="2.0" />
+    <param name="slowTime2" value="2.0" />
+    <param name="useInclToStop" value="false" />
+    <param name="inclThre" value="45.0" />
+    <param name="stopTime" value="5.0" />
+    <param name="noRotAtStop" value="false" />
+    <param name="noRotAtGoal" value="true" />
+    <param name="autonomyMode" value="$(var autonomyMode)" />
+    <param name="autonomySpeed" value="$(var autonomySpeed)" />
+    <param name="joyToSpeedDelay" value="$(var joyToSpeedDelay)" />
+    <param name="goalCloseDis" value="$(var goalCloseDis)"/>
+    <param name="is_real_robot" value="$(var is_real_robot)"/>
+  </node>
+
+
+
+</launch>

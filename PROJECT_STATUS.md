@@ -1136,3 +1136,7 @@ SEARCH仍5m/60秒，停稳确认/唯一控制出口/定位异常停车不变；�
 - 主仓库入口转发实际集成模式，补齐PC校时包装器参数；原full/dock路径不改。12项针对性检查、单包构建、指定venv导入、launch参数及互斥检查通过。
 - 用户最新要求先完成代码；本轮无设备连接/实时预览/运动。D435定位误差、实时画面、到位距离/停止原因、单/多方块真实运行全部NOT VERIFIED。
 - 入口与限制：camera_ws/docs/color_block_map_approach.md；预览命令bash go2_test.sh --mode approach --preview --view。后续先静态误差核验，再另授权运动。
+
+### 2026-11-18 FULL 单地图导航
+
+FULL 的远程段已接入 FAR、localPlanner 和 pathFollower，近程通过静止确认交接给原 MAP/S1 控制器。地图停靠、速度独占和第三轮 StandUp 后历史返航的接口及验证边界记入 [FULL 单地图实验记录](camera_ws/docs/experiments.md)。闭环走行、停靠及返航实机状态为 NOT VERIFIED。

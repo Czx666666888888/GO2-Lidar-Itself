@@ -93,7 +93,7 @@ def test_runner_docking_exceeds_former_combined_deadline_plain_map_remains_bound
                                       target_xy=None)
     experiment.folder, experiment.root = tmp_path, tmp_path
     experiment.children = []
-    experiment.timer = None
+    experiment.timer = experiment.mission = None
     experiment.control = {'state': 'IDLE'}
     experiment.recording = dict(active=True, frames=100)
     launched = []
@@ -139,6 +139,7 @@ def test_successful_dock_close_releases_owners_without_fixed_sleeps(tmp_path):
     e.control = dict(state='STOP', grasp_docking_complete=True)
     e.recording, e.reports, e.children = dict(closed=True), [], []
     e.timer, e.navigation_released = None, False
+    e.mission = e.nav_process = None
     e.stop, e.arm, e.finish = Publisher(), Publisher(), Publisher()
     halted = []
     e.halt = lambda index: halted.append(index)

@@ -390,6 +390,7 @@ class Workflow:
             if self.detector == 'yolo':
                 command.append('--multi-target-memory')
             command += ['--evidence-directory', str(self.folder), '--continuous-search',
+                        '--navigation-trail', str(self.folder/'navigation_trail.json'),
                         '--completed-targets-json', json.dumps(self.completed_targets),
                         '--round-result', str(self.folder/('round_%02d_result.json' % self.current_round))]
             command += ['--camera-handoff-directory', str(self.camera_handoff_directory)]
@@ -818,12 +819,18 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         if getattr(self.args, 'view', False):
             self.spawn(self.shell('ros2 run rqt_image_view rqt_image_view '
                                   '/science/approach/debug_image'), 'viewer')
+        if self.args.mode == 'full' and getattr(self.args, 'view', False) and os.environ.get('DISPLAY'):
+            self.spawn(self.shell(shlex.join(['ros2', 'run', 'rviz2', 'rviz2', '-d', str(
+                self.work/'camera_ws/src/go2_science_perception/rviz/d435_slam_target_validation.rviz')])),
+                'viewer')
         if self.args.mode == 'full':
             self.multi_memory_session = self.detector == 'yolo'
             self.processed_results = []
             run_three_grasps(self.run_full_round, lambda completed: atomic_json(
                 self.folder/'three_grasps.json', progress_snapshot(completed)))
-            print('THREE_TARGETS_PROCESSED: third StandUp confirmed; exploration stopped', flush=True)
+            self.current_round = 0
+            self.run_task(return_only=True)
+            print('THREE_TARGETS_PROCESSED: third StandUp and map return confirmed', flush=True)
         else:
             self.run_task()
 
@@ -855,8 +862,10 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         self.processed_results = getattr(self, 'processed_results', [])+[result]
         return result
 
-    def run_task(self):
+    def run_task(self, return_only=False):
         command = self.task_command()
+        if return_only:
+            command.append('--return-only')
         print('开始真实运动；Ctrl+C请求停止。物理遥控急停保持可用。', flush=True)
         task_log = (self.folder/('round_%02d_coordinator.log' % self.current_round)).open('x')
         task = subprocess.Popen(self.shell(shlex.join(command)), stdout=task_log, stderr=subprocess.STDOUT)
@@ -948,11 +957,14 @@ def main():
         print('离线计划（未连接硬件、未写文件）：\n'
               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
-              '检测器='+args.detector+' → SEARCH（full持续探索，dock保留5m）/0.25m/s → STOP_CONFIRM 6s → 三自由度停靠 → STOP' +
+              '检测器='+args.detector +
+              (' → NBV探索 → FAR导航到MAP停靠区 → STOP_CONFIRM → 原MAP接近/停靠 → STOP'
+               if args.mode == 'full' else ' → 搜索（最多5m）→ STOP_CONFIRM → 三自由度停靠 → STOP') +
               (' → 停止并释放D435 → 趴下 → D455采图/S1抓取 → ZERO_HOLD → 起立'
-               ' → 确认D455释放 → 恢复D435 → 继续探索；第3轮起立后停止' if args.mode == 'full' else '') +
-              '\n真实执行：bash go2_test.sh --execute\n'
-              '无自动避障；退出保留S1保持服务。完整流程真机验收：NOT VERIFIED。')
+               ' → 确认D455释放 → 恢复D435 → 继续探索；第3轮起立后沿MAP历史路径返航' if args.mode == 'full' else '') +
+              '\n真实执行：bash go2_test.sh --execute --mode '+args.mode+'\n' +
+              ('远距和返航启用 localPlanner 避障；' if args.mode == 'full' else '无自动避障；') +
+              '退出保留S1保持服务。完整流程真机验收：NOT VERIFIED。')
         return
     with open('/tmp/go2_full_test.lock', 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

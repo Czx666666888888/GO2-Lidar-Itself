@@ -2359,3 +2359,25 @@ final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open
 配置字典逐项对比，唯一改变是dock_target_s1_y；从真实YAML生成的自动左右配置均读出±0.36m，左右停车位距离计算共用新值。其余停车容差、速度、停稳、S1和模型不改。本轮无运动，真实36cm抓取效果NOT VERIFIED。
 
 36cm配置已单包重新构建成功，安装YAML与源码bytes一致、参数读回为±0.36；静态及diff检查通过。
+
+## 2026-11-18 FULL 单地图远距导航、停靠交接与返航
+
+- 代码基线为 FULL 集成分支 `db7e560`。导航来源为 `nav_now_20261118_2315.tar.gz`，SHA-256 为 `07817900c29047c5694ad66faf5fbd2333ff3ed0cf271725ab0f8afbd3667ca2`。导入 NBV 选点、历史尾点裁剪以及 FAR、localPlanner、pathFollower 的运行配置。规划器核心、Point-LIO、YOLO、目标管理、MAP 接近和 S1 动作实现沿用分支现有代码。
+- 目标、停靠位、机身中心、地形和返航历史都使用 FULL 的 Point-LIO 地图。运行时校验 `map → camera_init` 为同原点变换，用带时间戳的 `map → vehicle` 核对机身中心，以及换算 `vehicle` 帧的局部路径。localPlanner 直接读取数值航点，因此坐标原点不一致时输出零速度。
+- 停靠检查使用站立机身矩形 0.70 × 0.40 m，硬净空 0.08 m，停车净空 0.15 m。候选需要已知可通行、S1 平面可达、全局路径末端接近候选和局部路径有效。任务层静止试算，最多比较两个通过候选的 FAR 路径长度。进到 0.24 m 停靠区后检查原 S1 停靠角误差、实测静止、目标新鲜度和实际机身到停靠位置的扫掠净空。预交接受阻时更换候选，候选耗尽记 `UNREACHABLE`。原 STOP_CONFIRM 开始之后若目标或走廊再次失效，则保持零速结束本次任务。
+- 抓取过程锁定底盘行走速度，并沿用现有导航安全门释放 Sport lease 后才交给 NX 姿态动作的顺序。第 3 个目标处理并确认 StandUp 后，复用当前会话地图历史，沿历史路段经 localPlanner 返航。历史以本轮机身原点为家；家区 0.35 m 内验证反馈已静止。返航受阻超过 8 s 停住并报错。S1 三维可达、档位、物块姿态以及地图定位漂移仍需实机测量。
+
+| 阶段 | 轨迹规划者 | 速度控制者 | 最终运动出口 |
+|---|---|---|---|
+| EXPLORE | NBV 提议目标，MissionManager 选择，FAR + localPlanner | pathFollower，经 MotionArbiter NAV | SafetyGate |
+| NAV_TO_TARGET | MissionManager 停靠点，FAR + localPlanner | pathFollower，经 MotionArbiter NAV | SafetyGate |
+| STOP_CONFIRM | 原静止视觉确认 | MotionArbiter 输出零速 | SafetyGate |
+| APPROACH | 原 MAP 闭环 | science_target_approach，经 MotionArbiter APPROACH | SafetyGate |
+| DOCK | 原 GraspDocking | science_target_approach 内的 GraspDocking，经 MotionArbiter DOCK | SafetyGate |
+| GRASP | 无行走轨迹 | 零速后释放行走控制权 | SafetyGate 收零速后释放；原 NX 姿态链执行 StandDown / StandUp |
+| RETURN | 已走 MAP 路段 + localPlanner | pathFollower，经 MotionArbiter RETURN | SafetyGate |
+| IDLE | 无 | MotionArbiter 输出零速 | SafetyGate |
+
+- 真实接口为 `/mission/nbv_goal → MissionManager → /goal_point → FAR → /mission/far_way_point → MissionManager → /way_point → localPlanner → /path → pathFollower → /nav/cmd_vel_raw`。原接近控制器使用 `/science/cmd_vel_raw`，MotionArbiter 是 `/cmd_vel_raw` 唯一发布者。变更目标或模式时清空速度缓存。
+- 实机入口保留 `bash go2_test.sh --execute --mode full`。加 `--view` 时在图形会话打开原地图 RViz 配置，并显示选定停靠箭头、FAR 路径与局部路径。证据目录包含 `*_full_nav.log`、`handoff_*.jsonl` 的任务阶段和失败原因，以及 `navigation_trail.json`。
+- 本轮证据为源码审查、Humble 下 `colcon` 编译成功、184 项新旧针对性测试通过，以及独立 ROS 域内实际节点发现。发现结果确认 MissionManager 独占 `/goal_point` 和 `/way_point`，FAR 收到的目标入口及局部 `/path`、pathFollower 私有速度链匹配。隔离启动使用无传感器、无安全门、无 Sport 发布者的配置，连续传感器数据、实机耗时、运动和抓取/返航结果均为 NOT VERIFIED。

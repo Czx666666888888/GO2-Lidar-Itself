@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import re
 import signal
 import subprocess
@@ -72,6 +73,8 @@ class Experiment:
         self.last_control_received = -float('inf')
         self.reports, self.children = [], []
         self.timer = None
+        self.mission = None
+        self.nav_process = None
         self.navigation_released = False
         self.last_timing_phase = None
         self.node.create_subscription(String, '/science/approach/status', self._status, 20)
@@ -167,6 +170,16 @@ class Experiment:
             '-p', 'dry_run:=false',
             *(['-p', 'max_speed:=0.4'] if (getattr(self.args, 'grasp_pose', False) and
                 not getattr(self.args, 'forward_response_check', False)) else [])], 'gate')
+        if getattr(self.args, 'navigation_trail', None) is not None:
+            from go2_science_perception.mission_manager import MissionManager
+            self.mission = MissionManager(self, share/'config')
+            stream = (self.folder/f'{self.tag}_full_nav.log').open('w')
+            try:
+                self.nav_process = subprocess.Popen(
+                    ['ros2', 'launch', 'go2_science_perception', 'full_nav.launch.py'],
+                    stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+            finally:
+                stream.close()
         search_params = (['--params-file', str(share / 'config/science_target_search.yaml'),
                           '-p', f'search_distance:={self.args.search_distance}',
                           '-p', f'search_timeout:={self.args.search_timeout}']
@@ -184,8 +197,11 @@ class Experiment:
             '-p', 'dock_auto_side_enabled:='+str(getattr(self.args, 'grasp_side', '') == 'auto').lower(),
             '-p', 'completed_targets_json:='+json.dumps(getattr(self.args, 'completed_targets_json', '[]')),
             '-p', 'multi_target_memory:='+str(getattr(self.args, 'multi_target_memory', False)).lower(),
-            '-p', 'resume_memory:='+str(getattr(self.args, 'multi_target_memory', False) and
+            '-p', 'resume_memory:='+str(getattr(self.args, 'multi_target_memory', False) and not self.mission and
                 bool(json.loads(getattr(self.args, 'completed_targets_json', '[]')))).lower(),
+            *(['-r', '/cmd_vel_raw:=/science/cmd_vel_raw',
+               '-r', '/science/target_tracks:=/mission/target_tracks']
+              if self.mission else []),
             *(['-p', 'dock_forward_response_check:=true',
                '-p', f'response_gate_log_file:={gate_log}',
                '-p', 'dock_forward_response_max_distance:='+
@@ -224,11 +240,19 @@ class Experiment:
             if self.control.get('state') != 'LOCK_TARGET' or self.control.get('vx') != 0:
                 raise RuntimeError('stable anchor lock rejected')
             print('LOCKED', json.dumps(self.control), flush=True)
+        if self.mission and (self.node.count_publishers('/cmd_vel_raw') != 1 or
+                [endpoint.node_name for endpoint in self.node.get_publishers_info_by_topic(
+                    '/api/sport/request') if endpoint.node_name != '_CREATED_BY_BARE_DDS_APP_']
+                != ['go2_safety_gate']):
+            raise RuntimeError('FULL motion owners are not exclusive before arming')
         self.arm.publish(Bool(data=True))
         self.spin(0.2)
         transitions = [s for s in gate_log.read_text().splitlines() if '状态 ' in s and '->' in s]
         if not transitions or '-> ARMED' not in transitions[-1]:
             raise RuntimeError('gate refused arming')
+        if self.mission:
+            self.run_mission()
+            return
         started = time.monotonic()
         # Docking is progress/validity bounded, not subject to the ordinary MAP
         # total-run watchdog. SEARCH and lost-vision ODOM retain their own budgets.
@@ -261,6 +285,23 @@ class Experiment:
                 self.control.get('state') == 'STOP'):
             self.spin(2)
 
+    def run_mission(self):
+        self.mission.enabled = True
+        self.mission.startup_deadline = time.monotonic() + 10
+        deadline = time.monotonic() + self.args.search_timeout + 90
+        while time.monotonic() < deadline:
+            self.spin(.04)
+            if (self.node.count_publishers('/cmd_vel_raw') != 1
+                    or self.nav_process.poll() is not None
+                    or any(process.poll() is not None for process, _ in self.children)):
+                raise RuntimeError('FULL navigation process exited or competing controller')
+            if self.control.get('state') == 'FAULT':
+                raise RuntimeError('Original controller fault: '+str(self.control.get('reason')))
+            self.mission.step()
+            if self.mission.finished:
+                return
+        self.mission.fail('FULL navigation deadline expired')
+
     def release_navigation(self):
         """Release actual owners and await graph removal, not a fixed delay."""
         self.event('NAVIGATION_RELEASE_START')
@@ -283,6 +324,10 @@ class Experiment:
     def close(self):
         """Finalize evidence even when setup or execution fails."""
         self.navigation_guard = None
+        if self.mission:
+            self.mission.enabled = False
+            self.mission.arbiter.close()
+            self.spin(.18)
         fast_handoff = (getattr(self.args, 'grasp_pose', False) and
                         self.control.get('state') == 'STOP' and
                         self.control.get('grasp_docking_complete') is True)
@@ -299,6 +344,14 @@ class Experiment:
             self.arm.publish(Bool(data=False))
             self.spin(0.2)
             self.halt(0)
+        if self.nav_process and self.nav_process.poll() is None:
+            # ros2 launch owns the planner children and forwards the shutdown.
+            self.nav_process.send_signal(signal.SIGINT)
+            try:
+                self.nav_process.wait(timeout=12)
+            except subprocess.TimeoutExpired:
+                os.killpg(self.nav_process.pid, signal.SIGTERM)
+                self.nav_process.wait(timeout=4)
         self.finish.publish(Empty())
         if fast_handoff:
             deadline = time.monotonic()+2.
