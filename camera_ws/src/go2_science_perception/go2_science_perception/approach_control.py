@@ -552,6 +552,9 @@ class ApproachControl:
             self.docking.p = self.docking_options[self.grasp_side]
             self.docking.reset()
             self.stop_candidate['grasp_side'] = self.grasp_side
+        heading = t.get('dock_heading_hint')
+        if self.docking and type(heading) in (int, float) and -math.pi <= heading <= math.pi:
+            self.stop_candidate['dock_heading_rad'] = heading
         if self.p.stop_confirm_fast_enabled:
             from .search_confirmation import FastConfirmation
             self.stop_candidate['pre_stop_history'] = list(history)
@@ -647,6 +650,8 @@ class ApproachControl:
         self.stationary_confirmation_sec = (now-self.settled_at
                                             if self.settled_at is not None else None)
         self.state, self.reason = 'LOCK_TARGET', ''
+        if self.docking and 'dock_heading_rad' in self.stop_candidate:
+            self.docking.heading = self.stop_candidate['dock_heading_rad']
         self.stop_confirm_attempts.append(dict(
             candidate=self.stop_candidate, result='CONFIRMED',
             stop_request_range_m=self.stop_request_range_m,

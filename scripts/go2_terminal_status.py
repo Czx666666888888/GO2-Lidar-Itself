@@ -78,7 +78,7 @@ def show_status(stream, round_label):
             label = POSTURE_LABELS.get(row.get('step'), label)
         fields = []
         for key, title in (('state', '状态'), ('phase', '子阶段'), ('target_id', '目标'),
-                           ('side', '侧别'), ('outcome', '结果'), ('xyz', 'MAP目标'),
+                           ('side', '侧别'), ('corner_turn_deg', '拐角转向°'), ('outcome', '结果'), ('xyz', 'MAP目标'),
                            ('direction', '姿态方向'), ('distance_m', '墙距m'), ('reason', '原因'), ('rejected', '候选排除')):
             val = row.get(key)
             if val is None:

@@ -22,7 +22,7 @@ from .docking_pose_planner import TerrainFootprint, staging_candidates
 from .full_nbv_explore import return_tail_index
 from .grasp_pose_geometry import DockSettings, docking_goal, rotate_xy, shared_side_settings, wrap
 from .motion_arbiter import MotionArbiter
-from .wall_distance import wall_grasp_side, wall_segments
+from .wall_distance import corner_grasp_heading, wall_grasp_side, wall_segments
 
 
 LOCALIZATION_RECOVERY_TIMEOUT = 5.0
@@ -88,7 +88,7 @@ class MissionManager:
         self.last_direct_scan = 0
         self.direct_blockers = {}
         self.active_side = None
-        self.side_hint = None
+        self.side_hint = self.dock_heading = None
         self.memory_tracks = []
         self.memory_visit = None
         self.memory_visited = set()
@@ -310,6 +310,10 @@ class MissionManager:
             self.anchor = self.track = target
             self.stage = self.active_side = None
             self.side_hint = wall['side'] if self.args.grasp_side == 'auto' else self.args.grasp_side
+            alternatives = [c['wall_segment_map'] for c in candidates if c is not wall
+                            and c['distance_m'] <= .55]
+            corner = corner_grasp_heading(xy, wall['wall_segment_map'], alternatives, self.pose[2])
+            self.dock_heading = corner[0] if corner else None
             self.memory_visit = None
             self.motion_blocked_at = None
             self.change('TARGET_STOP')
@@ -318,7 +322,11 @@ class MissionManager:
             self.run.event('DIRECT_GRASP_ADMITTED', target_id=target['id'],
                            target_map=xy, distance_m=wall['distance_m'],
                            wall_segment_map=wall['wall_segment_map'], wall_candidates=candidates,
-                           camera_range_m=distance, side=self.side_hint)
+                           camera_range_m=distance, side=self.side_hint,
+                           corner_map=corner[1] if corner else None,
+                           dock_heading_rad=self.dock_heading,
+                           corner_turn_deg=round(math.degrees(wrap(self.dock_heading-self.pose[2])))
+                           if corner else None)
             return True
         return False
 
@@ -356,8 +364,13 @@ class MissionManager:
                                           math.dist(u['position'][:2], t['position'][:2])
                                           >= 2*self.association_radius for u in pending)]
             if self.anchor:
+                hints = {}
                 if self.side_hint:
-                    tracks = [dict(t, grasp_side_hint=self.side_hint) for t in tracks]
+                    hints['grasp_side_hint'] = self.side_hint
+                if self.dock_heading is not None:
+                    hints['dock_heading_hint'] = self.dock_heading
+                if hints:
+                    tracks = [dict(t, **hints) for t in tracks]
                 self.tracks_pub.publish(String(data=json.dumps({'frame': 'map', 'tracks': tracks})))
         except (KeyError, ValueError, TypeError):
             self.eligible_tracks = self.memory_tracks = []
@@ -594,7 +607,7 @@ class MissionManager:
         self.run.event('TARGET_DEFERRED', status='UNREACHABLE', reason=reason,
                        target_id=target['id'], target_map=target['position'][:2],
                        vehicle_map=self.pose[:2], terrain_cells=len(self.terrain.cells), **details)
-        self.track = self.anchor = self.stage = self.side_hint = None
+        self.track = self.anchor = self.stage = self.side_hint = self.dock_heading = None
         if self.state != 'EXPLORE':
             self.goal = None
             self.goal_ns = 0
@@ -832,6 +845,9 @@ class MissionManager:
                         or (self.stage is not None and side != self.stage.side)
                         or (self.side_hint is not None and side != self.side_hint)):
                     self.fail('STOP_CONFIRM selected a different identity or side')
+                if (self.dock_heading is not None and
+                        (report.get('stop_candidate') or {}).get('dock_heading_rad') != self.dock_heading):
+                    self.fail('STOP_CONFIRM did not lock the requested corner heading')
                 self.active_side = side
                 self.run.event('GRASP_SIDE_LOCKED', target_id=self.anchor['id'], side=side)
                 self.change('APPROACH', 'APPROACH')

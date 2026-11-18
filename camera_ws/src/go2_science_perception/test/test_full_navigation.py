@@ -345,6 +345,8 @@ def test_wall_qualified_target_claims_navigation_without_a_staging_candidate(mon
     assert events[2][1]['distance_m'] == .35
     assert [wall['eligible'] for wall in events[2][1]['wall_candidates']] == [False, True, False]
     assert events[2][1]['side'] == mission.side_hint == 'right'
+    assert events[2][1]['corner_turn_deg'] is None
+    assert mission.dock_heading is None
 
 
 def test_direct_handoff_waits_for_measured_stop_and_keeps_selected_identity():
@@ -445,9 +447,11 @@ def test_memory_revisit_uses_an_unvisited_map_waypoint_before_confirming():
     assert [t['id'] for t in mission.eligible_tracks] == [2]
     mission.anchor = mission.eligible_tracks[0]
     mission.side_hint = 'left'
+    mission.dock_heading = math.radians(-40.)
     mission.tracks(snapshot(target(2, 2., 'CONFIRMED'), target(3, 3., 'CONFIRMED')))
     forwarded = json.loads(published[-1].data)['tracks']
     assert [(t['id'], t['grasp_side_hint']) for t in forwarded] == [(2, 'left')]
+    assert forwarded[0]['dock_heading_hint'] == mission.dock_heading
 
 
 def test_navigation_recovers_only_after_stable_fresh_localization():
@@ -543,3 +547,85 @@ def test_localization_reports_timestamp_tf_and_pose_mismatch():
     issue = mission.check_localization(allow_cached_tf=True)
     assert issue['reason'] == 'body_odometry_timestamp_invalid'
     assert issue['odom_age_sec'] == -.01
+
+
+@pytest.mark.parametrize('opening_y, expected_deg', [(1., 40.), (-1., -40.)])
+def test_direct_grasp_turns_once_at_observed_corner_without_changing_side(opening_y, expected_deg):
+    import numpy as np
+
+    mission = MissionManager.__new__(MissionManager)
+    mission.args = SimpleNamespace(grasp_side='auto')
+    mission.pose = (0., 0., 0., 0.)
+    mission.direct_blockers = {}
+    mission.cloud_ns, mission.last_direct_scan = 2, 1
+    mission.direct_range = 1.8
+    samples = np.arange(0., 1.01, .025)
+    mission.wall_points = [(0., opening_y*v) for v in samples] + [(v, 0.) for v in samples]
+    mission.eligible_tracks = [{'id': 2, 'position': (.28, opening_y*.20, 0.), 'observed_ns': 1}]
+    mission.fresh = mission.can_retry_target = lambda *args: True
+    mission.camera_range_for = lambda _: 1.
+    mission.change = lambda state: setattr(mission, 'state', state)
+    mission.hold_navigation = lambda: None
+    events = []
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+
+    assert mission.prioritize_grasp()
+    assert mission.state == 'TARGET_STOP'
+    assert mission.side_hint == ('right' if opening_y > 0 else 'left')
+    assert events[0][1]['corner_turn_deg'] == expected_deg
+    assert events[0][1]['corner_map'] == pytest.approx((0., 0.), abs=.02)
+    assert mission.dock_heading == pytest.approx(math.radians(expected_deg))
+    assert not mission.prioritize_grasp()
+
+
+def test_corner_heading_rejects_unconnected_walls_and_target_outside_opening():
+    from go2_science_perception.wall_distance import corner_grasp_heading
+
+    wall = ((0., 0.), (1., 0.))
+    assert corner_grasp_heading((.2, .2), wall, [((0., .5), (0., 1.))], 0.) is None
+    assert corner_grasp_heading((.2, -.1), wall, [((0., 0.), (0., 1.))], 0.) is None
+
+
+def test_corner_heading_reaches_original_docking_after_stationary_target_lock():
+    from go2_science_perception.approach_control import ApproachControl, Settings
+    from go2_science_perception.grasp_docking import GraspDocking
+    from go2_science_perception.grasp_pose_geometry import shared_side_settings
+
+    docking = GraspDocking(DockSettings())
+    settings = Settings(search_enabled=True, stop_reference='camera_origin',
+                        anchor_window_sec=1., stop_confirm_fast_enabled=True)
+    core = ApproachControl(settings, docking, shared_side_settings(docking.p))
+    heading = math.radians(-40.)
+
+    def observe(now, rate):
+        core.pose(0., 0., 0., now)
+        core.camera_pose(.36, 0., now)
+        core.feedback_time, core.feedback_speed, core.feedback_yaw_rate = now, 0., rate
+        core.observations([dict(id=2, state='CONFIRMED', age=0., lifetime=1.,
+                                visited=False, observed_ns=round(now*1e9), camera_range_m=1.,
+                                position=(1., .1, 0.), latest_observation=(1., .1, 0.),
+                                grasp_side_hint='left', dock_heading_hint=heading)], now)
+
+    observe(10., .15)
+    assert core.start(10.)
+    for i in (1, 2):
+        now = 10.+i*.1
+        observe(now, .15)
+        report = core.step(now)
+    assert report['state'] == 'STOP_CONFIRM'
+    assert report['stop_candidate']['dock_heading_rad'] == heading
+    assert docking.heading is None
+    for i in range(3, 20):
+        now = 10.+i*.1
+        observe(now, 0.)
+        report = core.step(now)
+        if report['state'] == 'LOCK_TARGET':
+            break
+    assert report['state'] == 'LOCK_TARGET'
+    assert core.lock_id == 2 and core.grasp_side == 'left'
+    assert docking.heading == heading
+    observe(now+.1, 0.)
+    report = core.step(now+.1)
+    assert report['grasp_docking']['desired_yaw'] == pytest.approx(heading)
+    assert report['wz'] < 0.
+    assert not report['grasp_docking_complete']

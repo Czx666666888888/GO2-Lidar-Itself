@@ -81,3 +81,39 @@ def wall_grasp_side(target, endpoints, heading):
     if abs(lateral) <= .01:
         return None
     return 'left' if lateral > 0. else 'right'
+
+
+def corner_grasp_heading(target, wall, nearby_walls, heading):
+    """Return a 40 degree turn toward a supported corner's opening in MAP."""
+    a, b = np.asarray(wall, dtype=float)
+    axis = b - a
+    axis /= np.linalg.norm(axis)
+    for other in nearby_walls:
+        c, d = np.asarray(other, dtype=float)
+        other_axis = d - c
+        other_axis /= np.linalg.norm(other_axis)
+        if abs(float(axis @ other_axis)) > math.sin(math.radians(20.)):
+            continue
+        # Intersect the supporting lines and require both observed ends nearby.
+        along = np.linalg.solve(np.column_stack((axis, -other_axis)), c-a)[0]
+        vertex = a + along*axis
+        if (min(math.dist(vertex, p) for p in (a, b)) > .20
+                or min(math.dist(vertex, p) for p in (c, d)) > .20
+                or math.dist(vertex, target) > .65):
+            continue
+        axis_into_room = max((a, b), key=lambda p: math.dist(vertex, p)) - vertex
+        other_into_room = max((c, d), key=lambda p: math.dist(vertex, p)) - vertex
+        axis_into_room /= np.linalg.norm(axis_into_room)
+        other_into_room /= np.linalg.norm(other_into_room)
+        # The target must be inside the opening bounded by the observed rays.
+        coordinates = np.linalg.solve(np.column_stack((axis_into_room, other_into_room)),
+                                      np.asarray(target) - vertex)
+        if min(coordinates) < -.02:
+            continue
+        opening = axis_into_room + other_into_room
+        lateral = float(opening @ (-math.sin(heading), math.cos(heading)))
+        if abs(lateral) < 1e-6:
+            lateral = -1. if wall_grasp_side(target, wall, heading) == 'left' else 1.
+        angle = heading + math.copysign(math.radians(40.), lateral)
+        return math.atan2(math.sin(angle), math.cos(angle)), tuple(map(float, vertex))
+    return None
