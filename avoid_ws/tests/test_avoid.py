@@ -8,12 +8,12 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import PointField
 from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Header
-from unitree_api.msg import Request
+from unitree_api.msg import Request, Response
 from unitree_go.msg import SportModeState
 
 from go2_reactive_avoid.controller import Direction, Explorer, Scan, STOP, yaw_delta
 from go2_reactive_avoid.lidar import LIDAR_X, MOUNT_PITCH, body_points, measure
-from go2_reactive_avoid.node import ARMED, AvoidGate, Inputs
+from go2_reactive_avoid.node import API_QOS, ARMED, AvoidGate, Inputs
 
 CLEAR, BLOCKED, UNKNOWN = Direction.CLEAR, Direction.BLOCKED, Direction.UNKNOWN
 
@@ -243,7 +243,7 @@ class GateTest(unittest.TestCase):
                                   qos_profile=qos)
         gate.get_name = Mock(return_value="avoid")
         gate.get_namespace = Mock(return_value="/")
-        gate.count_publishers = Mock(return_value=1)
+        gate.lease_request_writers = Mock(return_value=([gid.hex()], []))
         gate.get_publishers_info_by_topic = Mock(return_value=[own, onboard])
         gate.verified_writers = {onboard_gid.hex()}
         gate.own_sport_gid = None
@@ -270,9 +270,9 @@ class GateTest(unittest.TestCase):
         self.assertFalse(gate.check_writers(0.0))
         self.assertIn("未核实", gate.finish.call_args.args[0])
         gate.verified_writers = {onboard.endpoint_gid.hex()}
-        gate.count_publishers.return_value = 2
+        gate.lease_request_writers.return_value = ([], ["foreign gid=99"])
         self.assertFalse(gate.check_writers(1.0))
-        self.assertIn("lease=2", gate.finish.call_args.args[0])
+        self.assertIn("lease外部=1", gate.finish.call_args.args[0])
 
     def test_only_own_sport_request_can_pass_even_with_verified_foreign_writer(self):
         self.setup_writers()
@@ -296,9 +296,36 @@ class GateTest(unittest.TestCase):
         gate = self.gate
         gate.check_writers(0.0)
         gate.armed_at = 2.0
-        gate.count_publishers.return_value = 0
+        gate.lease_request_writers.return_value = ([], [])
         self.assertFalse(gate.check_writers(3.0))
         self.assertIn("丢失", gate.finish.call_args.args[0])
+
+    def test_command_receiver_excludes_the_local_monitor_and_requires_a_match(self):
+        self.setup_writers()
+        gate = self.gate
+        monitor = SimpleNamespace(node_name="avoid", node_namespace="/",
+                                  topic_type="unitree_api/msg/Request", qos_profile=API_QOS)
+        external = SimpleNamespace(node_name="sport_receiver", node_namespace="/",
+                                   topic_type=monitor.topic_type, qos_profile=API_QOS)
+        gate.pub = Mock()
+        gate.get_subscriptions_info_by_topic = Mock(return_value=[monitor])
+        gate.pub.get_subscription_count.return_value = 1
+        self.assertEqual(gate.command_receivers(), (0, 1, 1))
+        gate.get_subscriptions_info_by_topic.return_value = [monitor, external]
+        self.assertEqual(gate.command_receivers(), (0, 1, 1))
+        gate.get_subscriptions_info_by_topic.return_value = [external]
+        self.assertEqual(gate.command_receivers(), (0, 1, 0))
+        gate.get_subscriptions_info_by_topic.return_value = [monitor, external]
+        gate.pub.get_subscription_count.return_value = 2
+        self.assertEqual(gate.command_receivers(), (1, 2, 1))
+
+    def test_unsolicited_lease_response_does_not_mark_lease_obtained(self):
+        self.gate._lease_pending_api = 0
+        response = Response()
+        response.header.identity.api_id = 101
+        with patch("go2_reactive_avoid.node.SafetyGate.cb_lease_response") as shared_callback:
+            self.gate.cb_lease_response(response)
+        shared_callback.assert_not_called()
 
 
 class SensorAdapterTest(unittest.TestCase):
@@ -330,6 +357,10 @@ class SensorAdapterTest(unittest.TestCase):
         self.assertTrue(inputs.still)
         self.assertEqual(inputs.sport_error_code, 100)
         self.assertFalse(inputs.ready(10.5))
+        stale = inputs.preflight(10.5)
+        self.assertIn("雷达=超时", stale)
+        self.assertIn("Sport=超时", stale)
+        self.assertIn("静止=未知 净空=未知", stale)
         with patch("go2_reactive_avoid.node.time.monotonic", return_value=10.15):
             state.stamp.nanosec = 150_000_000
             state.imu_state.rpy[2] = -3.12

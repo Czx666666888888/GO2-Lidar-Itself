@@ -21,6 +21,7 @@ done
 action="${action:---dry-run}"
 runtime="$workspace/log"
 mkdir -p "$runtime"
+echo "避障入口 $action，正在加载 ROS 环境"
 
 if [[ "$action" == --dry-run ]]; then
   source /opt/ros/humble/setup.bash
@@ -37,16 +38,41 @@ if [[ "$action" == --stop ]]; then
   exit 1
 fi
 
+if [[ "$action" != --dry-run ]]; then
+  if [[ ! -e "/sys/class/net/$GO2_IFACE" ]]; then
+    echo "GO2 网卡 $GO2_IFACE 不存在" >&2
+    exit 1
+  fi
+  if ! read -r carrier 2>/dev/null < "/sys/class/net/$GO2_IFACE/carrier" || [[ "$carrier" != 1 ]]; then
+    echo "GO2 网卡 $GO2_IFACE 无链路（NO-CARRIER），未启动 DDS" >&2
+    exit 1
+  fi
+fi
+
 entry="$workspace/install/go2_reactive_avoid/lib/go2_reactive_avoid/avoid_test"
 package="$workspace/src/go2_reactive_avoid"
-if [[ ! -x "$entry" || "$package/setup.py" -nt "$entry" ||
-      "$package/setup.cfg" -nt "$entry" || "$package/package.xml" -nt "$entry" ]]; then
-  (
-    flock 9
+(
+  echo "等待避障构建锁（最多 30 秒） $runtime/build.lock"
+  if ! flock -w 30 9; then
+    echo "无法取得避障构建锁，退出。请查看占用该锁的构建进程 $runtime/build.lock" >&2
+    exit 75
+  fi
+  if [[ ! -x "$entry" || "$package/setup.py" -nt "$entry" ||
+        "$package/setup.cfg" -nt "$entry" || "$package/package.xml" -nt "$entry" ]]; then
+    echo '已取得构建锁，开始构建 go2_reactive_avoid（最多 300 秒）'
     cd "$workspace"
-    colcon build --base-paths src --packages-select go2_reactive_avoid --symlink-install
-  ) 9>"$runtime/build.lock"
-fi
+    status=0
+    timeout --signal=INT --kill-after=10 300 colcon build --base-paths src \
+      --packages-select go2_reactive_avoid --symlink-install --event-handlers console_direct+ || status=$?
+    if (( status != 0 )); then
+      echo "避障构建失败，退出码 $status，日志 $runtime/latest_build" >&2
+      exit "$status"
+    fi
+    echo '避障构建完成'
+  else
+    echo '已取得构建锁，复用避障构建产物'
+  fi
+) 9>"$runtime/build.lock"
 source "$workspace/install/local_setup.bash"
 
 if [[ "$action" == --dry-run ]]; then

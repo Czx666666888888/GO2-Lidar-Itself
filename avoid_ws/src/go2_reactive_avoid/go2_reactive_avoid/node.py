@@ -11,7 +11,7 @@ import numpy as np
 import rclpy
 from geometry_msgs.msg import TwistStamped
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
@@ -28,13 +28,35 @@ CLOUD = "/utlidar/cloud"
 SPORT_STATE = "/lf/sportmodestate"
 SPORT_REQUEST = "/api/sport/request"
 LEASE_REQUEST = "/api/sport_lease/request"
+LEASE_RESPONSE = "/api/sport_lease/response"
 STOP_TOPIC = "/go2_reactive_avoid/stop"
 MAX_AGE = 0.40
 START_TIMEOUT = 15.0
 RUN_TIMEOUT = 90.0
 WRITER_SETTLE = 2.0
-SENSOR_QOS = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
 SPORT_MONITOR_QOS = QoSProfile(depth=64, reliability=ReliabilityPolicy.RELIABLE)
+API_QOS = QoSProfile(depth=10)
+
+
+def sport_writers(endpoints, verified, local=None):
+    own, onboard, unknown = [], [], []
+    for writer in endpoints:
+        gid = bytes(writer.endpoint_gid).hex()
+        name = (writer.node_namespace, writer.node_name)
+        if name == local:
+            own.append(gid)
+        elif gid in verified and writer.qos_profile.reliability == ReliabilityPolicy.RELIABLE:
+            onboard.append(gid)
+        else:
+            unknown.append(f"{name[0].rstrip('/')}/{name[1]} gid={gid}")
+    return own, onboard, unknown
+
+
+def command_subscribers(node):
+    return [
+        endpoint for endpoint in node.get_subscriptions_info_by_topic(SPORT_REQUEST)
+        if endpoint.topic_type == "unitree_api/msg/Request"
+    ]
 
 
 def load_verified_writers(path):
@@ -60,7 +82,7 @@ class Inputs:
         self.sport_error_code = None
         self.cloud_message = "等待雷达"
         self.state_message = "等待 Sport 状态"
-        node.create_subscription(PointCloud2, CLOUD, self.cloud, SENSOR_QOS)
+        node.create_subscription(PointCloud2, CLOUD, self.cloud, qos_profile_sensor_data)
 
     def sport(self, msg):
         now = time.monotonic()
@@ -134,8 +156,21 @@ class Inputs:
         self.cloud_message = "正常"
 
     def ready(self, now):
-        return (self.scan is not None and self.attitude is not None
-                and now - min(self.scan_at, self.state_at) < MAX_AGE)
+        return all(self.freshness(now))
+
+    def freshness(self, now):
+        return (self.scan is not None and now - self.scan_at < MAX_AGE,
+                self.attitude is not None and now - self.state_at < MAX_AGE)
+
+    def preflight(self, now):
+        cloud_ok, sport_ok = self.freshness(now)
+        cloud = self.cloud_message if cloud_ok or self.cloud_message != "正常" else "超时"
+        sport = self.state_message if sport_ok or self.state_message != "正常" else "超时"
+        still = ("是" if self.still else "否") if sport_ok else "未知"
+        clearance = ("足够" if self.scan.body_clear else "不足") if cloud_ok else "未知"
+        front = self.scan.front.value if cloud_ok else "未知"
+        return (f"雷达={cloud}({min(self.cloud_count, 5)}/5) Sport={sport}({min(self.state_count, 5)}/5) "
+                f"静止={still} 净空={clearance} 前向={front}")
 
     def status(self, now):
         if not self.ready(now):
@@ -156,8 +191,6 @@ class AvoidGate(SafetyGate):
     def __init__(self, lidar_height, verified_writers=frozenset()):
         super().__init__()
         self.inputs = Inputs(self, lidar_height)
-        self.destroy_subscription(self.sub_state)
-        self.sub_state = self.create_subscription(SportModeState, SPORT_STATE, self.cb_state, SENSOR_QOS)
         self.explorer = Explorer()
         self.started = time.monotonic()
         self.armed_at = None
@@ -169,6 +202,8 @@ class AvoidGate(SafetyGate):
         self.verified_writers = verified_writers
         self.own_sport_gid = None
         self.writers_since = None
+        self.writers_status = "等待发现"
+        self.lease_status_detail = "尚未发送"
         # Humble's Python subscription callback exposes the message only.
         # Give locally generated Sport requests a session-specific identity range.
         self.first_request_id = secrets.randbits(62) + 1
@@ -218,44 +253,121 @@ class AvoidGate(SafetyGate):
             self.finish(f"收到其他 Sport 请求 api={msg.header.identity.api_id} id={request_id}")
 
     def check_writers(self, now):
-        own = []
-        for writer in self.get_publishers_info_by_topic(SPORT_REQUEST):
-            gid = bytes(writer.endpoint_gid).hex()
-            if writer.node_name == self.get_name() and writer.node_namespace == self.get_namespace():
-                own.append(gid)
-            elif gid not in self.verified_writers or writer.qos_profile.reliability != ReliabilityPolicy.RELIABLE:
-                self.finish(f"发现未核实的 Sport 发布者 {writer.node_name} gid={gid}")
-                return False
-        lease_writers = self.count_publishers(LEASE_REQUEST)
-        if len(own) > 1 or lease_writers > 1:
-            self.finish(f"检测到重复避障或 lease 发布者，避障={len(own)} lease={lease_writers}")
+        own, onboard, unknown = sport_writers(self.get_publishers_info_by_topic(SPORT_REQUEST),
+                                              self.verified_writers, self.local_node())
+        local_lease, other_lease = self.lease_request_writers()
+        self.writers_status = (f"本机={len(own)} 机载={len(onboard)}/{len(self.verified_writers)} "
+                               f"未核实={len(unknown)} lease本机={len(local_lease)} "
+                               f"lease外部={len(other_lease)}")
+        if unknown:
+            self.finish("发现未核实的 Sport 发布者 " + "，".join(unknown))
+            return False
+        if len(own) > 1 or len(local_lease) > 1 or other_lease:
+            self.finish(f"检测到重复避障或 lease 发布者 | {self.writers_status}"
+                        + (" | " + "，".join(other_lease) if other_lease else ""))
             return False
         gid = own[0] if own else None
-        if self.armed_at is not None and (gid is None or gid != self.own_sport_gid or lease_writers != 1):
+        if self.armed_at is not None and (gid != self.own_sport_gid or not local_lease):
             self.finish("本机 Sport 或 lease 发布端点丢失")
             return False
-        if gid is None or lease_writers == 0:
+        if gid is None or not local_lease:
             self.writers_since = None
             self.own_sport_gid = None
         elif self.writers_since is None or gid != self.own_sport_gid:
             self.writers_since = now
             self.own_sport_gid = gid
-        return self.writers_since is not None and now - self.writers_since >= WRITER_SETTLE
+        elapsed = 0.0 if self.writers_since is None else now - self.writers_since
+        self.writers_status += f" 稳定={min(elapsed, WRITER_SETTLE):.1f}/{WRITER_SETTLE:.1f}s"
+        return self.writers_since is not None and elapsed >= WRITER_SETTLE
+
+    def local_node(self):
+        return self.get_namespace(), self.get_name()
+
+    def lease_request_writers(self):
+        own, _, foreign = sport_writers(self.get_publishers_info_by_topic(LEASE_REQUEST), (),
+                                        self.local_node())
+        return own, foreign
+
+    def command_receivers(self):
+        local = self.local_node()
+        readers = command_subscribers(self)
+        own = sum((reader.node_namespace, reader.node_name) == local for reader in readers)
+        matched = self.pub.get_subscription_count()
+        # CycloneDDS matches our reliable monitor even before graph discovery lists it.
+        return max(0, min(len(readers) - own, matched - max(1, own))), matched, own
+
+    def _publish_lease_request(self, api_id):
+        super()._publish_lease_request(api_id)
+        self.lease_status_detail = f"已发送 API={api_id}"
+
+    def cb_lease_response(self, msg):
+        identity = msg.header.identity
+        if self._lease_pending_api == 0 or identity.api_id != self._lease_pending_api:
+            return
+        code = msg.header.status.code
+        super().cb_lease_response(msg)
+        if code != 0:
+            self.lease_status_detail = f"服务拒绝 API={identity.api_id} code={code}"
+        elif self.lease_id > 0 and math.isfinite(self.lease_term):
+            self.lease_status_detail = "已收到有效响应"
+        else:
+            if self.lease_id:
+                self._lose_lease("Sport lease 响应字段无效")
+            self.lease_status_detail = "响应字段无效"
 
     def check_lease(self, now):
         monotonic_now = time.monotonic()
         if self.result is None and self.inputs.ready(monotonic_now):
+            expired_api = self._lease_pending_api if now - self._lease_pending_since > 1.0 else 0
             super().check_lease(now)
+            if expired_api and not self._lease_pending_api:
+                self.lease_status_detail = f"等待响应超时 API={expired_api}"
+
+    def preflight_status(self, now, writers_ok, receivers):
+        usable, matched, own = receivers
+        lease_req = self.lease_pub.get_subscription_count()
+        lease_resp = self.count_publishers(LEASE_RESPONSE)
+        if self.lease_id:
+            lease = "已取得"
+        elif self._lease_pending_api:
+            lease = f"{self.lease_status_detail}，等回应 {time.time() - self._lease_pending_since:.1f}s"
+        elif not writers_ok or not self.inputs.ready(now):
+            lease = f"{self.lease_status_detail}，等待端点或新鲜反馈"
+        else:
+            lease = self.lease_status_detail
+        return (f"{self.inputs.preflight(now)} | 端点 {self.writers_status} | "
+                f"lease={lease} 请求接收端={lease_req} 响应发布者={lease_resp} | "
+                f"命令接收端={usable}（匹配总数={matched} 本机监视={own}）")
 
     def check(self):
         if self.result is not None:
             return
         now = time.monotonic()
-        if not self.check_writers(now):
-            if self.result is None and now - self.started >= START_TIMEOUT:
-                self.finish("启动预检超时，Sport 或 lease 发布端点未就绪")
+        writers_ok = self.check_writers(now)
+        receivers = self.command_receivers()
+        if writers_ok and (self.state != DISARMED or now - self.started < START_TIMEOUT):
+            super().check()
+        if self.state == DISARMED:
+            if now - self.last_status >= 1.0 or self.result is not None:
+                self.get_logger().info(f"启动预检 {now - self.started:.1f}/{START_TIMEOUT:.0f}s | "
+                                       f"{self.preflight_status(now, writers_ok, receivers)}")
+                self.last_status = now
+            if self.result is not None:
+                return
+            if now - self.started >= START_TIMEOUT:
+                self.finish("启动预检超时 | " + self.preflight_status(now, writers_ok, receivers))
+                return
+            scan = self.inputs.scan
+            if (writers_ok and self.inputs.ready(now) and self.inputs.cloud_count >= 5
+                    and self.inputs.state_count >= 5 and self.inputs.still and scan.body_clear
+                    and scan.front is not Direction.UNKNOWN and self.lease_id and receivers[0] > 0):
+                super().cb_arm(Bool(data=True))
+                if self.state == ARMED:
+                    self.armed_at = now
+                    self.armed_error_code = self.inputs.sport_error_code
             return
-        super().check()
+        if self.result is not None or not writers_ok:
+            return
         if self.state == FAULT:
             self.finish(self._fault_reason)
             return
@@ -264,19 +376,7 @@ class AvoidGate(SafetyGate):
         if now - self.last_status >= 1.0:
             self.get_logger().info(self.inputs.status(now))
             self.last_status = now
-        if self.state == DISARMED:
-            if now - self.started >= START_TIMEOUT:
-                self.finish(f"启动预检超时 lease={bool(self.lease_id)} 静止={self.inputs.still} "
-                            f"指令接收端={self.pub.get_subscription_count()} {self.inputs.status(now)}")
-            elif (ready and self.inputs.cloud_count >= 5
-                  and self.inputs.state_count >= 5 and self.inputs.still and scan.body_clear
-                  and scan.front is not Direction.UNKNOWN and self.lease_id
-                  and self.pub.get_subscription_count() > 1):
-                super().cb_arm(Bool(data=True))
-                self.armed_at = now
-                self.armed_error_code = self.inputs.sport_error_code
-            return
-        if not ready or self.pub.get_subscription_count() <= 1:
+        if not ready or receivers[0] == 0:
             self.finish("雷达、Sport 反馈或命令接收端丢失")
             return
         if self.inputs.sport_error_code != self.armed_error_code:
@@ -347,15 +447,37 @@ def main():
 
         node = Node("go2_reactive_avoid_observe")
         inputs = Inputs(node, args.lidar_height)
-        node.create_subscription(SportModeState, SPORT_STATE, inputs.sport, SENSOR_QOS)
-        start = last_status = time.monotonic()
+        node.create_subscription(SportModeState, SPORT_STATE, inputs.sport, API_QOS)
+        requests = []
+        node.create_subscription(Request, SPORT_REQUEST, lambda msg: requests.append(
+            msg.header.identity.api_id), SPORT_MONITOR_QOS)
+        start = time.monotonic()
+        last_status = -math.inf
+        reported_unknown = set()
         while not interrupted and time.monotonic() - start < 10.0:
             rclpy.spin_once(node, timeout_sec=0.05)
             now = time.monotonic()
             if now - last_status >= 1.0:
-                node.get_logger().info(inputs.status(now))
+                _, onboard, unknown = sport_writers(node.get_publishers_info_by_topic(SPORT_REQUEST),
+                                                     verified_writers)
+                readers = command_subscribers(node)
+                own_name = (node.get_namespace(), node.get_name())
+                receivers = sum((p.node_namespace, p.node_name) != own_name for p in readers)
+                node.get_logger().info(
+                    f"{inputs.preflight(now)} | 机载={len(onboard)}/{len(verified_writers)} "
+                    f"未核实={len(unknown)} Sport请求={len(requests)} 已发现命令接收端={receivers} | "
+                    f"lease=只读未申请 请求接收端={node.count_subscribers(LEASE_REQUEST)} "
+                    f"响应发布者={node.count_publishers(LEASE_RESPONSE)} "
+                    f"外部lease发布者={node.count_publishers(LEASE_REQUEST)}")
+                for writer in set(unknown) - reported_unknown:
+                    node.get_logger().warn("发现未核实的 Sport 发布者 " + writer)
+                reported_unknown.update(unknown)
                 last_status = now
         node.get_logger().info(f"有效雷达 {inputs.cloud_count} 帧，Sport {inputs.state_count} 帧")
+        _, onboard, _ = sport_writers(node.get_publishers_info_by_topic(SPORT_REQUEST), verified_writers)
+        missing = verified_writers.difference(onboard)
+        if missing:
+            node.get_logger().info("本次未发现的已核实机载 GID " + " ".join(sorted(missing)))
         return 0 if inputs.ready(time.monotonic()) and inputs.cloud_count >= 5 else 1
     finally:
         if execute and node is not None and node.armed_at is not None:
