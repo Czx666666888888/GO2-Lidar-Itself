@@ -252,3 +252,29 @@ def test_rotated_cell_overlap_checks_corners_and_crossing_edges():
     pose = (0., 0., math.pi/4)
     assert terrain.cell_overlaps(pose, .48, .11, .05)
     assert not terrain.cell_overlaps(pose, .49, .11, .05)
+
+
+def test_full_prefers_valid_left_and_probes_right_only_after_left_fails():
+    left = SimpleNamespace(pose=(1., 2., .5), side='left')
+    right = SimpleNamespace(pose=(.5, .5, .5), side='right')
+    mission = MissionManager.__new__(MissionManager)
+    mission.pose = (0., 0., 0., 0.)
+    mission.anchor = {'id': 7}
+    events = []
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.change = lambda state, _: setattr(mission, 'state', state)
+    mission.send_goal = lambda point: None
+    mission.publish_stage = lambda: None
+
+    mission.probe([right, left])
+    assert mission.stage is left
+    mission.ranked.append((3., left))
+    mission.next_probe()
+    assert mission.stage is left
+    assert mission.state == 'NAV_TO_TARGET'
+
+    mission.probe([right, left])
+    assert mission.stage is left
+    mission.next_probe()
+    assert mission.stage is right
+    assert any(event == 'STAGING_SIDE_FALLBACK' for event, _ in events)

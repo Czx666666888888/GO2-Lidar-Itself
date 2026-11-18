@@ -417,7 +417,7 @@ class MissionManager:
         self.change('PROBE')
         self.stage = None
         self.ranked = []
-        self.pending = options
+        self.pending = sorted(options, key=lambda candidate: candidate.side != 'left')
         self.next_probe()
 
     def publish_stage(self):
@@ -433,13 +433,19 @@ class MissionManager:
         self.stage_pub.publish(marker)
 
     def next_probe(self):
-        if self.pending:
+        if self.pending and (not self.ranked or self.pending[0].side == self.ranked[0][1].side):
+            side = self.stage.side if self.stage else None
             self.stage = self.pending.pop(0)
+            if side == 'left' and self.stage.side == 'right':
+                self.run.event('STAGING_SIDE_FALLBACK', target_id=self.anchor['id'],
+                               reason='No left candidate has a valid FAR and local path')
             self.send_goal((*self.stage.pose[:2], self.pose[3]))
             self.run.event('STAGING_PROBE', pose=self.stage.pose, side=self.stage.side)
             self.deadline = time.monotonic() + 2.4
         elif self.ranked:
-            _, self.stage = min(self.ranked, key=lambda item: item[0])
+            cost, self.stage = min(self.ranked, key=lambda item: item[0])
+            self.run.event('STAGING_SIDE_SELECTED', target_id=self.anchor['id'],
+                           side=self.stage.side, far_path_length_m=cost)
             self.change('NAV_TO_TARGET', 'NAV')
             self.publish_stage()
             self.send_goal((*self.stage.pose[:2], self.pose[3]))
@@ -455,7 +461,8 @@ class MissionManager:
             return
         rejected = Counter()
         options = [p for p in self.evaluate_staging(rejected)
-                   if not any(math.dist(p.pose[:2], old.pose[:2]) < .13 for old in self.rejected)]
+                   if not any(p.side == old.side and math.dist(p.pose[:2], old.pose[:2]) < .13
+                              for old in self.rejected)]
         if options:
             self.probe(options)
         else:
