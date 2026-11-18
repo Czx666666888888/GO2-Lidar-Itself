@@ -18,6 +18,37 @@ COMPAT_VERSION = 'v4_multitarget_dump_4'
 LEFT_GRASP_CONFIG = 'config/go2_left_full_flow_size_adaptive_20261112_v1.json'
 
 
+def validate_archive(bundle, package_version):
+    for item in bundle.infolist():
+        name = Path(item.filename)
+        if (not item.filename.startswith('s1-arm-control/')
+                or '..' in name.parts or item.external_attr >> 16 & 0o170000 == 0o120000):
+            raise RuntimeError('Unsafe S1 archive entry: ' + item.filename)
+    info = json.loads(bundle.read('s1-arm-control/BUILD_INFO.json'))
+    if info['version'] != package_version:
+        raise RuntimeError('Unexpected S1 v4 version')
+    for line in bundle.read('s1-arm-control/SHA256SUMS').decode().splitlines():
+        digest, name = line.split('  ', 1)
+        if hashlib.sha256(bundle.read('s1-arm-control/' + name)).hexdigest() != digest:
+            raise RuntimeError('S1 upstream manifest mismatch: ' + name)
+
+
+def reset_queued_result(files):
+    name = 's1_control/integration.py'
+    source = base64.b64decode(files[name]['content']).decode()
+    # Reset result metadata under the same lock as the accepted queue transition.
+    # The controller's safety latch (_fault) is independent of these public fields.
+    queue_state = 'state="QUEUED", busy=True, navigation_allowed=False'
+    cleared_state = queue_state + ',\n                               last_result=None, last_log=None, last_exit_code=None, error=None'
+    source = replace_once(source, f'self._state.update({queue_state})',
+                          f'self._state.update({cleared_state})')
+    source = replace_once(source, f'self._state.update(**dict({queue_state}))',
+                          f'self._state.update({cleared_state})')
+    content = source.encode()
+    files[name].update(content=base64.b64encode(content).decode(),
+                       sha256=hashlib.sha256(content).hexdigest())
+
+
 def delivery_payload(root, *, version=COMPAT_VERSION):
     if version not in (*PRIOR_VERSIONS, COMPAT_VERSION):
         raise ValueError(f'Unknown S1 v4 adapter version: {version}')
@@ -25,18 +56,7 @@ def delivery_payload(root, *, version=COMPAT_VERSION):
     if hashlib.sha256(path.read_bytes()).hexdigest() != ARCHIVE_SHA256:
         raise RuntimeError('S1 v4 archive hash mismatch; preserve')
     with zipfile.ZipFile(path) as bundle:
-        for item in bundle.infolist():
-            name = Path(item.filename)
-            if (not item.filename.startswith('s1-arm-control/')
-                    or '..' in name.parts or item.external_attr >> 16 & 0o170000 == 0o120000):
-                raise RuntimeError('Unsafe S1 archive entry: ' + item.filename)
-        info = json.loads(bundle.read('s1-arm-control/BUILD_INFO.json'))
-        if info['version'] != PACKAGE_VERSION:
-            raise RuntimeError('Unexpected S1 v4 version')
-        for line in bundle.read('s1-arm-control/SHA256SUMS').decode().splitlines():
-            digest, name = line.split('  ', 1)
-            if hashlib.sha256(bundle.read('s1-arm-control/' + name)).hexdigest() != digest:
-                raise RuntimeError('S1 upstream manifest mismatch: ' + name)
+        validate_archive(bundle, PACKAGE_VERSION)
         files = compatibility_payload(root, bundle, final_fusion=True)
         if version == COMPAT_VERSION:
             source = bundle.read('s1-arm-control/' + LEFT_GRASP_CONFIG)
@@ -57,19 +77,7 @@ def delivery_payload(root, *, version=COMPAT_VERSION):
         files[name].update(content=base64.b64encode(content).decode(),
                            sha256=hashlib.sha256(content).hexdigest())
     if version in (PRIOR_VERSIONS[-1], COMPAT_VERSION):
-        name = 's1_control/integration.py'
-        source = base64.b64decode(files[name]['content']).decode()
-        # Reset result metadata under the same lock as the accepted queue transition.
-        # The controller's safety latch (_fault) is independent of these public fields.
-        queue_state = 'state="QUEUED", busy=True, navigation_allowed=False'
-        cleared_state = queue_state + ',\n                               last_result=None, last_log=None, last_exit_code=None, error=None'
-        source = replace_once(source, f'self._state.update({queue_state})',
-                              f'self._state.update({cleared_state})')
-        source = replace_once(source, f'self._state.update(**dict({queue_state}))',
-                              f'self._state.update({cleared_state})')
-        content = source.encode()
-        files[name].update(content=base64.b64encode(content).decode(),
-                           sha256=hashlib.sha256(content).hexdigest())
+        reset_queued_result(files)
     return path, dict(version=version,
                       archive_sha256=ARCHIVE_SHA256, files=files)
 
@@ -144,14 +152,19 @@ print('S1_V4_PACKAGE_READY',target)
 
 
 def ensure_v4_package(root, ssh, host, *, running=False):
-    path, data = delivery_payload(root)
+    return ensure_package(root, ssh, host, delivery_payload, REMOTE_PACKAGE,
+                          prior_versions=PRIOR_VERSIONS, running=running)
+
+
+def ensure_package(root, ssh, host, payload, remote_package, *, prior_versions=(), running=False):
+    path, data = payload(root)
     expected = {name: {k: v for k, v in item.items() if k != 'content'}
                 for name, item in data['files'].items()}
-    check_command = ['/usr/bin/python3', '-c', CHECK, REMOTE_PACKAGE,
-                     COMPAT_VERSION, ARCHIVE_SHA256]
+    check_command = ['/usr/bin/python3', '-c', CHECK, remote_package,
+                     data['version'], data['archive_sha256']]
     prior_deliveries = {}
-    for version in PRIOR_VERSIONS:
-        previous = delivery_payload(root, version=version)[1]
+    for version in prior_versions:
+        previous = payload(root, version=version)[1]
         previous['files'] = {name: {k: v for k, v in item.items() if k != 'content'}
                              for name, item in previous['files'].items()}
         prior_deliveries[previous['version']] = previous
@@ -160,30 +173,30 @@ def ensure_v4_package(root, ssh, host, *, running=False):
     result = subprocess.run(argv, input=json.dumps(check_input), capture_output=True,
                             text=True, timeout=30, check=True)
     if result.stdout.strip() == 'READY':
-        return REMOTE_PACKAGE
+        return remote_package
     if running:
-        raise RuntimeError('S1 service is running; cannot install v4 over a live owner')
+        raise RuntimeError('S1 service is running; cannot install S1 over a live owner')
     status, _, version = result.stdout.strip().partition(' ')
     if status == 'UPGRADE' and version in prior_deliveries:
-        upgrade_command = ['/usr/bin/python3', '-c', UPGRADE, REMOTE_PACKAGE]
+        upgrade_command = ['/usr/bin/python3', '-c', UPGRADE, remote_package]
         subprocess.run([*ssh, host, shlex.join(upgrade_command)],
                        input=json.dumps(dict(previous=prior_deliveries[version], current=data)),
                        text=True, timeout=30, check=True)
         subprocess.run(argv, input=json.dumps(check_input), capture_output=True,
                        text=True, timeout=30, check=True)
-        return REMOTE_PACKAGE
+        return remote_package
     if result.stdout.strip() != 'MISSING':
-        raise RuntimeError('Unknown S1 v4 deployment state; preserve')
-    uploaded = '/tmp/go2-s1-v4-' + ARCHIVE_SHA256[:16] + '.zip'
+        raise RuntimeError('Unknown S1 deployment state; preserve')
+    uploaded = '/tmp/go2-s1-v4-' + data['archive_sha256'][:16] + '.zip'
     subprocess.run(['scp', '-i', ssh[2], '-o', 'BatchMode=yes', str(path),
                     host + ':' + uploaded], check=True, timeout=180)
-    install_command = ['/usr/bin/python3', '-c', INSTALL, uploaded, REMOTE_PACKAGE]
+    install_command = ['/usr/bin/python3', '-c', INSTALL, uploaded, remote_package]
     subprocess.run([*ssh, host, shlex.join(install_command)],
                    input=json.dumps(data), text=True, timeout=120, check=True)
     # Verify the published directory, including every calibration/plan/SDK file.
     subprocess.run(argv, input=json.dumps(check_input), capture_output=True,
                    text=True, timeout=30, check=True)
-    return REMOTE_PACKAGE
+    return remote_package
 
 
 UPGRADE = r'''

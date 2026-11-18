@@ -22,7 +22,8 @@ def replace_once(text, old, new):
     return text.replace(old, new, 1)
 
 
-def compatibility_payload(root, bundle, *, dual_side=True, final_fusion=False):
+def compatibility_payload(root, bundle, *, dual_side=True, final_fusion=False,
+                          shared_grasp_version=None):
     names = ('scripts/run_arm_integration.py', 's1_control/integration.py',
              'scripts/arm_task_client.py', 'scripts/verify_handoff.py')
     originals = {name: bundle.read('s1-arm-control/'+name) for name in names}
@@ -191,27 +192,28 @@ def compatibility_payload(root, bundle, *, dual_side=True, final_fusion=False):
                         names[2]: client.encode()})
     if dual_side:
         previous5 = dict(changed)
-        flow_name = 'scripts/run_go2_visual_alignment.py'
-        originals[flow_name] = bundle.read('s1-arm-control/'+flow_name)
-        flow = originals[flow_name].decode()
-        flow = replace_once(flow, 'def main(argv=None, *, arm_session=None) -> int:',
-            'class MemoryTargetMiss(RuntimeError):\n    pass\n\ndef main(argv=None, *, arm_session=None) -> int:')
-        flow = replace_once(flow, '        observation_record = None\n        prepared_alignment = None',
-            '        if (getattr(arm_session, "allow_missed", False) and\n'
-            '                initial_capture["detection"]["status"] == "NO_TARGET" and\n'
-            '                initial_capture["detection"].get("plane", {}).get("quality_pass") is True):\n'
-            '            raise MemoryTargetMiss("D455 valid capture has no target")\n'
-            '        observation_record = None\n        prepared_alignment = None')
-        flow = replace_once(flow, '                print("SAFE_RETURN_AFTER_REJECT = True")',
-            '                if isinstance(exc, MemoryTargetMiss):\n'
-            '                    result = "VISUAL_NO_TARGET_SAFE_RETURN"\n'
-            '                print("SAFE_RETURN_AFTER_REJECT = True")')
-        # The exception recovery already performs collision-checked reverse deployment.
-        # Only its proved empty-target return receives a nonfault terminal code.
-        flow = replace_once(flow, '        return 1\n    finally:\n        if arm is not None:',
-            '        return 3 if result == "VISUAL_NO_TARGET_SAFE_RETURN" and not deployed else 1\n'
-            '    finally:\n        if arm is not None:')
-        changed[flow_name] = flow.encode()
+        if shared_grasp_version is None:
+            flow_name = 'scripts/run_go2_visual_alignment.py'
+            originals[flow_name] = bundle.read('s1-arm-control/'+flow_name)
+            flow = originals[flow_name].decode()
+            flow = replace_once(flow, 'def main(argv=None, *, arm_session=None) -> int:',
+                'class MemoryTargetMiss(RuntimeError):\n    pass\n\ndef main(argv=None, *, arm_session=None) -> int:')
+            flow = replace_once(flow, '        observation_record = None\n        prepared_alignment = None',
+                '        if (getattr(arm_session, "allow_missed", False) and\n'
+                '                initial_capture["detection"]["status"] == "NO_TARGET" and\n'
+                '                initial_capture["detection"].get("plane", {}).get("quality_pass") is True):\n'
+                '            raise MemoryTargetMiss("D455 valid capture has no target")\n'
+                '        observation_record = None\n        prepared_alignment = None')
+            flow = replace_once(flow, '                print("SAFE_RETURN_AFTER_REJECT = True")',
+                '                if isinstance(exc, MemoryTargetMiss):\n'
+                '                    result = "VISUAL_NO_TARGET_SAFE_RETURN"\n'
+                '                print("SAFE_RETURN_AFTER_REJECT = True")')
+            # The exception recovery already performs collision-checked reverse deployment.
+            # Only its proved empty-target return receives a nonfault terminal code.
+            flow = replace_once(flow, '        return 1\n    finally:\n        if arm is not None:',
+                '        return 3 if result == "VISUAL_NO_TARGET_SAFE_RETURN" and not deployed else 1\n'
+                '    finally:\n        if arm is not None:')
+            changed[flow_name] = flow.encode()
         entry = changed[names[0]].decode()
         entry = replace_once(entry, 'response = session.request_grasp(request.get("grasp_side", '
             '"left" if "left" in args.config else "right"))',
@@ -243,7 +245,8 @@ def compatibility_payload(root, bundle, *, dual_side=True, final_fusion=False):
         changed[names[1]] = integration.encode()
         changed[names[0]] = changed[names[0]].replace(
             b'service_version="v2_auto_integration"',
-            b'service_version="20261117_final_fusion_v4", task_commands_supported=["status", "grasp", "dump"]')
+            b'service_version="' + (shared_grasp_version or '20261117_final_fusion_v4').encode()
+            + b'", task_commands_supported=["status", "grasp", "dump"]')
     for name, content in changed.items():
         compile(content, name, 'exec')
     return {name: dict(original_sha256=hashlib.sha256(originals[name]).hexdigest()

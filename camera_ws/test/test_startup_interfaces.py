@@ -147,7 +147,7 @@ def test_cold_start_uses_service_auto_selection(tmp_path, monkeypatch):
     import go2_full_test as launcher
     workflow=Workflow(SimpleNamespace(work_dir=ROOT,mode='dock',grasp_side='right'))
     workflow.folder=tmp_path/'cold'
-    monkeypatch.setattr(launcher,'ensure_v4_package',lambda *a,**kw:launcher.ARM_V2)
+    monkeypatch.setattr(launcher,'ensure_fusion_package',lambda *a,**kw:launcher.ARM_V2)
     commands=[]
     state=dict(state='ZERO_HOLD',busy=False,navigation_allowed=True,joint_positions_rad=[0.]*6)
     def remote(command,**kwargs):

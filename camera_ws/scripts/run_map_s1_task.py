@@ -55,7 +55,7 @@ def parser():
     p.add_argument('--ssh-key', default='/home/czx666/.ssh/id_ed25519_go2')
     p.add_argument('--host-python', default='/usr/bin/python3')
     p.add_argument('--arm-client',
-                   default='/home/unitree/s1-arm-control-v4/scripts/arm_task_client.py')
+                   default='/home/unitree/s1-arm-control-20261118/scripts/arm_task_client.py')
     p.add_argument('--arm-socket', default='/tmp/s1-arm-integration.sock')
     p.add_argument('--task-host-script', default='/home/unitree/go2_map_s1/s1_task_host.py')
     p.add_argument('--go2-interface', default='eth0')
