@@ -8,6 +8,8 @@ STATUS_LABELS = {
     'MISSION_HEARTBEAT': '当前状态',
     'MISSION_GOAL': '导航目标',
     'MISSION_FAILURE': '导航停止',
+    'LOCALIZATION_PAUSED': '定位异常，停车等待恢复',
+    'LOCALIZATION_RECOVERED': '定位已恢复',
     'TARGET_DEFERRED': '目标暂缓',
     'DIRECT_GRASP_ADMITTED': '墙距符合，暂停探索并直接接近',
     'GRASP_SIDE_LOCKED': '抓取侧已确认',

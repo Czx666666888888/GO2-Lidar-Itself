@@ -25,6 +25,8 @@ from .motion_arbiter import MotionArbiter
 from .wall_distance import wall_grasp_side, wall_segments
 
 
+LOCALIZATION_RECOVERY_TIMEOUT = 5.0
+LOCALIZATION_STABLE_TIME = .30
 LOCAL_PATH_TOPIC = '/nav/path'
 NAV_TOPICS = ('/goal_point', '/way_point', LOCAL_PATH_TOPIC,
               '/nav/cmd_vel_raw', '/science/cmd_vel_raw')
@@ -70,9 +72,13 @@ class MissionManager:
         self.listener = TransformListener(self.tf, self.node)
         self.pose = None
         self.pose_ns = 0
+        self.rejected_odom = None
         self.last_send = 0.
         self.cloud_ns = 0
         self.verified_pose_ns = 0
+        self.localization_paused_at = None
+        self.localization_recovered_at = None
+        self.localization_issue = None
         self.raw_path = None
         self.raw_cloud = None
         self.track = None
@@ -135,34 +141,84 @@ class MissionManager:
     def fresh(self, ns, seconds):
         return ns > 0 and 0 <= self.now_ns() - ns < seconds * 1e9
 
-    def common_origin(self):
-        # localPlanner consumes numeric /way_point XY directly in Point-LIO's
-        # origin. Reject map drift or a second map rather than reinterpret XY.
+    def check_localization(self, *, allow_cached_tf):
+        # localPlanner consumes numeric /way_point XY in Point-LIO's origin.
         try:
             transform = self.tf.lookup_transform('map', 'camera_init', Time()).transform
-        except TransformException:
-            return False
+        except TransformException as exc:
+            return dict(reason='map_camera_init_tf_unavailable', detail=str(exc))
         t, q = transform.translation, transform.rotation
         if not (math.hypot(t.x, t.y, t.z) < .001 and math.hypot(q.x, q.y, q.z) < .001):
-            return False
-        if not self.pose:
-            return False
+            return dict(reason='map_camera_init_origin_mismatch')
+        if self.pose is None:
+            return dict(reason='body_odometry_missing', rejected_odom=self.rejected_odom)
+        if not self.fresh(self.pose_ns, .55):
+            age_sec = (self.now_ns() - self.pose_ns) / 1e9
+            return dict(reason='body_odometry_timestamp_invalid', odom_age_sec=age_sec,
+                        rejected_odom=self.rejected_odom)
         try:
             vehicle = self.tf.lookup_transform('map', 'vehicle',
                                                Time(nanoseconds=self.pose_ns)).transform
-        except TransformException:
-            return self.fresh(self.verified_pose_ns, .35)
+        except TransformException as exc:
+            if allow_cached_tf and self.fresh(self.verified_pose_ns, .35):
+                return None
+            return dict(reason='map_vehicle_tf_at_odom_stamp_unavailable',
+                        odom_stamp_ns=self.pose_ns, detail=str(exc))
         p = vehicle.translation
-        if (math.dist((p.x, p.y), self.pose[:2]) >= .08
-                or abs(wrap(yaw(vehicle.rotation) - self.pose[2])) >= .10):
+        xy_error = math.dist((p.x, p.y), self.pose[:2])
+        yaw_error = abs(wrap(yaw(vehicle.rotation) - self.pose[2]))
+        if not (xy_error < .08 and yaw_error < .10):
             self.verified_pose_ns = 0
-            return False
+            return dict(reason='body_odometry_tf_mismatch',
+                        xy_error_m=xy_error if math.isfinite(xy_error) else None,
+                        yaw_error_rad=yaw_error if math.isfinite(yaw_error) else None)
         self.verified_pose_ns = self.pose_ns
+        return None
+
+    def localization_ready(self, now):
+        paused_at = self.localization_paused_at
+        issue = self.check_localization(allow_cached_tf=paused_at is None)
+        if issue and self.state not in ('EXPLORE', 'RETURN'):
+            self.arbiter.enabled = False
+            if now > self.startup_deadline:
+                self.fail('Shared map TF or body odometry unavailable', localization=issue)
+            return False
+        if issue:
+            self.localization_issue = issue
+            self.localization_recovered_at = None
+            if paused_at is None:
+                self.localization_paused_at = paused_at = now
+                self.arbiter.flush()
+                self.run.event('LOCALIZATION_PAUSED', state=self.state, **issue)
+
+        if paused_at is None:
+            return True
+        if now - paused_at >= LOCALIZATION_RECOVERY_TIMEOUT:
+            self.fail('Shared map TF or body odometry did not recover',
+                      localization=self.localization_issue, paused_sec=now - paused_at)
+        if issue:
+            return False
+
+        if self.localization_recovered_at is None:
+            self.localization_recovered_at = (now, self.pose_ns)
+        ready_at, first_pose_ns = self.localization_recovered_at
+        if now - ready_at < LOCALIZATION_STABLE_TIME or self.pose_ns <= first_pose_ns:
+            return False
+
+        self.arbiter.flush()
+        self.last_progress += now - paused_at
+        self.localization_paused_at = self.localization_recovered_at = None
+        self.localization_issue = None
+        self.run.event('LOCALIZATION_RECOVERED', state=self.state, paused_sec=now - paused_at)
         return True
 
     def odom(self, message):
         ns = stamp(message.header)
-        if not self.fresh(ns, .8) or message.header.frame_id not in ('map', 'camera_init'):
+        received_age_sec = (self.now_ns() - ns) / 1e9
+        if (ns <= 0 or not 0 <= received_age_sec < .8
+                or message.header.frame_id not in ('map', 'camera_init')):
+            self.rejected_odom = dict(stamp_ns=ns, age_sec=received_age_sec,
+                                      frame=message.header.frame_id)
             return
         if ns < self.pose_ns:
             self.error = 'Map odometry timestamp regressed'
@@ -175,6 +231,7 @@ class MissionManager:
             self.error = 'Map odometry discontinuity'
             return
         self.pose, self.pose_ns = pose, ns
+        self.rejected_odom = None
 
     def cloud(self, message):
         if message.header.frame_id in ('map', 'camera_init') and self.fresh(stamp(message.header), 1.):
@@ -465,10 +522,10 @@ class MissionManager:
         return (self.fresh(self.local_ns, .65) and (self.state == 'RETURN' or
                 self.far_cost is not None and self.fresh(self.far_ns, .9)))
 
-    def fail(self, reason):
+    def fail(self, reason, **details):
         self.error = reason
         self.change('UNREACHABLE')
-        self.run.event('MISSION_FAILURE', reason=reason)
+        self.run.event('MISSION_FAILURE', reason=reason, **details)
         raise RuntimeError(reason)
 
     def record_path(self):
@@ -664,10 +721,7 @@ class MissionManager:
                              for topic in conflicts}
                 self.fail('Navigation requires one publisher per topic; found '+json.dumps(endpoints))
             return
-        if not self.common_origin() or not self.fresh(self.pose_ns, .55):
-            self.arbiter.enabled = False
-            if time.monotonic() > self.startup_deadline:
-                self.fail('Shared map TF or body odometry unavailable')
+        if not self.localization_ready(time.monotonic()):
             return
         if (self.state in ('EXPLORE', 'PROBE', 'NAV_TO_TARGET') and self.goal
                 and not self.far_ns and time.monotonic() - self.last_send > 1.):

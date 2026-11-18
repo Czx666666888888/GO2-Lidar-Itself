@@ -2,6 +2,7 @@ import json
 import math
 from types import SimpleNamespace
 
+import pytest
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import TwistStamped
 
@@ -447,3 +448,98 @@ def test_memory_revisit_uses_an_unvisited_map_waypoint_before_confirming():
     mission.tracks(snapshot(target(2, 2., 'CONFIRMED'), target(3, 3., 'CONFIRMED')))
     forwarded = json.loads(published[-1].data)['tracks']
     assert [(t['id'], t['grasp_side_hint']) for t in forwarded] == [(2, 'left')]
+
+
+def test_navigation_recovers_only_after_stable_fresh_localization():
+    mission = MissionManager.__new__(MissionManager)
+    issue = {'reason': 'map_vehicle_tf_at_odom_stamp_unavailable'}
+    current = [issue]
+    cached_allowed = []
+    events = []
+    flushes = []
+    mission.state = 'EXPLORE'
+    mission.localization_paused_at = mission.localization_recovered_at = None
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.arbiter = SimpleNamespace(flush=lambda: flushes.append(True))
+    mission.last_progress = 18.
+    mission.pose_ns = 100
+
+    def check(*, allow_cached_tf):
+        cached_allowed.append(allow_cached_tf)
+        return current[0]
+
+    mission.check_localization = check
+    assert not mission.localization_ready(20.)
+    assert not mission.localization_ready(20.1)
+    assert len(flushes) == 1
+    current[0] = None
+    assert not mission.localization_ready(21.)
+    assert not mission.localization_ready(21.4)  # The same pose does not prove recovery.
+    current[0] = issue
+    assert not mission.localization_ready(21.5)
+    current[0] = None
+    mission.pose_ns += 1
+    assert not mission.localization_ready(21.6)
+    mission.pose_ns += 1
+    assert not mission.localization_ready(21.8)
+    assert mission.localization_ready(22.)
+    assert cached_allowed == [True] + [False]*7
+    assert len(flushes) == 2
+    assert [e[0] for e in events] == ['LOCALIZATION_PAUSED', 'LOCALIZATION_RECOVERED']
+    assert mission.localization_paused_at is None and mission.last_progress == 20.
+
+
+@pytest.mark.parametrize('state, fail_at, error', [
+    ('RETURN', 25., 'did not recover'),
+    ('STOP_CONFIRM', 20., 'unavailable'),
+])
+def test_localization_timeout_keeps_specific_cause_and_near_handoff_policy(state, fail_at, error):
+    mission = MissionManager.__new__(MissionManager)
+    mission.state = state
+    mission.startup_deadline = 15.
+    mission.localization_paused_at = mission.localization_recovered_at = None
+    issue = {'reason': 'body_odometry_timestamp_invalid', 'odom_age_sec': .65}
+    mission.check_localization = lambda **kw: issue
+    events = []
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.arbiter = SimpleNamespace(enabled=True, flush=lambda: None)
+    mission.change = lambda state: setattr(mission, 'state', state)
+    if state == 'RETURN':
+        assert not mission.localization_ready(20.)
+        assert not mission.localization_ready(24.9)
+    with pytest.raises(RuntimeError, match=error):
+        mission.localization_ready(fail_at)
+    assert mission.state == 'UNREACHABLE'
+    assert events[-1][1]['localization'] == issue
+
+
+def test_localization_reports_timestamp_tf_and_pose_mismatch():
+    from tf2_ros import TransformException
+
+    mission = MissionManager.__new__(MissionManager)
+    mission.pose = (1., 0., 0., 0.)
+    mission.now_ns = lambda: 2_000_000_000
+    mission.pose_ns = 1_900_000_000
+    mission.verified_pose_ns = mission.pose_ns
+    mission.rejected_odom = None
+
+    def transform(_target, source, _stamp):
+        if source == 'vehicle':
+            raise TransformException('requested stamp outside TF buffer')
+        return SimpleNamespace(transform=SimpleNamespace(
+            translation=SimpleNamespace(x=0., y=0., z=0.),
+            rotation=SimpleNamespace(x=0., y=0., z=0., w=1.)))
+
+    mission.tf = SimpleNamespace(lookup_transform=transform)
+    assert mission.check_localization(allow_cached_tf=True) is None
+    issue = mission.check_localization(allow_cached_tf=False)
+    assert issue['reason'] == 'map_vehicle_tf_at_odom_stamp_unavailable'
+    assert issue['odom_stamp_ns'] == mission.pose_ns
+    mission.tf.lookup_transform = lambda target, source, stamp: transform(target, 'map', stamp)
+    issue = mission.check_localization(allow_cached_tf=False)
+    assert issue['reason'] == 'body_odometry_tf_mismatch'
+    assert issue['xy_error_m'] == 1.
+    mission.pose_ns = 2_010_000_000
+    issue = mission.check_localization(allow_cached_tf=True)
+    assert issue['reason'] == 'body_odometry_timestamp_invalid'
+    assert issue['odom_age_sec'] == -.01
