@@ -74,6 +74,8 @@ class MissionManager:
         self.goal_ns = 0
         self.far_cost = None
         self.far_ns = self.way_ns = self.local_ns = 0
+        self.far_path_issue = 'far_path_not_received'
+        self.local_path_issue = 'local_path_not_received'
         self.waypoint = None
         self.state = 'IDLE'
         self.pending = []
@@ -223,6 +225,8 @@ class MissionManager:
         self.goal = xyz
         self.far_cost = self.waypoint = self.raw_path = None
         self.far_ns = self.way_ns = self.local_ns = 0
+        self.far_path_issue = 'far_path_not_received'
+        self.local_path_issue = 'local_path_not_received'
         self.last_progress = time.monotonic()
         self.best_distance = float('inf')
         self.had_path = False
@@ -253,6 +257,12 @@ class MissionManager:
             self.forward_waypoint()
         else:
             self.far_cost = None
+            if len(points) < 2:
+                self.far_path_issue = 'far_path_empty_or_too_short'
+            elif not all(math.isfinite(v) for point in points for v in point):
+                self.far_path_issue = 'far_path_nonfinite'
+            else:
+                self.far_path_issue = 'far_path_endpoint_outside_candidate'
 
     def far_waypoint(self, message):
         if (message.header.frame_id == 'map' and stamp(message.header) > self.goal_ns
@@ -279,19 +289,24 @@ class MissionManager:
         ns = stamp(message.header)
         if (not self.way_ns or ns <= self.way_ns or message.header.frame_id != 'vehicle'
                 or not self.fresh(ns, .65)):
+            if self.way_ns:
+                self.local_path_issue = 'local_path_wrong_frame_or_stamp'
             self.raw_path = None
             return
         if len(message.poses) < 2:
+            self.local_path_issue = 'local_path_empty_or_too_short'
             self.local_ns = 0
             self.raw_path = None
             return
         try:
             transform = self.tf.lookup_transform('map', 'vehicle', Time.from_msg(message.header.stamp))
         except TransformException:
+            self.local_path_issue = 'local_path_map_tf_unavailable'
             return
         self.raw_path = None
         p = message.poses[-1].pose.position
         if math.hypot(p.x, p.y) < .10 or not all(math.isfinite(v) for v in (p.x, p.y)):
+            self.local_path_issue = 'local_path_endpoint_too_close_or_nonfinite'
             self.local_ns = 0
             return
         # The stamp-resolved TF binds the local path to the same map epoch.
@@ -302,6 +317,9 @@ class MissionManager:
         if (self.pose and math.dist((t.x, t.y), self.pose[:2]) < .5
                 and math.dist(end, self.pose[:2]) > .05):
             self.local_ns = ns
+            self.local_path_issue = 'local_path_not_fresh_at_deadline'
+        else:
+            self.local_path_issue = 'local_path_inconsistent_with_body_pose'
 
     def live_path(self):
         return (self.fresh(self.local_ns, .65) and (self.state == 'RETURN' or
@@ -386,6 +404,15 @@ class MissionManager:
             self.arbiter.flush()
             self.change('EXPLORE', 'NAV')
 
+    def evaluate_staging(self, rejected):
+        def log_candidate(**details):
+            self.run.event('STAGING_CANDIDATE_REJECTED', target_id=self.track['id'],
+                           target_map=self.track['position'][:2], terrain_stamp_ns=self.cloud_ns,
+                           **details)
+
+        return staging_candidates(self.track['position'][:2], self.pose, self.sides,
+                                  self.terrain, rejected=rejected, on_reject=log_candidate)
+
     def probe(self, options):
         self.change('PROBE')
         self.stage = None
@@ -420,18 +447,20 @@ class MissionManager:
             self.defer_target('No staging candidate produced both a FAR route and a local path')
 
     def replan(self, reason):
-        self.run.event('STAGING_REPLAN', reason=reason)
+        self.run.event('STAGING_REPLAN', reason=reason, target_id=self.anchor['id'],
+                       pose=self.stage.pose, side=self.stage.side)
         self.rejected.append(self.stage)
         if not self.track or not self.fresh(self.track['observed_ns'], 1.2):
             self.defer_target('Target observation unavailable for replanning')
             return
-        options = [p for p in staging_candidates(self.track['position'][:2], self.pose,
-                                                self.sides, self.terrain)
+        rejected = Counter()
+        options = [p for p in self.evaluate_staging(rejected)
                    if not any(math.dist(p.pose[:2], old.pose[:2]) < .13 for old in self.rejected)]
         if options:
             self.probe(options)
         else:
-            self.defer_target('No alternate staging pose passes the geometry and clearance checks')
+            self.defer_target('No alternate staging pose passes the geometry and clearance checks',
+                              rejected=dict(rejected))
 
     def stage_clear(self, pose):
         stage = self.stage
@@ -534,8 +563,7 @@ class MissionManager:
             self.record_path()
             if self.track and self.fresh(self.track['observed_ns'], 1.2):
                 rejected = Counter()
-                options = staging_candidates(self.track['position'][:2], self.pose, self.sides,
-                                             self.terrain, rejected=rejected)
+                options = self.evaluate_staging(rejected)
                 if options:
                     self.anchor = self.track
                     self.rejected = []
@@ -597,7 +625,16 @@ class MissionManager:
                     self.pending.clear()
                 self.next_probe()
             elif now > self.deadline:
-                self.run.event('STAGING_PROBE_TIMEOUT', pose=self.stage.pose,
+                if self.far_cost is None:
+                    reason = self.far_path_issue
+                elif not self.fresh(self.far_ns, .9):
+                    reason = 'far_path_not_fresh_at_deadline'
+                elif not self.way_ns:
+                    reason = 'no_matching_far_waypoint_forwarded'
+                else:
+                    reason = self.local_path_issue
+                self.run.event('STAGING_PROBE_TIMEOUT', target_id=self.anchor['id'],
+                               pose=self.stage.pose, side=self.stage.side, reason=reason,
                                far_path=self.far_cost is not None, local_path=bool(self.local_ns))
                 self.next_probe()
             return

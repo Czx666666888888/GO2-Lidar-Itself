@@ -152,3 +152,63 @@ def test_no_feasible_staging_defers_only_the_target_and_resumes_explore():
     assert mission.can_retry_target(2)
     mission.pose = (.36, 0., 0.)
     assert mission.can_retry_target(1)
+
+
+def test_parking_rejection_reports_each_kind_of_blocking_cell():
+    from collections import Counter
+
+    terrain = floor()
+    target, robot = (1.5, 0.), (0., 0., 0.)
+    sides = {'right': DockSettings()}
+    stage = staging_candidates(target, robot, sides, terrain)[0]
+    i, j = terrain.cell(*stage.pose[:2])
+    terrain.cells[(i, j)] = 2
+    terrain.cells[(i, j + 1)] = 0
+    del terrain.cells[(i, j - 1)]
+    counts = Counter()
+    records = []
+    accepted = staging_candidates(target, robot, sides, terrain, rejected=counts,
+                                  on_reject=lambda **row: records.append(row))
+    assert accepted == staging_candidates(target, robot, sides, terrain)
+    row = next(r for r in records if r['stage_pose_map_xy_yaw'] == stage.pose)
+    assert row['reason'] == 'parking_clearance'
+    assert row['side'] == 'right'
+    assert row['clearance_m'] == .15
+    assert set(row['blockers']) == {'occupied', 'terrain_unknown', 'unobserved'}
+    assert terrain.cell(*row['blockers']['occupied']['cell_map_xy_m']) == (i, j)
+    assert counts['parking_clearance'] == len(records)
+
+
+def test_corridor_reports_first_blocked_pose_and_map_cell():
+    terrain = floor()
+    start, end = (0., 0., 0.), (1., 0., 0.)
+    terrain.cells[(10, 0)] = 2
+    evidence = {}
+    assert not terrain.sweep_clear(start, end, evidence=evidence)
+    assert 0 < evidence['check_pose_map_xy_yaw'][0] < 1
+    assert evidence['clearance_m'] == .08
+    assert evidence['blockers']['occupied']['cell_map_xy_m'] == (1., 0.)
+
+
+def test_probe_timeout_reports_local_path_failure_for_this_target():
+    mission = MissionManager.__new__(MissionManager)
+    mission.state = 'PROBE'
+    mission.track = None
+    mission.anchor = {'id': 7}
+    mission.stage = SimpleNamespace(pose=(1., 2., .5), side='right')
+    mission.deadline = 0.
+    mission.far_cost = 1.
+    mission.local_ns = 0
+    mission.far_ns = mission.way_ns = 1
+    mission.local_path_issue = 'local_path_map_tf_unavailable'
+    mission.fresh = lambda ns, _: bool(ns)
+    events = []
+    mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
+    mission.next_probe = lambda: None
+
+    mission.stage_step()
+
+    name, row = events[0]
+    assert name == 'STAGING_PROBE_TIMEOUT'
+    assert row['target_id'] == 7
+    assert row['reason'] == 'local_path_map_tf_unavailable'
