@@ -507,9 +507,19 @@ print('S1_EXTENSION_INSTALLED: original serial owner retained')
         print(f'{label}: PID={p.pid}, 日志={stream.name}', flush=True)
         return p
 
+    def start_viewers(self):
+        if not getattr(self.args, 'view', False):
+            return
+        self.spawn(self.shell('ros2 run rqt_image_view rqt_image_view '
+                              '/science/approach/debug_image'), 'image_viewer')
+        if self.args.mode == 'full' and os.environ.get('DISPLAY'):
+            config = self.work/'camera_ws/src/go2_science_perception/rviz/d435_slam_target_validation.rviz'
+            self.spawn(self.shell(shlex.join(['ros2', 'run', 'rviz2', 'rviz2', '-d', str(config)])),
+                       'rviz')
+
     def healthy(self):
         for p, _, name in self.children:
-            if p.poll() is not None and name != 'viewer':
+            if p.poll() is not None and name not in ('image_viewer', 'rviz'):
                 raise RuntimeError(f'{name} 已退出({p.returncode})，查看 {self.folder}')
 
     def wait_job(self, p):
@@ -816,13 +826,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                      HOST+':'+REMOTE+'/'])
         if not zero_hold(self.status()):
             raise RuntimeError('运动前S1状态变化，停止')
-        if getattr(self.args, 'view', False):
-            self.spawn(self.shell('ros2 run rqt_image_view rqt_image_view '
-                                  '/science/approach/debug_image'), 'viewer')
-        if self.args.mode == 'full' and getattr(self.args, 'view', False) and os.environ.get('DISPLAY'):
-            self.spawn(self.shell(shlex.join(['ros2', 'run', 'rviz2', 'rviz2', '-d', str(
-                self.work/'camera_ws/src/go2_science_perception/rviz/d435_slam_target_validation.rviz')])),
-                'viewer')
+        self.start_viewers()
         if self.args.mode == 'full':
             self.multi_memory_session = self.detector == 'yolo'
             self.processed_results = []

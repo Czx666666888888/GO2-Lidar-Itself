@@ -82,3 +82,32 @@ def test_live_child_with_same_label_is_rejected_before_creating_any_log(tmp_path
     with pytest.raises(RuntimeError, match='仍在运行'):
         w.spawn(['must-not-launch'], 'slam')
     assert not list(tmp_path.iterdir())
+
+
+def test_full_view_starts_two_independent_optional_children(tmp_path, monkeypatch):
+    w = workflow(tmp_path)
+    w.args.view = True
+    monkeypatch.setenv('DISPLAY', ':99')
+    children = []
+    calls = []
+
+    def popen(argv, **kwargs):
+        calls.append(argv[-1])
+        child = SimpleNamespace(pid=len(children) + 1, returncode=None)
+        child.poll = lambda: child.returncode
+        children.append(child)
+        return child
+
+    monkeypatch.setattr(launcher.subprocess, 'Popen', popen)
+    try:
+        w.start_viewers()
+        assert [label for _, _, label in w.children] == ['image_viewer', 'rviz']
+        assert 'rqt_image_view' in calls[0]
+        assert 'rviz2' in calls[1]
+        assert {p.name for p in tmp_path.iterdir()} == {'image_viewer.log', 'rviz.log'}
+        for child in children:
+            child.returncode = 1
+        w.healthy()
+    finally:
+        for _, stream, _ in w.children:
+            stream.close()

@@ -2381,3 +2381,9 @@ final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open
 - 真实接口为 `/mission/nbv_goal → MissionManager → /goal_point → FAR → /mission/far_way_point → MissionManager → /way_point → localPlanner → /path → pathFollower → /nav/cmd_vel_raw`。原接近控制器使用 `/science/cmd_vel_raw`，MotionArbiter 是 `/cmd_vel_raw` 唯一发布者。变更目标或模式时清空速度缓存。
 - 实机入口保留 `bash go2_test.sh --execute --mode full`。加 `--view` 时在图形会话打开原地图 RViz 配置，并显示选定停靠箭头、FAR 路径与局部路径。证据目录包含 `*_full_nav.log`、`handoff_*.jsonl` 的任务阶段和失败原因，以及 `navigation_trail.json`。
 - 本轮证据为源码审查、Humble 下 `colcon` 编译成功、184 项新旧针对性测试通过，以及独立 ROS 域内实际节点发现。发现结果确认 MissionManager 独占 `/goal_point` 和 `/way_point`，FAR 收到的目标入口及局部 `/path`、pathFollower 私有速度链匹配。隔离启动使用无传感器、无安全门、无 Sport 发布者的配置，连续传感器数据、实机耗时、运动和抓取/返航结果均为 NOT VERIFIED。
+
+### 2026-11-19 FULL 预览窗口启动冲突
+
+- 运行 `full_1795017747997764967` 的证据目录已有 `viewer.log`，还未进入抓取轮次协调器。源码中图像预览与 RViz2 同用 `viewer` 子进程标签，先启动的图像预览占用该标签，第二次启动被同标签保护拦截。
+- `--view` 将图像预览和 RViz2 分别记录为 `image_viewer.log`、`rviz.log`。两个窗口都允许独立关闭，原有重复启动保护继续按各自标签生效。
+- 77 项针对性测试通过，涵盖双窗口启动、分开记录日志及健康检查。FULL 离线命令与 diff 检查通过。GUI 实际显示和真机流程为 NOT VERIFIED。
