@@ -1,0 +1,5 @@
+# 米，独立导航使用的站立底盘俯视包络，原点为估计机身中心。
+length: 0.70
+width: 0.40
+hard_clearance: 0.08
+parking_clearance: 0.15

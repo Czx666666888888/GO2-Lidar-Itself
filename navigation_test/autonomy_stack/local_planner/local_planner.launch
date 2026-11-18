@@ -1,5 +1,8 @@
 <launch>
 
+  <arg name="vehicleLength" default="0.7"/>
+  <arg name="vehicleWidth" default="0.4"/>
+  <arg name="obstacleInflate" default="0.08"/>
   <arg name="sensorOffsetX" default="0.0"/>
   <arg name="sensorOffsetY" default="0.0"/>
   <arg name="cameraOffsetZ" default="0.0"/>
@@ -15,8 +18,8 @@
 
   <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
     <param name="pathFolder" value="$(find-pkg-share local_planner)/paths" />
-    <param name="vehicleLength" value="0.7" />
-    <param name="vehicleWidth" value="0.4" />
+    <param name="vehicleLength" value="$(var vehicleLength)" />
+    <param name="vehicleWidth" value="$(var vehicleWidth)" />
     <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
     <param name="twoWayDrive" value="$(var twoWayDrive)" />
@@ -25,7 +28,7 @@
     <param name="useTerrainAnalysis" value="true" />
     <param name="checkObstacle" value="true" />
     <param name="checkRotObstacle" value="true" />
-    <param name="obstacleInflate" value="0.08" /><!-- 0.12->0.08: 1m通道里0.12膨胀后净宽仅0.76m, localPlanner常判无路 -->
+    <param name="obstacleInflate" value="$(var obstacleInflate)" /><!-- 0.12->0.08: 1m通道里0.12膨胀后净宽仅0.76m, localPlanner常判无路 -->
     <param name="inertiaFactor" value="1.3" />   <!-- 方向惯性: 抑制 path 帧间跳变(1.0=关) -->
     <param name="adjacentRange" value="3.0" />
     <param name="obstacleHeightThre" value="0.3" />

@@ -6,6 +6,7 @@ import signal
 from pathlib import Path
 import time
 
+import numpy as np
 import rclpy
 from rclpy.signals import SignalHandlerOptions
 from nav_msgs.msg import Odometry, Path as NavPath
@@ -15,8 +16,8 @@ from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Bool, Float32, String
 from go2_keyboard_teleop.safety_gate import SafetyGate, ARMED, DISARMED, FAULT
 
-# Circumscribed radius of the local planner's 0.70 x 0.40 m body plus its clearance.
-TURN_CLEARANCE = math.hypot(0.35, 0.20) + 0.08
+from body_footprint import CORNER_RADIUS, HARD_CLEARANCE, PARKING_CLEARANCE, edge_distance
+
 
 class NavigationGate(SafetyGate):
     def __init__(self):
@@ -30,6 +31,7 @@ class NavigationGate(SafetyGate):
         self.front_stop_min, self.front_stop_max = .15, .80
         self.front_stop_deg, self.front_stop_pts = 30, 6
         self.front_blocked = False
+        self.body_gap = None
         self.turn_blocked = True
         self._pose = None
         self.rotate = 0.
@@ -58,43 +60,64 @@ class NavigationGate(SafetyGate):
     def cb_phase(self, msg):
         self.phase = msg.data
         self.seen["phase"] = time.monotonic()
-        if self.phase in ("DONE", "RETURN_BLOCKED", "RETURNED_EARLY"):
+        if self.phase in ("DONE", "RETURN_BLOCKED", "RETURNED_EARLY", "PARKING_CLEARANCE_UNCONFIRMED") and self.finished is None:
             self.finished = self.phase
-            self._fault(self.phase)
+            if self.phase in ("DONE", "RETURNED_EARLY") and (
+                self.body_gap is None or self.body_gap < PARKING_CLEARANCE
+                or any(time.monotonic() - self.seen.get(key, -math.inf) >= 1. for key in ("odom", "terrain"))
+            ):
+                self.finished = "PARKING_CLEARANCE_UNCONFIRMED"
+            self._fault(self.finished)
 
     def cb_odom(self, msg):
+        pose = msg.pose.pose
+        q = pose.orientation
+        if (msg.header.frame_id.lstrip("/") not in ("map", "camera_init")
+            or not all(math.isfinite(v) for v in (pose.position.x, pose.position.y, q.x, q.y, q.z, q.w))
+            or not .99 <= q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w <= 1.01):
+            self._pose = self.body_gap = None
+            self.seen.pop("odom", None)
+            return
         self.seen["odom"] = time.monotonic()
-        q = msg.pose.pose.orientation
         self._pose = (msg.pose.pose.position.x, msg.pose.pose.position.y,
                       math.atan2(2.0*(q.w*q.z+q.x*q.y), 1.0-2.0*(q.y*q.y+q.z*q.z)))
 
     def cb_terrain(self, msg):
-        if not self.front_stop_enable or self._pose is None:
+        if self._pose is None or msg.header.frame_id.lstrip("/") != "map":
+            self.body_gap = None
             return
         px, py, yaw = self._pose
         rmin = self.front_stop_min; rmax = self.front_stop_max
         half = math.radians(self.front_stop_deg)
-        cnt = 0
-        turn_blocked = False
         try:
-            for p in point_cloud2.read_points(msg, field_names=['x','y','intensity'], skip_nans=True):
-                if p[2] >= 1.45 or p[2] <= 0.3:      # 只要真实障碍, 排除unknown/地面
-                    continue
-                dx = p[0]-px; dy = p[1]-py
-                d = math.hypot(dx, dy)
-                if d <= TURN_CLEARANCE:
-                    turn_blocked = True
-                if d < rmin or d > rmax:
-                    continue
-                a = (math.atan2(dy, dx) - yaw + math.pi) % (2*math.pi) - math.pi
-                if abs(a) < half:
-                    cnt += 1
-                    if cnt > self.front_stop_pts and turn_blocked:
-                        break
-        except Exception:
+            points = point_cloud2.read_points(msg, field_names=["x", "y", "intensity"], skip_nans=True)
+            x, y, height = points["x"], points["y"], points["intensity"]
+            known = np.isfinite(x) & np.isfinite(y) & np.isfinite(height) & (height < 1.45)
+            observed = bool(known.any())
+            obstacles = known & (height >= 0.2)
+            dx, dy = x[obstacles] - px, y[obstacles] - py
+            distance = np.hypot(dx, dy)
+            turns = distance <= CORNER_RADIUS + HARD_CLEARANCE
+            turn_blocked = bool(turns.any())
+            nearby = distance <= CORNER_RADIUS + PARKING_CLEARANCE + 1e-6
+            c, s = math.cos(yaw), math.sin(yaw)
+            nearest = min((edge_distance(c*ax+s*ay, -s*ax+c*ay)
+                           for ax, ay in zip(dx[nearby], dy[nearby])), default=math.inf)
+            front = (height[obstacles] > 0.3) & (distance >= rmin) & (distance <= rmax)
+            angle = (np.arctan2(dy[front], dx[front]) - yaw + np.pi) % (2*np.pi) - np.pi
+            cnt = np.count_nonzero(np.abs(angle) < half)
+        except (AssertionError, ValueError, KeyError, TypeError, IndexError):
+            self.body_gap = None
             self.turn_blocked = True
             return
-        self.turn_blocked = turn_blocked or not msg.width or not msg.height
+        self.body_gap = nearest if observed else None
+        self.turn_blocked = turn_blocked or not observed
+        if not observed:
+            return
+        if nearest <= HARD_CLEARANCE + 1e-6 and self.state == ARMED:
+            self.finished = "BODY_CLEARANCE_STOP"
+            self._fault(f"机身外沿净空 {nearest:.3f} m，触发硬停")
+            return
         self.seen["terrain"] = time.monotonic()
         if not self.front_blocked and cnt > self.front_stop_pts:
             self.front_blocked = True
@@ -108,7 +131,7 @@ class NavigationGate(SafetyGate):
             return
         forced_turn = (self.phase == "RETURN" and self.rotate != 0.
                        and time.monotonic() - self.seen["rotate"] < 1.5)
-        if self.phase == "HOLD" or (forced_turn and self.turn_blocked):
+        if self.body_gap is None or self.phase == "HOLD" or (forced_turn and self.turn_blocked):
             self.last_cmd_time = time.time()
             self.last_cmd = (0., 0., 0.)
             self._send(*self.last_cmd)
@@ -130,7 +153,8 @@ class NavigationGate(SafetyGate):
         if self.state == DISARMED:
             if now - self.started > 60.:
                 self.finished = "START_TIMEOUT"
-            elif (fresh and self.phase in ("EXPLORE", "RETURN")
+            elif (fresh and self.body_gap is not None and self.body_gap > HARD_CLEARANCE + 1e-6
+                  and self.phase in ("EXPLORE", "RETURN")
                   and time.time() - self.last_state_time < self.state_timeout
                   and (self.dry_run or self.lease_id)):
                 super().cb_arm(Bool(data=True))

@@ -1,5 +1,6 @@
 """Standalone navigation launch using the 2026-11-18 planner profiles."""
 import os
+import yaml
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
@@ -12,6 +13,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     root = Path(__file__).parent
     stack = root / "autonomy_stack"
+    footprint = yaml.safe_load((root / "body_footprint.yaml").read_text())
 
     def include(path, **args):
         return IncludeLaunchDescription(AnyLaunchDescriptionSource(str(path)),
@@ -36,7 +38,9 @@ def generate_launch_description():
                          ("/scan_cloud", "/terrain_map"), ("/terrain_local_cloud", "/registered_scan"),
                          ("/way_point", "/navigation_test/far_waypoint")], on_exit=Shutdown()),
         include(stack / "local_planner/local_planner.launch", autonomyMode="true",
-                autonomySpeed="0.4", maxSpeed="0.4", sensorOffsetX="0.3"),
+                autonomySpeed="0.4", maxSpeed="0.4", sensorOffsetX="0.3",
+                vehicleLength=str(footprint["length"]), vehicleWidth=str(footprint["width"]),
+                obstacleInflate=str(footprint["hard_clearance"])),
         script(root / "nodes/obstacle_memory_node.py", "obstacle_memory_node"),
         script(root / "nodes/nbv_explore_node.py", "nbv_explore_node",
                {"startup_delay": 2., "return_after": 30.}),

@@ -12,6 +12,8 @@ from geometry_msgs.msg import PointStamped
 from std_msgs.msg import Bool, Float32, String
 from sensor_msgs_py import point_cloud2
 
+from body_footprint import CORNER_RADIUS, PARKING_CLEARANCE, edge_distance
+
 RES = 0.1
 OBSTACLE_THRE = 0.2
 UNKNOWN_INT = 1.45
@@ -121,9 +123,23 @@ class ExploreNode(Node):
                     continue
                 free = sum(self.grid.get((ix+i, iy+j)) == 1
                            for i in (-1, 0, 1) for j in (-1, 0, 1))
-                if free >= 6:
+                if free >= 6 and self._parking_space(gx, gy, heading):
                     best, best_forward = (gx, gy), forward
         return best
+
+    def _parking_space(self, x, y, yaw):
+        # Account for rounding map points to cell centers (up to half a diagonal).
+        margin = PARKING_CLEARANCE + RES / math.sqrt(2.)
+        radius = math.ceil((CORNER_RADIUS + margin) / RES)
+        cx, cy = round(x / RES), round(y / RES)
+        c, s = math.cos(yaw), math.sin(yaw)
+        for ix in range(cx-radius, cx+radius+1):
+            for iy in range(cy-radius, cy+radius+1):
+                dx, dy = ix*RES-x, iy*RES-y
+                if edge_distance(c*dx+s*dy, -s*dx+c*dy) <= margin:
+                    if self.grid.get((ix, iy)) != 1:
+                        return False
+        return True
 
     def _near_obstacle(self, ix, iy, radius):
         return any(self.grid.get((ix+i, iy+j)) == 2
@@ -232,6 +248,8 @@ class ExploreNode(Node):
             if self.mode != "DONE":
                 self.get_logger().info("返航到位：实际位置进入起点范围")
             self.mode = "DONE" if self.outbound_reached else "RETURNED_EARLY"
+            if not self._parking_space(*self.pos, self.yaw):
+                self.mode = "PARKING_CLEARANCE_UNCONFIRMED"
             self.return_goal = tuple(self.home)
         else:
             if self.return_goal is not None:
@@ -296,8 +314,8 @@ class ExploreNode(Node):
         if self.current_goal is not None:
             remaining = math.dist(self.pos, self.current_goal)
             if remaining <= self.arrive_dis:
-                self.outbound_reached = True
-                self._begin_return("到达进场目标")
+                self.outbound_reached = self._parking_space(*self.pos, self.yaw)
+                self._begin_return("到达进场目标" if self.outbound_reached else "进场停靠净空不足或未知")
                 return
             if self.progress_time is not None and remaining <= self.best_remaining - 0.1:
                 self.best_remaining, self.progress_time = remaining, now

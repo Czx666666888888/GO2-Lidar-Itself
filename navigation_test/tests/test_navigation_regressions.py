@@ -15,6 +15,8 @@ class NavigationRegressionTests(unittest.TestCase):
     def explorer(self):
         n=object.__new__(Explore);n.pos=(3.,0.);n.home=(0.,0.);n.mode='RETURN';n.return_goal=None;n.path_hist=[]
         n.return_arrive_dis=.15;n.return_stuck_sec=4.;n.return_t=time.monotonic();n.return_best=99.;n.odom_frame='camera_init';n.outbound_reached=True
+        n.yaw = 0.
+        n.grid = {(x, y): 1 for x in range(-32, 33) for y in range(-16, 17)}
         n.sent=[];n.way_pub=NS(publish=n.sent.append)
         n.get_clock=lambda:NS(now=lambda:NS(to_msg=lambda:Time()));n.get_logger=lambda:NS(info=lambda _:None,warn=lambda _:None)
         return n
@@ -35,7 +37,7 @@ class NavigationRegressionTests(unittest.TestCase):
         n = self.explorer()
         n.pos = n.home
         n.home_yaw = 0.
-        n.grid = {(x, y): 1 for x in range(-22, 23) for y in range(-15, 16)}
+        n.grid = {(x, y): 1 for x in range(-30, 31) for y in range(-15, 16)}
         return n
 
     def test_forward_goal_is_deterministic_and_uses_initial_heading(self):
@@ -129,6 +131,7 @@ class NavigationRegressionTests(unittest.TestCase):
     def gate(self):
         n=object.__new__(Gate);n.state=1;n.last_cmd_time=time.time()-.2;n.last_cmd=(0.,0.,0.)
         n.max_speed=.3;n.min_speed=.3;n.max_yaw_rate=.7;n.max_accel=10.;n.phase='EXPLORE';n.rotate=0.;n.front_blocked=False
+        n.body_gap = math.inf
         n.sent=[];n._send=lambda *cmd:n.sent.append(cmd);return n
     def cmd(self,vx=0,vy=0,yaw=0):return NS(twist=NS(linear=NS(x=vx,y=vy),angular=NS(z=yaw)))
     def test_early_return_never_claims_roundtrip(self):
@@ -146,6 +149,57 @@ class NavigationRegressionTests(unittest.TestCase):
     def test_front_stop_is_immediate_even_with_previous_forward_velocity(self):
         n=self.gate();n.front_blocked=True;n.max_accel=.5;n.last_cmd=(.3,0,0);n.cb(self.cmd(.3));self.assertEqual(n.sent[-1][0],0)
 
+    def test_rectangle_distance_uses_the_surface_and_rounded_corners(self):
+        from body_footprint import edge_distance
+        for x, y, expected in ((0., 0., 0.), (-.43, 0., .08), (0., .35, .15),
+                               (.38, -.24, .05)):
+            self.assertAlmostEqual(edge_distance(x, y), expected)
+
+    def test_candidate_parking_checks_heading_and_unknown_cells(self):
+        n = self.corridor()
+        n.grid[4, 0] = 2
+        self.assertFalse(n._parking_space(0., 0., 0.))
+        n.grid[4, 0] = 1
+        n.grid[5, 0] = 0
+        self.assertFalse(n._parking_space(0., 0., 0.))
+        self.assertTrue(n._parking_space(0., 0., math.pi/2))
+
+    def test_rotated_body_hard_stop_and_unconfirmed_parking(self):
+        from sensor_msgs.msg import PointField
+        from sensor_msgs_py import point_cloud2
+        from std_msgs.msg import Header, String
+        fields = [PointField(name=name, offset=i*4, datatype=PointField.FLOAT32, count=1)
+                  for i, name in enumerate(("x", "y", "z", "intensity"))]
+        for obstacle_y, result in ((1.57, "BODY_CLEARANCE_STOP"),
+                                   (1.54, "PARKING_CLEARANCE_UNCONFIRMED"),
+                                   (1.48, "DONE")):
+            n = self.gate()
+            n._pose = (1., 2., math.pi/2)
+            n.front_stop_min, n.front_stop_max = .15, .80
+            n.front_stop_deg, n.front_stop_pts = 30., 6
+            n.seen = {"odom": time.monotonic()}
+            n.finished = None
+            faults = []
+            n._fault = faults.append
+            cloud = point_cloud2.create_cloud(Header(frame_id="map"), fields,
+                                              [(1., obstacle_y, .25, .25)])
+            n.cb_terrain(cloud)
+            n.cb_phase(String(data="DONE"))
+            self.assertEqual(n.finished, result)
+            self.assertEqual(len(faults), 1)
+
+    def test_unknown_cloud_cannot_authorize_parking(self):
+        from sensor_msgs.msg import PointCloud2
+        from std_msgs.msg import String
+        n = self.gate()
+        n._pose = (0., 0., 0.)
+        n.finished = None
+        n.seen = {"odom": time.monotonic(), "terrain": time.monotonic()}
+        n._fault = lambda reason: None
+        n.cb_terrain(PointCloud2())  # no recognized terrain frame
+        n.cb_phase(String(data="DONE"))
+        self.assertEqual(n.finished, "PARKING_CLEARANCE_UNCONFIRMED")
+
     def test_side_obstacle_blocks_forced_turn_until_clear(self):
         from sensor_msgs.msg import PointField
         from sensor_msgs_py import point_cloud2
@@ -161,7 +215,7 @@ class NavigationRegressionTests(unittest.TestCase):
         n.seen = {'rotate': time.monotonic()}
         n.last_cmd = (.2, .1, .3)
         for y, blocked in ((.36, True), (.80, False)):
-            cloud = point_cloud2.create_cloud(Header(), fields, [(0., y, .5, .5)])
+            cloud = point_cloud2.create_cloud(Header(frame_id="map"), fields, [(0., y, .5, .5)])
             n.cb_terrain(cloud)
             self.assertEqual(n.turn_blocked, blocked)
             n.cb(self.cmd(.2))
