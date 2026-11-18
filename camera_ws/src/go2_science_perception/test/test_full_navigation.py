@@ -110,3 +110,17 @@ def test_far_marker_from_another_goal_does_not_admit_path():
     marker.points[-1].x = 1.
     mission.far_path(marker)
     assert mission.far_cost == 1.
+
+
+def test_full_nav_does_not_use_point_lio_path_topic():
+    from pathlib import Path
+    from xml.etree import ElementTree
+
+    from go2_science_perception.mission_manager import LOCAL_PATH_TOPIC, NAV_TOPICS
+
+    config = Path(__file__).resolve().parents[1]/'config/full_local_planner.xml'
+    launch = ElementTree.parse(config)
+    for name in ('localPlanner', 'pathFollower'):
+        remap = launch.find(f"./node[@name='{name}']/remap[@from='/path']")
+        assert remap is not None and remap.attrib['to'] == LOCAL_PATH_TOPIC
+    assert '/path' not in NAV_TOPICS

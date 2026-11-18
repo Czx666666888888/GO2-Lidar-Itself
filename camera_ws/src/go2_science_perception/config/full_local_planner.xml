@@ -17,6 +17,7 @@
   <arg name="is_real_robot" default="false"/>
 
   <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
+    <remap from="/path" to="/nav/path"/>
     <remap from="/joy" to="/mission/inactive_joy"/>
     <remap from="/speed" to="/mission/inactive_speed"/>
     <remap from="/check_obstacle" to="/mission/inactive_check_obstacle"/>
@@ -64,6 +65,7 @@
   </node>
 
   <node pkg="local_planner" exec="pathFollower" name="pathFollower" output="screen">
+    <remap from="/path" to="/nav/path"/>
     <remap from="/speed" to="/mission/inactive_speed"/>
     <remap from="/cmd_vel_raw" to="/nav/cmd_vel_raw"/>
     <remap from="/joy" to="/mission/inactive_joy"/>

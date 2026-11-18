@@ -21,6 +21,10 @@ from .grasp_pose_geometry import DockSettings, docking_goal, rotate_xy, shared_s
 from .motion_arbiter import MotionArbiter
 
 
+LOCAL_PATH_TOPIC = '/nav/path'
+NAV_TOPICS = ('/goal_point', '/way_point', LOCAL_PATH_TOPIC,
+              '/nav/cmd_vel_raw', '/science/cmd_vel_raw')
+
 NEAR_STATES = ('LOCK_TARGET', 'ALIGN', 'APPROACH_VISUAL', 'APPROACH_ODOM',
                'APPROACH_TO_GRASP_POSE')
 
@@ -99,7 +103,7 @@ class MissionManager:
             (String, '/science/target_tracks', self.tracks, 10),
             (Marker, '/viz_path_topic', self.far_path, 10),
             (PointStamped, '/mission/far_way_point', self.far_waypoint, 10),
-            (Path, '/path', self.local_path, qos_profile_sensor_data),
+            (Path, LOCAL_PATH_TOPIC, self.local_path, qos_profile_sensor_data),
         ):
             self.node.create_subscription(kind, topic, callback, qos)
 
@@ -439,14 +443,14 @@ class MissionManager:
             return
         if self.error:
             self.fail(self.error)
-        if (self.node.count_publishers('/goal_point') != 1
-                or self.node.count_publishers('/way_point') != 1
-                or self.node.count_publishers('/path') != 1
-                or self.node.count_publishers('/nav/cmd_vel_raw') != 1
-                or self.node.count_publishers('/science/cmd_vel_raw') != 1):
+        conflicts = [topic for topic in NAV_TOPICS if self.node.count_publishers(topic) != 1]
+        if conflicts:
             self.arbiter.enabled = False
             if time.monotonic() > self.startup_deadline:
-                self.fail('Navigation chain incomplete or competing goal, path or velocity source')
+                endpoints = {topic: [endpoint.node_namespace.rstrip('/')+'/'+endpoint.node_name
+                                     for endpoint in self.node.get_publishers_info_by_topic(topic)]
+                             for topic in conflicts}
+                self.fail('Navigation requires one publisher per topic; found '+json.dumps(endpoints))
             return
         if not self.common_origin() or not self.fresh(self.pose_ns, .55):
             self.arbiter.enabled = False

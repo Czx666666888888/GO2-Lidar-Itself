@@ -50,7 +50,7 @@ Visualization Manager:
     - Class: rviz_default_plugins/Path
       Name: Planned Local Path
       Topic:
-        Value: /path
+        Value: /nav/path
       Value: true
     - Class: rviz_default_plugins/TF
       Name: TF

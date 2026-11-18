@@ -2387,3 +2387,9 @@ final_live_readiness总32.930秒后FAILED。旧定位退出后原spawn仍用open
 - 运行 `full_1795017747997764967` 的证据目录已有 `viewer.log`，还未进入抓取轮次协调器。源码中图像预览与 RViz2 同用 `viewer` 子进程标签，先启动的图像预览占用该标签，第二次启动被同标签保护拦截。
 - `--view` 将图像预览和 RViz2 分别记录为 `image_viewer.log`、`rviz.log`。两个窗口都允许独立关闭，原有重复启动保护继续按各自标签生效。
 - 77 项针对性测试通过，涵盖双窗口启动、分开记录日志及健康检查。FULL 离线命令与 diff 检查通过。GUI 实际显示和真机流程为 NOT VERIFIED。
+
+### 2026-11-19 FULL 局部路径话题冲突
+
+- `full_1795017911066424480` 使用 `106dcd3`，运动前检查通过，图像预览和 RViz2 启动。第一轮任务在等待导航话题的 10 秒期限后报 `Navigation chain incomplete or competing goal, path or velocity source`，一直未进入 EXPLORE。安全门记录零速和清理停止，未启动停靠或抓取。
+- Point-LIO 即使关闭路径消息输出也会注册 `/path` 发布端，FULL 下 localPlanner 原本也注册此话题。现在 FULL 的 localPlanner、pathFollower、MissionManager 和 RViz2 使用 `/nav/path`，Point-LIO 保留原 `/path`。话题检查失败时记录异常话题及其发布节点。
+- 186 项针对性测试通过。使用实际 Point-LIO 和规划节点启动隔离 ROS 域，确认 `/path` 只有 laserMapping 发布，`/nav/path` 只有 localPlanner 发布，由 pathFollower 和 MissionManager 订阅。修复后的实机运动为 NOT VERIFIED。
