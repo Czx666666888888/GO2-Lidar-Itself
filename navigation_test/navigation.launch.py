@@ -5,8 +5,10 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, Shutdown
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
+from launch.conditions import IfCondition
 from launch.launch_description_sources import AnyLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -24,6 +26,14 @@ def generate_launch_description():
                     parameters=[params or {}], output="screen", on_exit=Shutdown())
 
     return LaunchDescription([
+        DeclareLaunchArgument("view", default_value="false", description="Start the navigation RViz2 viewer"),
+        Node(package="rviz2", executable="rviz2", name="navigation_test_rviz",
+             arguments=["-d", str(root / "navigation.rviz")],
+             condition=IfCondition(LaunchConfiguration("view"))),
+        Node(package="tf2_ros", executable="static_transform_publisher",
+             name="navigation_view_sensor_tf",
+             arguments=["--frame-id", "aft_mapped", "--child-frame-id", "sensor"],
+             condition=IfCondition(LaunchConfiguration("view"))),
         script(stack / "transform/transform_everything.py", "transform_everything"),
         include(stack / "point_lio/mapping_utlidar.launch", rviz="false"),
         include(stack / "terrain/terrain_analysis.launch"),

@@ -6,10 +6,17 @@ export NAV_TEST_ROOT="$root/navigation_test"
 runtime="$root/tmp/navigation_test"
 export NAV_FOLLOWER="$runtime/follower/pathFollower"
 mode="${1:---dry-run}"
-if (( $# > 1 )); then echo '只接受一个模式参数' >&2; exit 2; fi
+view=false
+if [[ "${2:-}" == --view && ( "$mode" == --execute || "$mode" == --dry-run ) ]]; then
+  view=true
+elif (( $# > 1 )); then
+  echo '--view 只能跟在 --execute 或 --dry-run 后面' >&2
+  exit 2
+fi
+if (( $# > 2 )); then echo '参数过多' >&2; exit 2; fi
 case "$mode" in
   --execute|--dry-run|--return|--stop) ;;
-  *) echo '用法: go2_nav_test.sh [--dry-run|--execute|--return|--stop]' >&2; exit 2 ;;
+  *) echo '用法: go2_nav_test.sh [--dry-run|--execute|--return|--stop] [--view]' >&2; exit 2 ;;
 esac
 source "$root/code/scripts/env_go2.sh" "${GO2_IFACE:-enp12s0}"
 # This standalone chain starts fourteen DDS participants.
@@ -35,7 +42,7 @@ ROS_LOG_DIR=$(mktemp -d "$runtime/run.XXXXXXXX")
 export NAV_RESULT="$ROS_LOG_DIR/result.txt"
 if [[ "$mode" == --dry-run ]]; then
   /usr/bin/python3 "$NAV_TEST_ROOT/tests/test_navigation_regressions.py"
-  ros2 launch "$NAV_TEST_ROOT/navigation.launch.py" --show-args
+  ros2 launch "$NAV_TEST_ROOT/navigation.launch.py" "view:=$view" --show-args
   echo '独立导航离线检查通过'
   exit 0
 fi
@@ -47,6 +54,6 @@ if grep -Eq '/(laserMapping|transform_everything|sensor_transformer|go2_safety_g
 fi
 export NAV_EXECUTE=1
 echo "导航日志 $ROS_LOG_DIR"
-ros2 launch "$NAV_TEST_ROOT/navigation.launch.py"
+ros2 launch "$NAV_TEST_ROOT/navigation.launch.py" "view:=$view"
 [[ -s "$NAV_RESULT" ]] && cat "$NAV_RESULT"
 [[ -s "$NAV_RESULT" && "$(< "$NAV_RESULT")" == DONE ]]
