@@ -5,6 +5,15 @@
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+# The standalone avoidance test owns its ROS workspace and uses the same entry.
+_go2_previous=''
+for _go2_argument in "$@"; do
+  if [[ "$_go2_argument" == --mode=avoid || ( "$_go2_previous" == --mode && "$_go2_argument" == avoid ) ]]; then
+    exec bash "$go2_test_root/avoid_ws/run.sh" "$@"
+  fi
+  _go2_previous="$_go2_argument"
+done
+
 # ── parse key flags early so autonomous mode can intercept before the rest ──
 _go2_nav_mode=''
 _go2_detector='yolo'

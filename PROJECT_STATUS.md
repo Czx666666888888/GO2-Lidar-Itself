@@ -1,5 +1,11 @@
 # Project Status
 
+## GO2 雷达纯避障独立测试
+
+启动 `run.jX07Qnht` 和 `run.AOHdX70X` 均在 DISARMED 阶段因 Sport 发布端点数量检查退出。只读 DDS 发现仍有 9 个 `/api/sport/request` 发布端点，CycloneDDS 参与者地址均为 GO2 本体 `192.168.123.161`，6 秒订阅窗收到 0 条 Sport 请求。避障入口已加载本机核实的 9 个端点 GID，并保留其他端点、其他 Sport 请求和重复 lease 发布者阻断。24 项离线测试与隔离 DDS 测试通过。修复后的真机复核受 `enp12s0 NO-CARRIER` 阻断，无真机运动验证。
+
+新增 `avoid_ws`，统一入口为 `bash go2_test.sh --mode avoid`。源码使用原生 UTLiDAR 四向障碍判断、Sport 航向和停稳反馈，支持右转优先的 90°闭环、两段 90°掉头、连续 20°弧线和停车前减速。前进指令 0.20–0.40 m/s，机身前缘距障碍 0.95 m 开始减速、0.55 m 停车。原地转向上限 0.60 rad/s，弧线转向上限 0.50 rad/s。ROS 包构建通过。历史包 retest9 有效雷达 1,732 帧，其中 360 帧满足旋转条件、667 帧后向覆盖未知。真机连续点云、旋转覆盖、Sport lease 和物理动作 `NOT VERIFIED`。操作见 `avoid_ws/README.md`。
+
 ## 2026-11-16 PC校时包装器故障阻断修复
 
 主入口在转交独立集成目录前使用本仓库pc_time_check.py，避免改动集成clone及其远端一致性校验。状态查询限3秒，仅明确active/inactive可继续；D-Bus报错/未知状态阻断，stop/start限10秒。初始查询纳入计时，异常和恢复失败均落盘；运行中查询失败先请求原任务退出，再恢复校时。15项离线故障注入与入口转交检查通过，未执行full/部署/重启。systemd根因和真机效果NOT VERIFIED。见docs/go2_pc_time_guard_fix_20261116.md。
