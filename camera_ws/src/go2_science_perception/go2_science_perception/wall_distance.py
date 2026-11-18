@@ -4,13 +4,13 @@ import math
 import numpy as np
 
 
-def nearest_wall(target, points):
-    """Return distance and observed wall endpoints in MAP XY, or None."""
+def wall_segments(target, points):
+    """Return fitted wall distances and endpoints in MAP XY, nearest first."""
     relative = np.asarray(points, dtype=float).reshape(-1, 2) - target
     relative = relative[np.isfinite(relative).all(axis=1)
                         & (np.linalg.norm(relative, axis=1) <= 1.2)]
     if len(relative) < 6:
-        return None
+        return []
     # Suppress repeated samples from the same spot before fitting wall lines.
     _, index = np.unique(np.round(relative / .02).astype(int), axis=0, return_index=True)
     relative = relative[index]
@@ -64,7 +64,7 @@ def nearest_wall(target, points):
                     break
                 else:
                     walls.append((perpendicular, offset, strength, (distance, endpoints)))
-    return min((wall[3] for wall in walls), default=None, key=lambda item: item[0])
+    return sorted((wall[3] for wall in walls), key=lambda item: item[0])
 
 
 def wall_grasp_side(target, endpoints, heading):

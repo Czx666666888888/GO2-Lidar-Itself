@@ -284,18 +284,26 @@ def test_full_prefers_valid_left_and_probes_right_only_after_left_fails():
 
 def test_direct_grasp_uses_nearest_supported_wall_and_limits():
     import numpy as np
-    from go2_science_perception.wall_distance import nearest_wall
+    from go2_science_perception.wall_distance import wall_segments
 
     samples = np.arange(0., 1.01, .025)
     corner = [(v, 0.) for v in samples] + [(0., v) for v in samples]
-    distance, ends = nearest_wall((.20, .10), corner)
+    distance, ends = wall_segments((.20, .10), corner)[0]
     assert abs(distance-.10) < .01
     assert max(abs(p[1]) for p in ends) < .01
-    distance, _ = nearest_wall((.01, .24), corner)
+    distance, _ = wall_segments((.01, .24), corner)[0]
     assert abs(distance-.01) < .007
-    assert nearest_wall((0., .25), [(x, 0.) for x in samples[:10]]) is None
-    assert nearest_wall((0., .2), [(-1., 0.), (-.9, 0.), (0., 0.), (.1, 0.),
-                                    (.8, 0.), (.9, 0.)]) is None
+    walls = wall_segments((.005, .24), corner)
+    assert len(walls) == 2
+    assert walls[0][0] < .01
+    assert abs(walls[1][0]-.24) < .01
+    assert max(abs(p[1]) for p in walls[1][1]) < .01
+    distances = [distance for distance, _ in wall_segments((.426, .24), corner)]
+    assert len(distances) == 2
+    assert abs(distances[0]-.24) < .01 and abs(distances[1]-.426) < .01
+    assert not wall_segments((0., .25), [(x, 0.) for x in samples[:10]])
+    assert not wall_segments((0., .2), [(-1., 0.), (-.9, 0.), (0., 0.), (.1, 0.),
+                                        (.8, 0.), (.9, 0.)])
 
 
 def test_wall_qualified_target_claims_navigation_without_a_staging_candidate(monkeypatch):
@@ -317,16 +325,24 @@ def test_wall_qualified_target_claims_navigation_without_a_staging_candidate(mon
     events = []
     mission.run = SimpleNamespace(event=lambda name, **kw: events.append((name, kw)))
     mission.hold_navigation = lambda: events.append(('hold', {}))
-    monkeypatch.setattr(mission_manager, 'nearest_wall',
-                        lambda target, _: (.005 if target[0] < .2 else .35, ((0., 0.), (1., 0.))))
+    # The first target has no usable wall. For the second target, the closest
+    # wall is too close, and the wall on the opposite side qualifies.
+    too_close = (.005, ((0., .105), (1., .105)))
+    in_range = (.35, ((0., -.25), (1., -.25)))
+    far = (.426, ((.626, 0.), (.626, 1.)))
+    monkeypatch.setattr(mission_manager, 'wall_segments',
+                        lambda target, _: [too_close, far] if target[0] < .2
+                        else [too_close, in_range, far])
 
     assert mission.prioritize_grasp()
     assert mission.state == 'TARGET_STOP'
     assert mission.stage is None
     assert mission.anchor['id'] == 2
     assert events[0][1]['reason'] == 'outside_wall_range'
+    assert [wall['eligible'] for wall in events[0][1]['wall_candidates']] == [False, False]
     assert events[1][0] == 'hold'
     assert events[2][1]['distance_m'] == .35
+    assert [wall['eligible'] for wall in events[2][1]['wall_candidates']] == [False, True, False]
     assert events[2][1]['side'] == mission.side_hint == 'right'
 
 

@@ -22,7 +22,7 @@ from .docking_pose_planner import TerrainFootprint, staging_candidates
 from .full_nbv_explore import return_tail_index
 from .grasp_pose_geometry import DockSettings, docking_goal, rotate_xy, shared_side_settings, wrap
 from .motion_arbiter import MotionArbiter
-from .wall_distance import nearest_wall, wall_grasp_side
+from .wall_distance import wall_grasp_side, wall_segments
 
 
 LOCAL_PATH_TOPIC = '/nav/path'
@@ -236,25 +236,32 @@ class MissionManager:
                 self.direct_blocked(target, 'no_matching_rgbd' if distance is None
                                     else 'outside_camera_range', camera_range_m=distance)
                 continue
-            wall = nearest_wall(target['position'][:2], self.wall_points)
-            if wall is None or not .01 - 1e-6 <= wall[0] <= .35 + 1e-6:
-                self.direct_blocked(target, 'no_wall_segment' if wall is None
-                                    else 'outside_wall_range', distance_m=wall[0] if wall else None)
+            xy = target['position'][:2]
+            candidates = [
+                dict(distance_m=distance_m, wall_segment_map=endpoints,
+                     side=wall_grasp_side(xy, endpoints, self.pose[2]),
+                     eligible=.01 - 1e-6 <= distance_m <= .35 + 1e-6)
+                for distance_m, endpoints in wall_segments(xy, self.wall_points)
+            ]
+            wall = next((candidate for candidate in candidates if candidate['eligible']), None)
+            if wall is None:
+                self.direct_blocked(target, 'outside_wall_range' if candidates else 'no_wall_segment',
+                                    distance_m=candidates[0]['distance_m'] if candidates else None,
+                                    wall_candidates=candidates)
                 continue
             self.direct_blockers.pop(target['id'], None)
             self.anchor = self.track = target
             self.stage = self.active_side = None
-            self.side_hint = (wall_grasp_side(target['position'][:2], wall[1], self.pose[2])
-                              if self.args.grasp_side == 'auto' else self.args.grasp_side)
+            self.side_hint = wall['side'] if self.args.grasp_side == 'auto' else self.args.grasp_side
             self.memory_visit = None
             self.motion_blocked_at = None
             self.change('TARGET_STOP')
             self.hold_navigation()
             self.deadline = time.monotonic() + 5.
             self.run.event('DIRECT_GRASP_ADMITTED', target_id=target['id'],
-                           target_map=target['position'][:2], distance_m=wall[0],
-                           wall_segment_map=wall[1], camera_range_m=distance,
-                           side=self.side_hint)
+                           target_map=xy, distance_m=wall['distance_m'],
+                           wall_segment_map=wall['wall_segment_map'], wall_candidates=candidates,
+                           camera_range_m=distance, side=self.side_hint)
             return True
         return False
 
