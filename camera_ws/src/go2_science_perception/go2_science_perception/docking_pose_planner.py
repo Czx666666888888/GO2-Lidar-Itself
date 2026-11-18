@@ -41,8 +41,44 @@ class TerrainFootprint:
         return math.hypot(max(abs(body_x) - self.half_length, 0.),
                           max(abs(body_y) - self.half_width, 0.)) <= clearance
 
-    def clear(self, pose, margin, *, starting_pose=None, evidence=None):
+    def cell_overlaps(self, pose, x, y, clearance):
+        """Check the square cell against the rotated body plus Euclidean clearance."""
+        dx, dy = x - pose[0], y - pose[1]
+        c, s = math.cos(pose[2]), math.sin(pose[2])
+        length, width = self.half_length, self.half_width
+        half_cell = self.resolution / 2
+        body_x, body_y = c*dx + s*dy, -s*dx + c*dy
+        near_x = max(abs(body_x) - length, 0.)
+        near_y = max(abs(body_y) - width, 0.)
+        if math.hypot(near_x, near_y) <= clearance + half_cell:
+            return True  # The circle inscribed in the cell already overlaps.
+
+        # Separating axes of the two rectangles. This also detects crossing
+        # edges when neither rectangle contains a vertex of the other.
+        cell_projection = half_cell * (abs(c) + abs(s))
+        if (near_x <= cell_projection and near_y <= cell_projection
+                and abs(dx) <= abs(c)*length + abs(s)*width + half_cell
+                and abs(dy) <= abs(s)*length + abs(c)*width + half_cell):
+            return True
+
+        # For disjoint rectangles the shortest distance is realized by a
+        # vertex of one rectangle and an edge or vertex of the other.
+        for u in (-half_cell, half_cell):
+            for v in (-half_cell, half_cell):
+                a, b = body_x + c*u + s*v, body_y - s*u + c*v
+                if math.hypot(max(abs(a)-length, 0.), max(abs(b)-width, 0.)) <= clearance:
+                    return True
+        for u in (-length, length):
+            for v in (-width, width):
+                a, b = c*u - s*v - dx, s*u + c*v - dy
+                if math.hypot(max(abs(a)-half_cell, 0.), max(abs(b)-half_cell, 0.)) <= clearance:
+                    return True
+        return False
+
+    def clear(self, pose, margin, *, starting_pose=None, evidence=None, exact_cells=True):
         res = self.resolution
+        # Broad check only for grasping. Keep the existing conservative
+        # envelope for return sweeps that use the default hard clearance.
         padded_margin = margin + res / math.sqrt(2)
         radius = math.ceil((math.hypot(self.half_length, self.half_width) + padded_margin) / res)
         cx, cy = self.cell(*pose[:2])
@@ -52,6 +88,8 @@ class TerrainFootprint:
                 x, y = ix * res, iy * res
                 state = self.cells.get((ix, iy), 0)
                 if state == 1 or not self.overlaps(pose, x, y, padded_margin):
+                    continue
+                if exact_cells and not self.cell_overlaps(pose, x, y, margin):
                     continue
                 # The ground under the current body may be occluded. This
                 # exception never admits an occupied cell.
@@ -75,6 +113,7 @@ class TerrainFootprint:
         return not blockers
 
     def sweep_clear(self, start, end, *, clearance=None, evidence=None):
+        exact_cells = clearance is not None
         if clearance is None:
             clearance = self.hard_clearance
         distance = math.dist(start[:2], end[:2])
@@ -84,7 +123,8 @@ class TerrainFootprint:
             t = i / steps
             pose = (start[0] + t * (end[0] - start[0]),
                     start[1] + t * (end[1] - start[1]), start[2] + t * turn)
-            if not self.clear(pose, clearance, starting_pose=start, evidence=evidence):
+            if not self.clear(pose, clearance, starting_pose=start, evidence=evidence,
+                              exact_cells=exact_cells):
                 return False
         return True
 

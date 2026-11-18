@@ -227,3 +227,28 @@ def test_grasp_clearance_admits_candidate_without_relaxing_return_sweep():
     assert terrain.sweep_clear(candidate.pose, candidate.dock, clearance=terrain.grasp_clearance)
     terrain.cells[terrain.cell(*candidate.pose[:2])] = 2
     assert candidate not in staging_candidates(target, robot, sides, terrain)
+
+
+def test_precise_cell_check_keeps_only_real_clearance_intersections():
+    terrain = floor()
+    terrain.cells[(0, 4)] = 2
+    pose = (0., .09, 0.)
+    assert not terrain.clear(pose, .05, exact_cells=False)
+    assert terrain.clear(pose, .05)
+    assert not terrain.clear((0., .11, 0.), .05)
+    assert terrain.clear(pose, .05, evidence={})
+
+
+def test_rotated_cell_overlap_checks_corners_and_crossing_edges():
+    import math
+
+    terrain = TerrainFootprint(dict(length=.70, width=.04, hard_clearance=.08,
+                                    parking_clearance=.05))
+    pose = (0., 0., math.pi/4)
+    assert terrain.cell_overlaps(pose, .1, .1, 0.)
+    assert not terrain.cell_overlaps(pose, .1, -.1, .05)
+
+    terrain = floor()
+    pose = (0., 0., math.pi/4)
+    assert terrain.cell_overlaps(pose, .48, .11, .05)
+    assert not terrain.cell_overlaps(pose, .49, .11, .05)
