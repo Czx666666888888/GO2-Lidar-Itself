@@ -341,11 +341,23 @@ def test_direct_handoff_waits_for_measured_stop_and_keeps_selected_identity():
     assert mission.anchor['id'] == 1
 
 
-def test_direct_sweep_allows_unknown_terrain_but_still_blocks_occupied_cells():
-    terrain = TerrainFootprint(dict(length=.70, width=.40, hard_clearance=.08,
-                                    parking_clearance=.01, grasp_clearance=.01))
-    begin, end = (0., 0., 0.), (.20, 0., 0.)
-    assert not terrain.sweep_clear(begin, end, clearance=.01)
-    assert terrain.sweep_clear(begin, end, clearance=.01, require_known=False)
-    terrain.cells[(4, 0)] = 2
-    assert not terrain.sweep_clear(begin, end, clearance=.01, require_known=False)
+def test_direct_grasp_skips_footprint_sweep_but_checks_telemetry():
+    mission = MissionManager.__new__(MissionManager)
+    mission.arbiter = SimpleNamespace(mode='DOCK')
+    mission.pose = (0., 0., 0.)
+    mission.pose_ns = mission.cloud_ns = 1
+    mission.fresh = lambda ns, _: bool(ns)
+    mission.stage = None
+    mission.motion_blocked_at = None
+    mission.terrain = floor()
+    mission.terrain.cells[(4, 0)] = 2
+    cmd = TwistStamped()
+    cmd.twist.linear.x = .30
+
+    assert mission.command_clear(cmd)
+    mission.cloud_ns = 0
+    assert not mission.command_clear(cmd)
+    mission.cloud_ns = 1
+    mission.stage = SimpleNamespace(side='right')
+    assert not mission.command_clear(cmd)
+    assert mission.motion_blocked_at is not None

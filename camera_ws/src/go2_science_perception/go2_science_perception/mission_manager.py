@@ -232,6 +232,7 @@ class MissionManager:
                 continue
             self.anchor = self.track = target
             self.stage = self.active_side = None
+            self.motion_blocked_at = None
             self.change('TARGET_STOP')
             self.hold_navigation()
             self.deadline = time.monotonic() + 5.
@@ -546,6 +547,8 @@ class MissionManager:
             return True
         if not self.fresh(self.pose_ns, .55) or not self.fresh(self.cloud_ns, .85):
             return False
+        if self.stage is None:
+            return True  # Wall-qualified direct grasp uses the original approach controller.
         twist = command.twist
         vx, vy, wz = twist.linear.x, twist.linear.y, twist.angular.z
         if not (vx or vy or wz):
@@ -554,8 +557,7 @@ class MissionManager:
         x, y, angle = self.pose[:3]
         dx, dy = rotate_xy(angle + .5*horizon*wz, (horizon*vx, horizon*vy))
         clear = self.terrain.sweep_clear(self.pose, (x+dx, y+dy, angle+horizon*wz),
-                                         clearance=self.terrain.grasp_clearance,
-                                         require_known=self.stage is not None)
+                                         clearance=self.terrain.grasp_clearance)
         if clear:
             self.motion_blocked_at = None
         elif self.motion_blocked_at is None:
@@ -646,7 +648,8 @@ class MissionManager:
                 self.change('GRASP' if report.get('grasp_docking_complete') else 'IDLE',
                             'GRASP' if report.get('grasp_docking_complete') else 'IDLE')
                 self.finished = True
-            elif self.motion_blocked_at is not None and time.monotonic() - self.motion_blocked_at > 1.5:
+            elif (self.stage is not None and self.motion_blocked_at is not None
+                  and time.monotonic() - self.motion_blocked_at > 1.5):
                 self.fail('UNREACHABLE: near-controller movement violates body clearance')
             elif (report.get('state') not in NEAR_STATES
                   or time.monotonic()-self.run.last_control_received > .55
