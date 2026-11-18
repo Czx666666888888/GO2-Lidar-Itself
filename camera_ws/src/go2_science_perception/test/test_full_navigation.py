@@ -212,3 +212,18 @@ def test_probe_timeout_reports_local_path_failure_for_this_target():
     assert name == 'STAGING_PROBE_TIMEOUT'
     assert row['target_id'] == 7
     assert row['reason'] == 'local_path_map_tf_unavailable'
+
+
+def test_grasp_clearance_admits_candidate_without_relaxing_return_sweep():
+    terrain = floor()
+    terrain.parking_clearance = terrain.grasp_clearance = .05
+    target, robot = (1.5, -.25), (0., -.25, 0.)
+    sides = {'right': DockSettings()}
+    candidate = next(p for p in staging_candidates(target, robot, sides, terrain) if p.pose[2] == 0.)
+    terrain.cells[(9, 4)] = 2
+
+    assert candidate in staging_candidates(target, robot, sides, terrain)
+    assert not terrain.sweep_clear(candidate.pose, candidate.dock)
+    assert terrain.sweep_clear(candidate.pose, candidate.dock, clearance=terrain.grasp_clearance)
+    terrain.cells[terrain.cell(*candidate.pose[:2])] = 2
+    assert candidate not in staging_candidates(target, robot, sides, terrain)

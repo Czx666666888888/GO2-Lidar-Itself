@@ -470,8 +470,9 @@ class MissionManager:
         chosen = min(docks, key=lambda side: (math.dist(docks[side][:2], pose[:2]), side != 'right'))
         return (chosen == stage.side
                 and self.terrain.clear(stage.pose, self.terrain.parking_clearance)
-                and self.terrain.clear(pose, self.terrain.hard_clearance, starting_pose=pose)
-                and self.terrain.sweep_clear(pose, docks[stage.side]))
+                and self.terrain.clear(pose, self.terrain.grasp_clearance, starting_pose=pose)
+                and self.terrain.sweep_clear(pose, docks[stage.side],
+                                            clearance=self.terrain.grasp_clearance))
 
     def command_clear(self, command):
         if self.arbiter.mode not in ('APPROACH', 'DOCK'):
@@ -485,7 +486,8 @@ class MissionManager:
         horizon = .45
         x, y, angle = self.pose[:3]
         dx, dy = rotate_xy(angle + .5*horizon*wz, (horizon*vx, horizon*vy))
-        clear = self.terrain.sweep_clear(self.pose, (x+dx, y+dy, angle+horizon*wz))
+        clear = self.terrain.sweep_clear(self.pose, (x+dx, y+dy, angle+horizon*wz),
+                                         clearance=self.terrain.grasp_clearance)
         if clear:
             self.motion_blocked_at = None
         elif self.motion_blocked_at is None:

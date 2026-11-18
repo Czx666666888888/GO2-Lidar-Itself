@@ -3,3 +3,4 @@ length: 0.70
 width: 0.40
 hard_clearance: 0.08
 parking_clearance: 0.05
+grasp_clearance: 0.05

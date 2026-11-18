@@ -19,6 +19,7 @@ class TerrainFootprint:
         self.half_width = footprint['width'] / 2
         self.hard_clearance = footprint['hard_clearance']
         self.parking_clearance = footprint['parking_clearance']
+        self.grasp_clearance = footprint.get('grasp_clearance', self.hard_clearance)
         self.resolution = resolution
         self.cells = {}
 
@@ -73,7 +74,9 @@ class TerrainFootprint:
                             grid_resolution_m=res, blockers=blockers)
         return not blockers
 
-    def sweep_clear(self, start, end, *, evidence=None):
+    def sweep_clear(self, start, end, *, clearance=None, evidence=None):
+        if clearance is None:
+            clearance = self.hard_clearance
         distance = math.dist(start[:2], end[:2])
         turn = wrap(end[2] - start[2])
         steps = max(1, math.ceil(distance / (.5 * self.resolution)), math.ceil(abs(turn) / .1))
@@ -81,7 +84,7 @@ class TerrainFootprint:
             t = i / steps
             pose = (start[0] + t * (end[0] - start[0]),
                     start[1] + t * (end[1] - start[1]), start[2] + t * turn)
-            if not self.clear(pose, self.hard_clearance, starting_pose=start, evidence=evidence):
+            if not self.clear(pose, clearance, starting_pose=start, evidence=evidence):
                 return False
         return True
 
@@ -107,7 +110,8 @@ def staging_candidates(target, robot, sides, terrain, *, rejected=None, on_rejec
                                     s1_y_bounds_m=(settings.region_y_min, settings.region_y_max))
             elif not terrain.clear(stage, terrain.parking_clearance, evidence=evidence):
                 reason = 'parking_clearance'
-            elif not terrain.sweep_clear(stage, dock, evidence=evidence):
+            elif not terrain.sweep_clear(stage, dock, clearance=terrain.grasp_clearance,
+                                         evidence=evidence):
                 reason = 'approach_corridor'
             else:
                 options.append(StagingPose(stage, dock, side))
