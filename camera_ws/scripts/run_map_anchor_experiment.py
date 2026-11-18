@@ -325,7 +325,7 @@ class Experiment:
 
     def run_mission(self):
         self.mission.enabled = True
-        self.mission.startup_deadline = time.monotonic() + 10
+        self.mission.startup_deadline = time.monotonic() + 15
         deadline = time.monotonic() + self.args.search_timeout + 90
         next_status = 0.
         while time.monotonic() < deadline:
