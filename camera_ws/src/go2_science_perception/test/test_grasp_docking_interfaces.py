@@ -136,6 +136,7 @@ def test_successful_dock_close_releases_owners_without_fixed_sleeps(tmp_path):
     e = m.Experiment.__new__(m.Experiment)
     e.args = SimpleNamespace(grasp_pose=True)
     e.folder, e.tag = tmp_path, 'test'
+    e.manual_return_requested = False
     e.control = dict(state='STOP', grasp_docking_complete=True)
     e.recording, e.reports, e.children = dict(closed=True), [], []
     e.timer, e.navigation_released = None, False
@@ -227,6 +228,7 @@ def test_gate_exit_timeout_still_cleans_planners_and_recorder(tmp_path):
     e = m.Experiment.__new__(m.Experiment)
     e.args = SimpleNamespace(grasp_pose=True)
     e.folder, e.tag = tmp_path, 'cleanup'
+    e.manual_return_requested = False
     e.control = dict(state='FAULT')
     e.recording, e.reports, e.children = {}, [], []
     e.timer = e.mission = None

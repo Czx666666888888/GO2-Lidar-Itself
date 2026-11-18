@@ -21,7 +21,9 @@ import shutil
 import signal
 import subprocess
 import sys
+import termios
 import time
+import tty
 
 ROOT = Path(__file__).resolve().parents[1]
 BRANCH = 'feature/map-approach-s1-grasp-integration'
@@ -69,6 +71,8 @@ def run(argv, **kwargs):
 
 
 def remote(command, **kwargs):
+    if 'input' not in kwargs:
+        kwargs.setdefault('stdin', subprocess.DEVNULL)
     return run([*SSH, HOST, command], timeout=kwargs.pop('timeout',20), **kwargs)
 
 
@@ -325,7 +329,7 @@ class Workflow:
                     model_identity(explicit_model)[1] if explicit_model else V3_SHA256)
                 command += ['--model-sha256', expected]
         with self.stage('probe_'+label):
-            result = subprocess.run(self.shell(shlex.join(command)))
+            result = subprocess.run(self.shell(shlex.join(command)), stdin=subprocess.DEVNULL)
         if result.returncode not in (0, 2) or not target.exists():
             raise RuntimeError('启动只读探针未完成，查看日志: '+label)
         report=json.loads(target.read_text())
@@ -375,6 +379,44 @@ class Workflow:
         base = self.folder/'camera_handoff'
         return base/('round_%02d' % self.current_round) if self.current_round else base
 
+    @property
+    def manual_return_request(self):
+        return self.folder/'manual_return_request.json'
+
+    @contextmanager
+    def return_hotkey(self):
+        if not sys.stdin.isatty():
+            yield
+            return
+        fd = sys.stdin.fileno()
+        original = termios.tcgetattr(fd)
+        done = threading.Event()
+
+        def listen():
+            while not done.is_set():
+                if not select.select([fd], [], [], .1)[0] or done.is_set():
+                    continue
+                keys = os.read(fd, 64)
+                if not keys:
+                    return
+                if b'f' in keys:
+                    atomic_json(self.manual_return_request, dict(requested_ns=time.time_ns()))
+                    print('已收到手动返航请求，正在安全交接。', flush=True)
+                    return
+
+        tty.setcbreak(fd)
+        try:
+            thread = threading.Thread(target=listen, daemon=True)
+            thread.start()
+            print('FULL 运行中按 f 请求返航，无需回车。', flush=True)
+            try:
+                yield
+            finally:
+                done.set()
+                thread.join()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, original)
+
     def task_command(self):
         command = ['bash', str(self.work/'camera_ws/scripts/run_map_s1_task.sh'), '--execute',
                    '--grasp-side', self.args.grasp_side, '--search-distance', '5', '--search-timeout', '60']
@@ -394,7 +436,8 @@ class Workflow:
                         '--navigation-trail', str(self.folder/'navigation_trail.json'),
                         '--completed-targets-json', json.dumps(self.completed_targets),
                         '--round-result', str(self.folder/('round_%02d_result.json' % self.current_round))]
-            command += ['--camera-handoff-directory', str(self.camera_handoff_directory)]
+            command += ['--camera-handoff-directory', str(self.camera_handoff_directory),
+                        '--manual-return-request', str(self.manual_return_request)]
             if getattr(self.args, 'left_geometry_verified', False):
                 command.append('--left-geometry-verified')
         return command
@@ -831,11 +874,18 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         if self.args.mode == 'full':
             self.multi_memory_session = self.detector == 'yolo'
             self.processed_results = []
-            run_three_grasps(self.run_full_round, lambda completed: atomic_json(
-                self.folder/'three_grasps.json', progress_snapshot(completed)))
+            with self.return_hotkey():
+                run_three_grasps(self.run_full_round, lambda completed: atomic_json(
+                    self.folder/'three_grasps.json', progress_snapshot(completed)),
+                    stop_requested=self.manual_return_request.exists)
+            manual = self.manual_return_request.exists()
+            if manual and not (self.folder/'navigation_trail.json').exists():
+                print('尚未开始导航，没有本轮历史路径，结束任务。', flush=True)
+                return
             self.current_round = 0
             self.run_task(return_only=True)
-            print('THREE_TARGETS_PROCESSED: third StandUp and map return confirmed', flush=True)
+            print('手动返航已到达起点。' if manual else
+                  'THREE_TARGETS_PROCESSED: third StandUp and map return confirmed', flush=True)
         else:
             self.run_task()
 
@@ -850,7 +900,7 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
             with self.stage('advance_yolo_round_'+str(number)):
                 run(self.shell(shlex.join(['/usr/bin/python3',
                     str(self.work/'camera_ws/scripts/advance_yolo_round.py'),
-                    json.dumps(completed_targets)])), timeout=12)
+                    json.dumps(completed_targets)])), timeout=12, stdin=subprocess.DEVNULL)
         print('GRASP_ROUND_START '+str(number)+'/3', flush=True)
         result_path = self.folder/('round_%02d_result.json' % number)
         try:
@@ -863,6 +913,8 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
                     atomic_json(self.folder/'three_grasps.json', progress_snapshot(
                         getattr(self, 'processed_results', [])+[result]))
             raise
+        if self.manual_return_request.exists() and not result_path.exists():
+            return None
         result = json.loads(result_path.read_text())
         self.processed_results = getattr(self, 'processed_results', [])+[result]
         return result
@@ -875,8 +927,9 @@ if matches: raise RuntimeError('invalid camera failed to exit: '+str(matches))
         path = self.folder/('round_%02d_coordinator.log' % self.current_round)
         round_label = '返航' if return_only else f'第 {self.current_round or 1} 轮'
         with path.open('x') as task_log, path.open(encoding='utf-8') as live:
-            task = subprocess.Popen(self.shell(shlex.join(command)), stdout=task_log,
-                                    stderr=subprocess.STDOUT)
+            task = subprocess.Popen(self.shell(shlex.join(command)),
+                                    stdin=subprocess.DEVNULL if self.args.mode == 'full' else None,
+                                    stdout=task_log, stderr=subprocess.STDOUT)
             stop_status = threading.Event()
             status_thread = threading.Thread(target=follow_status, args=(live, round_label, stop_status),
                                              daemon=True)

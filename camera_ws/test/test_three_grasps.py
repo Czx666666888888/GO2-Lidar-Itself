@@ -121,3 +121,82 @@ def test_completed_standup_is_persisted_if_camera_restore_then_fails(tmp_path, m
     progress = json.loads((tmp_path/'three_grasps.json').read_text())
     assert progress['processed_count'] == 1 and progress['completed_count'] == 0
     assert progress['missed_count'] == 1
+
+
+def test_manual_return_interrupts_pending_round_without_counting_a_grasp():
+    requested = []
+    progress = []
+
+    def round_task(number, visited):
+        assert number == 1 and visited == []
+        requested.append(True)
+        return None
+
+    assert run_three_grasps(round_task, lambda done: progress.append(len(done)),
+                            stop_requested=lambda: bool(requested)) == []
+    assert progress == [0]
+
+
+def test_manual_return_during_grasp_counts_safe_standup_before_ending():
+    requested = []
+    rounds = []
+    progress = []
+
+    def round_task(number, visited):
+        rounds.append(number)
+        requested.append(True)
+        return dict(task_motion_complete=True, target_map_xy=[1., 0.])
+
+    results = run_three_grasps(round_task, lambda done: progress.append(len(done)),
+                               stop_requested=lambda: bool(requested))
+    assert len(results) == 1
+    assert rounds == [1] and progress == [0, 1]
+
+
+def test_shortcut_reads_f_without_enter_and_restores_terminal(tmp_path, monkeypatch):
+    import os
+    import pty
+    import termios
+    import time
+
+    master, slave = pty.openpty()
+    workflow = Workflow(SimpleNamespace(work_dir=ROOT, mode='full'))
+    workflow.folder = tmp_path
+    try:
+        with os.fdopen(slave, 'r') as terminal:
+            monkeypatch.setattr(sys, 'stdin', terminal)
+            original = termios.tcgetattr(terminal.fileno())
+            with workflow.return_hotkey():
+                os.write(master, b'f')
+                until = time.monotonic()+2.
+                while not workflow.manual_return_request.exists() and time.monotonic() < until:
+                    time.sleep(.01)
+                assert workflow.manual_return_request.is_file()
+            assert termios.tcgetattr(terminal.fileno()) == original
+    finally:
+        os.close(master)
+
+
+def test_manual_return_immediately_disables_motion_before_leaving_coordinator(tmp_path, monkeypatch):
+    sys.path.insert(0, str(ROOT/'camera_ws/scripts'))
+    from run_map_anchor_experiment import Experiment
+
+    request = tmp_path/'manual_return_request.json'
+    request.touch()
+    calls = []
+    experiment = Experiment.__new__(Experiment)
+    experiment.args = SimpleNamespace(search_timeout=60., return_only=False,
+                                      manual_return_request=request)
+    experiment.node = SimpleNamespace(count_publishers=lambda _: 1)
+    experiment.nav_process = SimpleNamespace(poll=lambda: None)
+    experiment.children = []
+    experiment.control = {'state': 'IDLE'}
+    experiment.spin = lambda _: None
+    experiment.event = lambda event, **_: calls.append(event)
+    experiment.mission = SimpleNamespace(state='EXPLORE',
+        arbiter=SimpleNamespace(flush=lambda: calls.append('zero')),
+        step=lambda: pytest.fail('planner must not step after the return request'))
+
+    experiment.run_mission()
+    assert calls == ['zero', 'MANUAL_RETURN_STOPPING']
+    assert experiment.manual_return_requested

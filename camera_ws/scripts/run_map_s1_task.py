@@ -65,6 +65,7 @@ def parser():
     p.add_argument('--round-result', type=Path)
     p.add_argument('--navigation-trail', type=Path)
     p.add_argument('--return-only', action='store_true')
+    p.add_argument('--manual-return-request', type=Path)
     p.add_argument('--left-geometry-verified', action='store_true',
                    help='left physical docking and support geometry checked by operator')
     p.add_argument('--response-distance-limit', type=float, default=.20)
@@ -186,6 +187,11 @@ def main():
         rclpy.shutdown()
         print('RETURN_ARRIVED: map position inside home radius', flush=True)
         return
+    if args.manual_return_request is not None and args.manual_return_request.exists():
+        if not experiment.navigation_released:
+            raise RuntimeError('Navigation ownership release not confirmed; no manual return')
+        rclpy.shutdown()
+        return
     # The original controller AND gate must be gone before SDK posture control.
     if any(proc.poll() is None for proc, _ in experiment.children):
         raise RuntimeError('Navigation children still alive; no posture handoff')
@@ -225,6 +231,9 @@ def main():
         command = ['ssh', '-i', args.ssh_key, '-o', 'BatchMode=yes',
                    '-o', 'ConnectTimeout=3', args.arm_host, shlex.join(command)]
     with CameraHandoff(args.camera_handoff_directory, experiment.event):
+        if args.manual_return_request is not None and args.manual_return_request.exists():
+            rclpy.shutdown()
+            return
         log = experiment.folder / ('s1_task_' +
                                    datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.jsonl')
         from std_msgs.msg import Int8

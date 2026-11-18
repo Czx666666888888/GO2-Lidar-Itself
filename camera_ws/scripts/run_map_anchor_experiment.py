@@ -77,6 +77,7 @@ class Experiment:
         self.mission = None
         self.nav_process = None
         self.navigation_released = False
+        self.manual_return_requested = False
         self.last_timing_phase = None
         self.node.create_subscription(String, '/science/approach/status', self._status, 20)
         self.node.create_subscription(String, '/science/approach/recording', self._recording, 10)
@@ -328,6 +329,7 @@ class Experiment:
         self.mission.startup_deadline = time.monotonic() + 15
         deadline = time.monotonic() + self.args.search_timeout + 90
         next_status = 0.
+        request = getattr(self.args, 'manual_return_request', None)
         while time.monotonic() < deadline:
             self.spin(.04)
             if (self.node.count_publishers('/cmd_vel_raw') != 1
@@ -336,6 +338,11 @@ class Experiment:
                 raise RuntimeError('FULL navigation process exited or competing controller')
             if self.control.get('state') == 'FAULT':
                 raise RuntimeError('Original controller fault: '+str(self.control.get('reason')))
+            if request is not None and not self.args.return_only and request.exists():
+                self.mission.arbiter.flush()
+                self.manual_return_requested = True
+                self.event('MANUAL_RETURN_STOPPING', state=self.mission.state)
+                return
             self.mission.step()
             now = time.monotonic()
             if now >= next_status:
@@ -390,9 +397,10 @@ class Experiment:
     def close(self):
         """Stop and release each owned process even when another shutdown fails."""
         self.navigation_guard = None
-        fast_handoff = (getattr(self.args, 'grasp_pose', False) and
-                        self.control.get('state') == 'STOP' and
-                        self.control.get('grasp_docking_complete') is True)
+        fast_handoff = (self.manual_return_requested or
+                        (getattr(self.args, 'grasp_pose', False) and
+                         self.control.get('state') == 'STOP' and
+                         self.control.get('grasp_docking_complete') is True))
         with ExitStack() as cleanup:
             cleanup.callback(self.node.destroy_node)
             for _, stream in self.children:

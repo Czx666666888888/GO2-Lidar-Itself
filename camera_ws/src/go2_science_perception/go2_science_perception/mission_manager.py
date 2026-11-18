@@ -756,6 +756,11 @@ class MissionManager:
         if self.state == 'IDLE':
             self.record_path()
             if self.args.return_only:
+                request = getattr(self.args, 'manual_return_request', None)
+                if request is not None and request.exists() and not self.stopped_for_handoff():
+                    if time.monotonic() > self.startup_deadline:
+                        self.fail('Manual return requires measured stop')
+                    return
                 self.change('RETURN', 'RETURN')
                 self.return_index = max(0, return_tail_index(self.trail, self.pose, .45))
                 self.advance_return()

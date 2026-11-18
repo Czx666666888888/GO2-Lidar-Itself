@@ -723,3 +723,31 @@ def test_reacquisition_turn_uses_body_sweep_and_defers_when_blocked(monkeypatch)
     assert 'prevents turning' in deferred[-1]
     mission.target_reacquire_step(18., False)
     assert 'not confirmed' in deferred[-1]
+
+
+def test_manual_return_requires_measured_stop_then_uses_history(tmp_path):
+    mission = MissionManager.__new__(MissionManager)
+    request = tmp_path/'manual_return_request.json'
+    request.touch()
+    mission.args = SimpleNamespace(return_only=True, manual_return_request=request)
+    mission.state = 'IDLE'
+    mission.enabled = True
+    mission.error = None
+    mission.startup_deadline = math.inf
+    mission.node = SimpleNamespace(count_publishers=lambda _: 1)
+    mission.pose = (1., 0., 0., 0.)
+    mission.trail = [(0., 0.), (.5, 0.), (1., 0.)]
+    mission.cloud_ns = 1
+    mission.localization_ready = mission.fresh = lambda *_: True
+    mission.refresh_terrain = mission.verify_local_path = mission.record_path = lambda: None
+    stopped = [False]
+    mission.stopped_for_handoff = lambda: stopped[0]
+    changes = []
+    mission.change = lambda *args: changes.append(args)
+    mission.advance_return = lambda: changes.append(mission.return_index)
+
+    mission.step()
+    assert not changes
+    stopped[0] = True
+    mission.step()
+    assert changes == [('RETURN', 'RETURN'), 1]
