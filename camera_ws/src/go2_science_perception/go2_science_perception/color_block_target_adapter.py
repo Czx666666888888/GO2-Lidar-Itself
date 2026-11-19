@@ -10,7 +10,7 @@ from tf2_geometry_msgs import do_transform_point
 from tf2_ros import TransformException
 
 from .camera_target_to_map import CameraTargetToMap
-from .color_block_selection import BlockSelection
+from .color_block_selection import BlockSelection, CloseBlockFilter
 
 
 class ColorBlockTargetAdapter(CameraTargetToMap):
@@ -22,6 +22,7 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
         self.selection = BlockSelection()
         self.declare_parameter('multi_target_memory', False)
         self.multi_target_memory = self.get_parameter('multi_target_memory').value
+        self.close_blocks = CloseBlockFilter()
         self.latest = None
         self.last_published = 0
         self.declare_parameter('completed_targets_json', '[]')
@@ -95,6 +96,9 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
                           if d.get('class_id') == 0 and d.get('class_name') == 'color_block']
             if not detections:
                 reason = 'no_color_block'
+                if self.multi_target_memory:
+                    self.close_blocks.update(stamp, [], [])
+                    self.latest = None
                 return
             # An unmeasurable visible block could be nearer or be the locked block.
             if getattr(self, 'multi_target_memory', False):
@@ -102,6 +106,8 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
                               and 'xyz_m' in d]
                 if not detections:
                     reason = 'no_valid_block_depth'
+                    self.close_blocks.update(stamp, [], [])
+                    self.latest = None
                     return
             if any(not d.get('depth', {}).get('valid') or 'xyz_m' not in d for d in detections):
                 reason = 'color_block_depth_invalid'
@@ -128,13 +134,19 @@ class ColorBlockTargetAdapter(CameraTargetToMap):
             camera = camera_tf.transform.translation
             if getattr(self, 'multi_target_memory', False):
                 # One complete source frame reaches the existing manager batcher.
-                for point in points:
+                indices = self.close_blocks.update(
+                    stamp, mapped, [d.get('confidence', 0.) for d in detections])
+                for index in indices:
+                    point = points[index]
                     self.input_count += 1
                     self._transform_and_publish(point, 0.0)
                     self.camera_point.publish(point)
                 self.last_published, self.latest = stamp, None
-                diagnostic.update(candidates_map=mapped, published_count=len(points))
-                reason = 'all_valid_blocks_to_map'
+                diagnostic.update(candidates_map=mapped, published_count=len(indices),
+                                  published_indices=indices,
+                                  frame_support=self.close_blocks.support)
+                reason = ('all_valid_blocks_to_map' if len(indices) == len(points)
+                          else 'transient_close_blocks_filtered')
                 return
             index, reason = self.selection.choose(mapped, (camera.x, camera.y))
             diagnostic.update(camera_map_xy=[camera.x, camera.y], candidates_map=mapped)

@@ -4,8 +4,9 @@ from unittest.mock import Mock
 
 from geometry_msgs.msg import TransformStamped
 
-from go2_science_perception.color_block_selection import BlockSelection
+from go2_science_perception.color_block_selection import BlockSelection, CloseBlockFilter
 from go2_science_perception.color_block_target_adapter import ColorBlockTargetAdapter
+from go2_science_perception.science_target_manager import TargetTracker
 
 
 def test_complete_frames_publish_one_latched_block_and_reject_invalid_depth():
@@ -89,6 +90,7 @@ def test_round_reset_discards_queued_frame_and_rejects_replayed_old_rgb():
 def test_multi_mode_maps_all_valid_blocks_with_one_source_stamp():
     node = ColorBlockTargetAdapter.__new__(ColorBlockTargetAdapter)
     node.multi_target_memory = True
+    node.close_blocks = CloseBlockFilter()
     node.map_frame, node.last_published, node.input_count = 'map', 0, 0
     node.selection = BlockSelection()
     node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=1_100_000_000))
@@ -110,3 +112,46 @@ def test_multi_mode_maps_all_valid_blocks_with_one_source_stamp():
     assert [p.point.x for p in points] == [1.,2.]
     assert all(p.header.stamp.sec == 1 and p.header.stamp.nanosec == 0 for p in points)
     assert node.selection.initial is None and node.last_published == 1_000_000_000
+
+    node.latest = dict(rgb_stamp_ns=1_020_000_000, status='OK',
+                       frame_id='camera_color_optical_frame',
+                       detections=[detection(1.04, True), detection(1.01, True)])
+    node._process()
+    assert node._transform_and_publish.call_count == 3
+    assert node._transform_and_publish.call_args.args[0].point.x == 1.01
+
+
+def test_isolated_pair_prefers_frame_support_then_confidence():
+    """Keep the observation with the strongest history and break ties by confidence."""
+    selector = CloseBlockFilter()
+    points = [(0., 0.), (.04, 0.)]
+    assert selector.update(10, points, [.3, .9]) == [1]
+    assert selector.update(20, points[:1], [.3]) == [0]
+    assert selector.update(30, points, [.3, .9]) == [0]
+    assert selector.update(40, points[:1], [.3]) == [0]
+
+
+def test_close_pair_needs_three_consecutive_distinct_frames():
+    """Require consecutive source frames and reset after missing evidence."""
+    selector = CloseBlockFilter()
+    points = [(0., 0.), (.04, 0.)]
+    assert selector.update(10, points, [.3, .9]) == [1]
+    assert selector.update(10, points, [.3, .9]) == []
+    assert selector.update(20, points[::-1], [.9, .3]) == [0]
+    assert selector.update(30, points, [.3, .9]) == [0, 1]
+    assert selector.update(40, [], []) == []
+    assert selector.update(50, points, [.3, .9]) == [1]
+    assert selector.update(60, points, [.3, .9]) == [1]
+    assert selector.update(400_000_000, points, [.3, .9]) == [1]
+    assert selector.update(500_000_000, [(0., 0.), (.10, 0.)], [.3, .9]) == [0, 1]
+
+
+def test_persistent_close_pair_reaches_manager_as_two_tracks():
+    """Preserve two tracks after the close pair is repeatedly observed."""
+    selector = CloseBlockFilter()
+    tracker = TargetTracker(.20, 5, 15, merge_close_tracks=False)
+    points = [(0., 0., 0.), (.04, 0., 0.)]
+    for stamp in range(1, 15):
+        kept = selector.update(stamp, points, [.9, .8])
+        tracker.update_frame([points[i] for i in kept], stamp)
+    assert len(tracker.confirmed_unvisited()) == 2

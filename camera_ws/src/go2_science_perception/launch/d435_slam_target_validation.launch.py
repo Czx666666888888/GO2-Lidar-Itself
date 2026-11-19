@@ -80,6 +80,7 @@ def generate_launch_description():
         parameters=[{"sensor_offset_x": 0.3, "sensor_offset_y": 0.0}],
         output="screen",
     )
+    # Multi-target YOLO already resolves short-lived pairs before association.
     target_manager = Node(
         package="go2_science_perception",
         executable="science_target_manager",
@@ -87,6 +88,10 @@ def generate_launch_description():
         parameters=[os.path.join(
             package_share, "config", "science_target_manager.yaml"
         ), {"remember_confirmed": ParameterValue(LaunchConfiguration("multi_target_memory"), value_type=bool),
+              "merge_close_tracks": ParameterValue(PythonExpression([
+                  "not ('", LaunchConfiguration("detector"), "' == 'yolo' and '",
+                  LaunchConfiguration("multi_target_memory"), "'.lower() == 'true')"
+              ]), value_type=bool),
               "memory_path": LaunchConfiguration("target_memory_path")}],
         output="screen",
     )

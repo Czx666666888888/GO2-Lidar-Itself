@@ -1,6 +1,58 @@
 """Select one measured block in MAP; retain its spatial identity within each completed-task round."""
 import math
 
+CLOSE_BLOCK_DISTANCE_M = .10
+CLOSE_PAIR_MIN_FRAMES = 3
+MAX_FRAME_GAP_NS = 300_000_000
+
+
+class CloseBlockFilter:
+    """Require consecutive co-observations before publishing a close pair."""
+
+    def __init__(self):
+        """Start with an empty frame history."""
+        self.stamp = 0
+        self.points = []
+        self.support = []
+        self.pairs = {}
+
+    def update(self, stamp, points, confidences):
+        """Return the indices of MAP measurements to publish for this frame."""
+        if stamp <= self.stamp:
+            return []
+        previous = self.points if stamp - self.stamp <= MAX_FRAME_GAP_NS else []
+        matches = {}
+        used = set()
+        distances = sorted(
+            (math.dist(point[:2], old[:2]), i, j)
+            for i, point in enumerate(points) for j, old in enumerate(previous)
+        )
+        for distance, i, j in distances:
+            if distance >= CLOSE_BLOCK_DISTANCE_M:
+                break
+            if i not in matches and j not in used:
+                matches[i] = j
+                used.add(j)
+
+        support = [self.support[matches[i]] + 1 if i in matches else 1
+                   for i in range(len(points))]
+        pairs = {}
+        for i, point in enumerate(points):
+            for j in range(i):
+                if math.dist(point[:2], points[j][:2]) < CLOSE_BLOCK_DISTANCE_M:
+                    prior = tuple(sorted((matches.get(i, -1), matches.get(j, -1))))
+                    pairs[j, i] = self.pairs.get(prior, 0) + 1
+
+        kept = []
+        ranked = sorted(range(len(points)),
+                        key=lambda i: (support[i], confidences[i]), reverse=True)
+        for i in ranked:
+            if all(pairs.get(tuple(sorted((i, j))), CLOSE_PAIR_MIN_FRAMES)
+                   >= CLOSE_PAIR_MIN_FRAMES for j in kept):
+                kept.append(i)
+        self.stamp, self.points, self.support, self.pairs = stamp, points, support, pairs
+        return sorted(kept)
+
 
 class BlockSelection:
     """A single-target compatibility boundary, never a stream of unrelated boxes."""

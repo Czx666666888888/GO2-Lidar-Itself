@@ -111,7 +111,8 @@ class TargetTracker:
                  remove_timeout_sec: float = 10.0,
                  merge_radius: float = 0.10,
                  merge_confirmation_count: int = 5,
-                 visited_radius: float = 0.15, remember_confirmed: bool = False) -> None:
+                 visited_radius: float = 0.15, remember_confirmed: bool = False,
+                 merge_close_tracks: bool = True) -> None:
         if association_radius <= 0.0:
             raise ValueError("association_radius must be positive")
         if confirmation_count <= 0 or recent_window <= 0:
@@ -125,6 +126,7 @@ class TargetTracker:
         if visited_radius <= 0.0:
             raise ValueError("visited_radius must be positive")
         self.remember_confirmed = remember_confirmed
+        self.merge_close_tracks = merge_close_tracks
         self.last_frame_stamp_ns = -1
         self.association_radius = float(association_radius)
         self.confirmation_count = int(confirmation_count)
@@ -199,7 +201,8 @@ class TargetTracker:
             events.append(f"NEW_TRACK id={track.target_id}")
             if track.state == CONFIRMED:
                 events.append(f"CONFIRMED id={track.target_id}")
-        events.extend(self._merge_confirmed())
+        if self.merge_close_tracks:
+            events.extend(self._merge_confirmed())
         return events
 
     def expire(self, now_ns: int) -> List[str]:
@@ -329,6 +332,7 @@ class ScienceTargetManager(Node):
             "standoff_marker_topic": "/science/standoff_goal_marker",
             "map_frame": "map",
             "remember_confirmed": False,
+            "merge_close_tracks": True,
             "memory_path": "",
             "association_radius": 0.20,
             "confirmation_count": 5,
@@ -358,6 +362,7 @@ class ScienceTargetManager(Node):
             int(self.get_parameter("merge_confirmation_count").value),
             float(self.get_parameter("visited_radius").value),
             bool(self.get_parameter("remember_confirmed").value),
+            bool(self.get_parameter("merge_close_tracks").value),
         )
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
