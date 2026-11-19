@@ -40,20 +40,37 @@
 +        self.event('NEAR_NAVIGATION_STOPPED', original_controller=True)
 --- a/camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py
 +++ b/camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py
-@@ -750,0 +751,2 @@
+@@ -266,0 +267,2 @@
++        if getattr(getattr(self, "run", None), "navigation_suspended", False):
++            return  # Navigation pose is frozen; original approach validates its own input.
+@@ -750,0 +753,2 @@
 +        if getattr(getattr(self, "run", None), "navigation_suspended", False):
 +            return True  # Original controller and Sport gate own near motion.
-@@ -788,0 +791,3 @@
+@@ -785,0 +790,3 @@
++            return
 +        if getattr(getattr(self, "run", None), "navigation_suspended", False):
 +            self.original_near_step()
-+            return
-@@ -875,0 +881,39 @@
+@@ -875,0 +883,53 @@
++    def record_original_near_pose(self):
++        """Record the original controller's accepted pose for later rounds and return."""
++        data = self.run.control.get('verified_vehicle_pose') or {}
++        pose, ns = data.get('pose'), data.get('stamp_ns')
++        if (data.get('frame') != 'map' or not isinstance(ns, int)
++                or not isinstance(pose, list) or len(pose) != 4
++                or not all(isinstance(v, (int, float)) and math.isfinite(v) for v in pose)):
++            return  # Recording availability never gates original approach motion.
++        self.pose, self.pose_ns = tuple(pose), ns
++        if self.trail and math.dist(self.trail[-1], self.pose[:2]) >= .28:
++            self.trail.append(self.pose[:2])
++            self.save_path()
++
 +    def original_near_step(self):
 +        """Observe the existing approach controller without running navigation gates."""
 +        report = self.run.control
 +        if time.monotonic() - self.run.last_control_received > 1.:
 +            self.fail('Original approach status reception stopped')
 +            return
++        self.record_original_near_pose()
 +        state = report.get('state')
 +        complete = report.get('grasp_docking_complete', False)
 +        if state in NEAR_STATES or complete:
@@ -87,11 +104,11 @@
 +                self.change('DOCK', 'DOCK')
 +            self.arbiter.enabled = state in NEAR_STATES
 +
-@@ -888,0 +933,2 @@
+@@ -888,0 +949,2 @@
 +        self.hold_navigation()
 +        self.run.suspend_navigation()
-@@ -890 +935,0 @@
+@@ -890 +951,0 @@
 -        self.hold_navigation()
-@@ -892 +937 @@
+@@ -892 +953 @@
 -        self.deadline = now + 12.
 +        self.deadline = time.monotonic() + 12.

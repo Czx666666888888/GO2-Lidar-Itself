@@ -1,0 +1,29 @@
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py
+@@ -266,0 +267,2 @@
++        if getattr(getattr(self, "run", None), "navigation_suspended", False):
++            return  # Navigation pose is frozen; original approach validates its own input.
+@@ -788,0 +791,3 @@
++        if getattr(getattr(self, "run", None), "navigation_suspended", False):
++            self.original_near_step()
++            return
+@@ -791,3 +795,0 @@
+-        if getattr(getattr(self, "run", None), "navigation_suspended", False):
+-            self.original_near_step()
+-            return
+@@ -880,0 +883,13 @@
++    def record_original_near_pose(self):
++        """Record the original controller's accepted pose for later rounds and return."""
++        data = self.run.control.get('verified_vehicle_pose') or {}
++        pose, ns = data.get('pose'), data.get('stamp_ns')
++        if (data.get('frame') != 'map' or not isinstance(ns, int)
++                or not isinstance(pose, list) or len(pose) != 4
++                or not all(isinstance(v, (int, float)) and math.isfinite(v) for v in pose)):
++            return  # Recording availability never gates original approach motion.
++        self.pose, self.pose_ns = tuple(pose), ns
++        if self.trail and math.dist(self.trail[-1], self.pose[:2]) >= .28:
++            self.trail.append(self.pose[:2])
++            self.save_path()
++
+@@ -886,0 +902 @@
++        self.record_original_near_pose()

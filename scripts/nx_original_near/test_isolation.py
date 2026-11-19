@@ -30,9 +30,11 @@ def methods(path, classname, names, globals_):
 
 def mission():
     cls = methods(Path('camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py'),
-                  'MissionManager', {'step', 'original_near_step', 'command_clear', 'tracks'},
+                  'MissionManager', {'step', 'original_near_step', 'command_clear', 'tracks', 'odom',
+                                     'record_original_near_pose', 'save_path', 'record_path'},
                   dict(time=time, NEAR_STATES=('LOCK_TARGET', 'APPROACH_TO_GRASP_POSE'),
-                       json=json, math=math))
+                       json=json, math=math, stamp=lambda header: header.ns,
+                       yaw=lambda q: 0., LATEST_DATA=True, RECEIPT_TIMEOUT=1.))
     m = cls()
     m.enabled, m.error, m.state, m.finished = True, None, 'APPROACH', False
     m.run = SimpleNamespace(navigation_suspended=True, last_control_received=time.monotonic(),
@@ -42,6 +44,7 @@ def mission():
     m.arbiter = SimpleNamespace(enabled=False)
     m.anchor, m.active_side, m.side_hint = {'id': 1}, 'left', 'left'
     m.stage, m.sides = None, {'left': object(), 'right': object()}
+    m.trail = []
     m.change = lambda state, mode: setattr(m, 'state', state)
     m.fail = lambda reason: (_ for _ in ()).throw(RuntimeError(reason))
     return m
@@ -93,6 +96,59 @@ def test_missing_original_control_stops_handoff():
     m.run.last_control_received = time.monotonic()-1.1
     with pytest.raises(RuntimeError, match='status reception stopped'):
         m.step()
+
+
+def odometry(x):
+    return SimpleNamespace(header=SimpleNamespace(ns=1_000_000_000, frame_id='map'),
+        pose=SimpleNamespace(pose=SimpleNamespace(position=SimpleNamespace(x=x,y=.5,z=0.),
+                                                orientation=None)))
+
+
+def test_moving_one_metre_after_navigation_stop_does_not_fault_navigation():
+    m = mission()
+    m.pose = (2.2, .5, 0., 0.)
+    m.now_ns, m.last_odom_ns, m.pending_odom = lambda: 1_100_000_000, 0, []
+    m.odom(odometry(3.21))
+    assert m.error is None and m.pending_odom == []
+    m.step()
+    assert m.state == 'DOCK' and m.arbiter.enabled
+
+
+def test_navigation_discontinuity_guard_remains_during_exploration():
+    m = mission()
+    m.run.navigation_suspended = False
+    m.pose = (2.2, .5, 0., 0.)
+    m.now_ns, m.last_odom_ns, m.pending_odom = lambda: 1_100_000_000, 0, []
+    m.odom(odometry(3.21))
+    assert m.error == 'Map odometry discontinuity'
+
+
+def test_queued_navigation_error_does_not_interrupt_original_approach():
+    m = mission()
+    m.error = 'Map odometry discontinuity'
+    m.step()
+    assert m.state == 'DOCK' and m.arbiter.enabled
+
+
+def test_approach_trail_allows_next_round_without_old_map_gap(tmp_path):
+    m = mission()
+    m.trail, m.trail_file = [(2.2, .5)], tmp_path/'trail.json'
+    m.run.control['verified_vehicle_pose'] = dict(frame='map', stamp_ns=100,
+                                                pose=[3.21, .5, 0., 0.])
+    m.step()
+    assert m.trail[-1] == (3.21, .5)
+    # Next round restores this actual approach route instead of the old explore origin.
+    m.trail, m.state, m.pose_ns = [], 'IDLE', 101
+    m.pose, m.args = (3.3, .5, 0., 0.), SimpleNamespace(return_only=False)
+    m.record_path()
+    assert m.trail[-1] == [3.21, .5]
+
+
+def test_missing_shared_pose_does_not_add_navigation_gate():
+    m = mission()
+    m.run.control['verified_vehicle_pose'] = None
+    m.step()
+    assert m.arbiter.enabled
 
 
 def test_suspension_stops_owned_process_and_retains_unrelated_process():

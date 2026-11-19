@@ -19,11 +19,17 @@ def transform_manager(text):
         '    def command_clear(self, command):\n'
         '        if getattr(getattr(self, "run", None), "navigation_suspended", False):\n'
         '            return True  # Original controller and Sport gate own near motion.\n')
-    text = replace_once(text, "        conflicts = [topic for topic in NAV_TOPICS",
+    text = replace_once(text, "        if self.error:\n            self.fail(self.error)\n"
+        "        conflicts = [topic for topic in NAV_TOPICS",
         '        if getattr(getattr(self, "run", None), "navigation_suspended", False):\n'
         '            self.original_near_step()\n'
         '            return\n'
+        '        if self.error:\n            self.fail(self.error)\n'
         '        conflicts = [topic for topic in NAV_TOPICS')
+    text = replace_once(text, '    def odom(self, message):\n',
+        '    def odom(self, message):\n'
+        '        if getattr(getattr(self, "run", None), "navigation_suspended", False):\n'
+        '            return  # Navigation pose is frozen; original approach validates its own input.\n')
     text = replace_once(text, '    def begin_stop_confirm(self, now):\n'
         "        self.change('STOP_CONFIRM')\n        self.hold_navigation()\n",
         '    def begin_stop_confirm(self, now):\n'
@@ -33,12 +39,26 @@ def transform_manager(text):
     text = replace_once(text, '        self.deadline = now + 12.\n',
         '        self.deadline = time.monotonic() + 12.\n')
     marker = '    def drive(self, distance):\n'
-    method = '''    def original_near_step(self):
+    method = '''    def record_original_near_pose(self):
+        """Record the original controller's accepted pose for later rounds and return."""
+        data = self.run.control.get('verified_vehicle_pose') or {}
+        pose, ns = data.get('pose'), data.get('stamp_ns')
+        if (data.get('frame') != 'map' or not isinstance(ns, int)
+                or not isinstance(pose, list) or len(pose) != 4
+                or not all(isinstance(v, (int, float)) and math.isfinite(v) for v in pose)):
+            return  # Recording availability never gates original approach motion.
+        self.pose, self.pose_ns = tuple(pose), ns
+        if self.trail and math.dist(self.trail[-1], self.pose[:2]) >= .28:
+            self.trail.append(self.pose[:2])
+            self.save_path()
+
+    def original_near_step(self):
         """Observe the existing approach controller without running navigation gates."""
         report = self.run.control
         if time.monotonic() - self.run.last_control_received > 1.:
             self.fail('Original approach status reception stopped')
             return
+        self.record_original_near_pose()
         state = report.get('state')
         complete = report.get('grasp_docking_complete', False)
         if state in NEAR_STATES or complete:
