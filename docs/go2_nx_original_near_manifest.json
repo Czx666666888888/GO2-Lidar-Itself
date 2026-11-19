@@ -1,0 +1,10 @@
+{
+  "camera_ws/scripts/run_map_anchor_experiment.py": {
+    "before": "feed6c2cded2f659f703f6df8518af2394ee4cd64f7c915883329c369a13ada5",
+    "after": "1b4c67d23aabae8ba6c9f023be69d7b1f437138e3a3b01bae9b9fc1005dc9be1"
+  },
+  "camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py": {
+    "before": "e41412d33d2c38d572c89ae4bf19bf7b602a95abb1c0ca8248cf53496882b7a4",
+    "after": "987ece9dc0593fbfa2a2a018dacfc833ffff7ceb963e6ddd694796591e1baef2"
+  }
+}
