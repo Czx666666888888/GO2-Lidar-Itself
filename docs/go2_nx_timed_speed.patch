@@ -1,0 +1,81 @@
+--- a/scripts/go2_full_test.py
++++ b/scripts/go2_full_test.py
+@@ -3,0 +4 @@
++from nx_timed_options import normalize_timed_args, validate_timed_speed
+@@ -907,0 +909 @@
++                   '--timed-speed', str(self.args.timed_speed),
+@@ -929,0 +932 @@
++        print('NX_START_ACCEPTED：启动确认已发送，可拔 PC 侧网线；NX 与 GO2 的连线须保留。', flush=True)
+@@ -1079 +1082 @@
+-                print(f'预检 {timed:g} 秒计时直行。请保持站立静止，确认后延时 1 秒起步。', flush=True)
++                print(f'预检 {timed:g} 秒、{self.args.timed_speed:.2f} m/s 计时直行。请保持站立静止，确认后延时 1 秒起步。', flush=True)
+@@ -1241,10 +1244,5 @@
+-                        help='NX FULL 计时直行，可简写为 --1、--2.5 等')
+-    argv = sys.argv[1:]
+-    shorthand = [value for value in argv if re.fullmatch(r'--[0-9]+(?:\.[0-9]+)?', value)]
+-    if shorthand:
+-        if len(shorthand) != 1 or any(value == '--timed-straight' or
+-                                     value.startswith('--timed-straight=') for value in argv):
+-            parser.error('只能指定一个计时直行时长')
+-        argv = ['--timed-straight='+value[2:] if value == shorthand[0] else value
+-                for value in argv]
+-    args = parser.parse_args(argv)
++                        help='NX FULL 前置时长：--3 为 3 秒，小数用 --timed-straight 2.5')
++    parser.add_argument('--timed-speed', type=float, metavar='MPS',
++                        help='NX 前置速度 0.10–1.00 m/s，可简写 --1.0；默认 1.0')
++    args = parser.parse_args(normalize_timed_args(sys.argv[1:], parser))
++    validate_timed_speed(args, parser)
+@@ -1284 +1282 @@
+-                      '前置段目标速度 1.00 m/s，按 IMU 航向计时直行。')
++                      f'前置段目标速度 {args.timed_speed:.2f} m/s，按 IMU 航向计时直行。')
+--- a/scripts/nx_timed_move_only/go2_reactive_avoid/node.py
++++ b/scripts/nx_timed_move_only/go2_reactive_avoid/node.py
+@@ -538,0 +539 @@
++    parser.add_argument("--timed-speed", type=float, default=SPEED_CAP)
+@@ -555 +556 @@
+-            timed = TimedStraight(args.timed, args.timed_ready)
++            timed = TimedStraight(args.timed, args.timed_ready, args.timed_speed)
+@@ -562 +563 @@
+-    max_speed = SPEED_CAP if timed else MAX_FORWARD_SPEED if entrance else CRUISE_SPEED
++    max_speed = timed.speed if timed else MAX_FORWARD_SPEED if entrance else CRUISE_SPEED
+--- a/scripts/nx_timed_move_only/go2_reactive_avoid/timed_straight.py
++++ b/scripts/nx_timed_move_only/go2_reactive_avoid/timed_straight.py
+@@ -16 +16 @@
+-    def __init__(self, seconds, ready):
++    def __init__(self, seconds, ready, speed=SPEED_CAP):
+@@ -18,0 +19,3 @@
++        if not math.isfinite(speed) or not START_SPEED <= speed <= SPEED_CAP:
++            raise ValueError("直行速度须在 0.10–1.00 m/s 内")
++        self.speed = speed
+@@ -55 +58 @@
+-        speed = SPEED_CAP
++        speed = self.speed
+--- /dev/null
++++ b/scripts/nx_timed_options.py
+@@ -0,0 +1,26 @@
++"""Unambiguous NX timed segment CLI: --3 seconds, --1.0 metres/second."""
++import math
++import re
++
++
++def normalize_timed_args(argv, parser):
++    result = list(argv)
++    for pattern, option, label in ((r'--[0-9]+', '--timed-straight', '时长'),
++                                    (r'--[0-9]+\.[0-9]+', '--timed-speed', '速度')):
++        short = [value for value in result if re.fullmatch(pattern, value)]
++        if short:
++            if len(short) != 1 or any(value == option or value.startswith(option+'=')
++                                      for value in result):
++                parser.error('只能指定一个计时直行'+label)
++            result = [option+'='+value[2:] if value == short[0] else value for value in result]
++    return result
++
++
++def validate_timed_speed(args, parser):
++    if args.timed_speed is not None:
++        if args.timed_straight is None:
++            parser.error('速度须同时指定计时段，如 --3 --1.0')
++        if not math.isfinite(args.timed_speed) or not .1 <= args.timed_speed <= 1.0:
++            parser.error('计时直行速度范围为 0.10–1.00 m/s')
++    else:
++        args.timed_speed = 1.0
