@@ -1,7 +1,126 @@
 # GO2 实机测试命令手册（中文，从接线到关闭）
 
-更新：2026-11-12。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
+更新：2026-11-13。适用本机 PC + GO2 + D435 + S1 + 腕部 D455。
 已增加下面的一键入口；后续章节保留逐步操作和故障恢复说明。
+
+## 2026-11-13：IMU辅助统一时间映射（代码完成，实机 NOT VERIFIED）
+
+本轮基于已fetch核对的 `bac3a992feb7` 完成代码；提交号由本节所在Git提交标识，运行报告自动记录实际HEAD。
+按用户“先完成代码部分”，本轮未构建overlay、未部署、未重启现有SLAM、未运行硬件采集或运动。
+历史证据：原生DDS源时间/IMU落后PC约3390496秒；旧base_future中位57.215ms、P95 67.361ms。
+这些是上一轮记录，**本轮实际offset、修复后里程计偏差、定位恢复、D435目标MAP转换均 NOT VERIFIED**。
+
+统一入口仍为：
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh
+```
+
+运行时仅在源码摘要变化时构建 `transform_sensors`，缺少感知overlay时单包准备；
+已有定位默认复用，不自动重置地图。没有现有定位时启动原有只读SLAM/D435/TF/目标MAP链，
+初始化后采集30秒，输出原始JSONL、统计/趋势、offset残差、扫描结束时间、里程计、精确TF和前后对比。
+不会启动运动控制器或S1；发现运动控制节点/速度发布者则拒绝修改定位会话。
+默认退出只清理本入口启动的节点，原有会话保留。报告通过仅代表观测窗口指标，不代表运动/抓取通过。
+
+当前机器若仍运行旧阻断转换器，实际验证时用同一入口的显式新地图模式：
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh --restart-localization --keep-running
+```
+
+该选项会结束已识别的旧只读定位/感知进程、创建新地图；保留原日志。报告通过后保持只读链，Ctrl+C退出。
+原生DDS不干预模式改为同入口 `--observe-only`；`--reuse-only` 仅验证既有链；`--prepare-only` 只准备overlay。
+`bash go2_test.sh --time-diagnostic` 等价分发；`bash go2_test.sh --execute` 为真实运动，
+接入新overlay，并在只读链就绪后完成同一诊断，未通过不进入SEARCH/停靠/抓取；本轮没有执行。
+
+算法：`t_local=t_sensor+b`，a=1；2秒窗口至少200条原始IMU，取 `receive_ROS-header` 的P5，
+P95-P5须不超过20ms，DDS source-header用于核验IMU发布延迟（允许-1～20ms），不当成独立UTC。
+b初始化后冻结，LiDAR/IMU共用，不修改点内相对时间、不按帧用now覆盖、不减固定64ms。
+初始化前两条转换流均不发布；重复/倒退样本丢弃；明显时钟跳变、映射年龄异常或
+映射扫描结束超前100ms锁存停止输出，需新会话恢复。状态 `/utlidar/time_mapping/status` 每秒发布。
+这是包含未知单向网络/调度延迟的近似映射，**没有修好源主控系统时钟**；不自动估计时钟倍率。
+长期漂移由offset候选残差报告，是否需要a修正待真实长时数据；瞬时突变禁止在线重锁。
+
+通过条件包括连续原始/转换流与里程计、无倒退、有限位姿、use_sim_time=false、无/clock、
+扫描结束及两路里程计未来偏差中位≤20ms且最大≤100ms、按原始观测时间的机身/相机TF成功率≥95%。
+该20ms是诊断验收门限，**没有修改控制器future_tolerance=0.10s**。
+目标MAP debug另行统计；无可见目标时明确NOT VERIFIED，不把图像TF成功写成目标转换已通过。
+位姿相邻步长只记录，不凭它独自宣称无定位跳变。
+
+核心映射无PC目录/IP依赖，以运行主机ROS时间映射；部署Orin时可设置
+`GO2_TIME_UNDERLAY`、`GO2_TIME_INTERFACE`、`GO2_CAMERA_HOST=local`。
+PC默认仅复用已有相机流；若相机无发布者，使用原有 `.18` 相机伴随主机密钥和已部署相机脚本，
+先只读检查伴随主机时钟，不设置任何主机时钟。相机选项 `--camera-host existing` 可完全禁止SSH。
+`GO2_CAMERA_SSH_KEY` / `GO2_CAMERA_LAUNCH` 可覆盖原路径；不访问 `.161` 源主控SSH。
+伴随主机时差超标、相机脚本/密钥缺失会明确失败；不会借此修改雷达配置或套用L2同步API。
+
+修改范围：转换器及小型IMU映射模块、launch时间模式参数、单入口采集/生命周期、完整测试接入、文档。
+Point-LIO C++定位算法/滤波器、MAP速度/控制参数、HSV/D435识别、目标管理、机械臂动作链均未修改。
+静态验证：5项时间映射边界检查、相关Python语法、shell语法、XML解析和git diff检查；不是构建或实机证据。
+
+
+## 历史入口行为：纯PC DDS + LidarState（bac3a99，现需 --observe-only）
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh
+```
+
+本版不需要登录任何GO2主机：Domain 0、enp12s0，仅订阅真实DDS消息。
+先发现LidarState实际名称和类型，再连续采集30秒；没有该Topic就记录不存在，不伪造。
+不SSH、不构建、不启动/停止SLAM、不调用运动/雷达配置或同步接口。
+输出原始cloud/IMU、DDS source timestamp、LidarState全部字段和PC ROS/wall/monotonic时间，
+以及各时间差的统计/趋势。现有SLAM保持不动，末尾返回码2表示时钟域仍不一致。
+当前实测：`/utlidar/lidar_state`，`unitree_go/msg/LidarState`，149条/30秒，能够读取。
+用户已确认型号L1；实读固件1.0.2、软件1.0.0.38、SDK1.0.9。
+DDS源时间、状态stamp和serial_recv_stamp都落后PC约3390496.05秒，
+所以问题已经存在于发布端时间域；不能据此声称已直接读到主控OS日期。
+
+L1公开接口的getTimeDelay只读取链路延迟，TIMESYNC是解析到的消息类别，
+没有查到可通过当前DDS连接设置源主控系统时间的公开方法。
+L2的syncLidarTimeStamp/use_system_timestamp不可套用到这台L1。
+当前没有执行任何同步操作；需要宇树确认该固件支持的无需SSH主控校时通路
+（主控侧官方NTP/SNTP配置或官方维护/固件时间服务），不能伪造RobotStateClient时间API。
+LidarState本身是观测接口，不能把serial_recv_stamp或PC接收时间当成独立UTC校准基准。
+
+本轮数据：`camera_ws/records/time_20261112_235022_pc_dds_lidar_state/`。
+实测摘要与旧数据重算：`camera_ws/analysis/go2_time_sync_20261112/pc_dds_lidar_state_summary.json`。
+本节仅为bac3a99历史记录；当前行为以上面的2026-11-13节为准。
+
+## 旧版时间诊断记录（12d0db5，非当前默认行为）
+
+当前原生传感器时间域与PC相差约3,390,496秒，尚无独立校准基准。
+已移除“首个完整点云接收时间减header”自动偏移；现在源时间不可信会明确阻断输出。
+**源时钟尚未同步，修正后有效里程计及完整运动任务仍NOT VERIFIED；不要把0条里程计当作0误差。**
+
+在当前仓库目录只需：
+
+```bash
+bash camera_ws/scripts/run_go2_time_diagnostic.sh
+```
+
+自动检查连接、主机/NTP状态、现有节点与TF，必要时只构建有变化的两个包，
+已有SLAM时只订阅，不重启；没有SLAM时才启动只读链。连续采集30秒，统计各阶段
+均值/中位数/P95/极值/趋势，保存原始JSONL、内部beg/end/current日志和前后对比。
+不启用机械臂、不起立/趴下、不发布任何速度。报告位于主仓库
+`camera_ws/records/time_日期_时间_标签/`；`report.txt`、`report.json`、`trend.json`可直接查看。
+缺少源时钟基准时返回码2，报告`BLOCKED_NATIVE_CLOCK`，这是明确阻断，不是成功验收。
+
+本机主目录的同名脚本转发到独立集成目录`/tmp/go2_onekey_s1`；目录丢失时自动恢复
+实验分支并链接现有导航底包/记录目录，不切换主仓库分支、不覆盖脏源码。
+集成分支也支持根入口`bash go2_test.sh --time-diagnostic`，共用同一实现。
+完整`--execute`入口先跑同一只读诊断；未通过会在机械臂使能/运动之前停止。
+原生已同步时保留原header；只有经独立时钟测量的映射才可设置
+`sensor_time_offset_sec`，默认0，禁止把约39天差值或接收延迟手填成“标定”。
+
+当前阻塞：`.18`是可登录的相机/S1伴随主机，NTP未启用；原生源时间域并不随其对时
+自动校准。主控候选`.161`现有账户无法登录，标准NTP查询也无响应，尚不能确认/修复
+源主机系统时间。需取得源主控权限或可验证的双向时间同步接口后继续；不扩100ms容差。
+实测基线机身里程计未来偏差：中位57.215ms、P95 67.361ms、最大71.510ms。
+修正后30秒采到445帧原始点云、7495条原始IMU，未校准时转换/里程计输出均0条。
+详细源码与测量见`camera_ws/docs/experiments.md`末节及
+`camera_ws/analysis/go2_time_sync_20261112/measured_summary.json`。
+
+本节及对应提交为当前实验状态；下文旧运动流程只在时间诊断通过后使用。
 
 ## 一句话运行最新全流程（2026-11-12）
 
@@ -21,6 +140,27 @@ bash /home/czx666/today_full_20260901/today_full/go2_test.sh --execute
 复用健康S1或启动回零保持 → D435 → PC定位感知TF → 连续新鲜数据预检 →
 SEARCH → STOP_CONFIRM → 三自由度停靠 → STOP → StandDown → S1抓取 → ZERO_HOLD → StandUp。
 复用原协调器及原保护，不修改控制算法。停靠失败不会进入抓取。
+
+### 可选洞口段
+
+```bash
+bash go2_test.sh --dry-run --50--30
+bash go2_test.sh --execute --50--30
+bash go2_test.sh --execute --entrance 80 -45
+```
+
+`--50--30` 等同于 `--entrance 50 30`。第一项是沿起始航向前进的厘米数，
+第二项是停稳后原地旋转的角度，正数顺时针，负数逆时针。前进可设 0–500 cm，
+转角可设 −180–180°，单项为 0 时跳过该动作。可继续附加原有的
+`--mode full`、`--mode dock`、`--detector hsv`、`--view` 等选项。
+
+洞口段使用 GO2 原生 Sport XY、航向和速度反馈，按操作者测量的起点距离执行。
+纵向到位容差 3 cm，转角容差 3°，每阶段在容差内停稳 0.5 秒。
+洞口段按 Sport 里程计执行，行走路径和转向扫掠范围由操作者在现场确认空旷。
+起步前需要已有 S1 `ZERO_HOLD`、旧自定义遥控服务处于 inactive，以及通过
+Sport DDS 端点核对。Sport 反馈异常、闭环超限、超时或按 Ctrl+C 会中止本轮。
+洞口段停稳并结束 Sport 控制权后才启动原流程。前置日志见
+`camera_ws/records/pc_time_*/entrance.log`。现场定位误差和交接仍为 `NOT VERIFIED`。
 
 - 不加 `--execute`：只打印离线计划，不连接设备、不构建。
 - 只做停靠：`bash go2_test.sh --execute --mode dock`，仍会启动S1保持及GO2行走。

@@ -1,5 +1,30 @@
 # D435 Experiment Record
 
+## 2026-11-15 18:55 HSV错误锁定的只读证据
+
+本节纠正同会话此前仅凭MAP点差而直接称为“同一方块漂移66cm”的结论。
+用户确认现场同一物块；录像对照显示检测程序实际主要选中了另一片近处颜色区域，
+并不否定现场确有同一独立方块，而是说明自动检测与用户观察对象未对应。
+
+来源full_1794740089097906377（506cdb8、HSV、右侧35cm）。原RGB与叠加录像各160帧完整解码。
+把原detection_debug中已记录的轮廓/中心回画到匹配源RGB，四个示例源时间误差绝对值≤67.2ms；
+图见 `../analysis/target_anchor_20261115_1855/logged_detection_evidence.jpg`。
+红轮廓落于右下角近处区域，画面上方/中部可见独立青色方块未被这些轮廓覆盖。
+85帧中87个接受候选，85个右下角u574.60～585.35/v427.71～438.27、深度0.366～0.480m。
+起始IDLE/STOP_CONFIRM就使用该区域，随后LOCK_TARGET锚点(0.324663,-0.201728)。
+行进中锚点缓慢更新到(0.379011,-0.244054)后冻结；新点(1.033874,-0.152131)距当前锚点0.661283m，
+因initial_anchor_radius被拒绝，最后STOP误差0.026623m仅相对旧锚点。
+
+源码颜色范围H90～135/S≥110/V≥50、面积250、蓝墙剔除，不验证立方体语义且未排除自身遮挡。
+实际日志wall_detected=0，近处平面未被剔除。保存的有损MP4离线HSV分析仅支持颜色下限附近及
+后段连通域过小，不能代替原始RGB/Depth全流程重放；原始深度和完整测量TF未保留，初期真实方块
+在哪一项深度筛选消失仍NOT VERIFIED。当前证据已足以确认本轮主要错误对象，不能把66cm全归LIO。
+
+可复现命令：
+`python3 camera_ws/analysis/target_anchor_20261115_1855/analyze.py camera_ws/records/full_1794740089097906377`。
+输出summary.json、detections.csv、证据图；核对160/160帧及源文件前后hash不变。
+未修改生产识别/控制/标定、未连接设备或发动作；修复与真机验收待另轮。
+
 ## 2026-09-28 — Environment and USB Enumeration
 
 - **Scope:** Read-only host/package/device inspection; no camera streaming and no robot nodes.

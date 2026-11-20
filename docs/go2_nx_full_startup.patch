@@ -1,0 +1,106 @@
+--- a/scripts/go2_full_test.py
++++ b/scripts/go2_full_test.py
+@@ -698,8 +698,14 @@
+                     'terrain_analysis', 'terrain_analysis_ext', 'local_planner', 'far_planner',
+                     'go2_science_perception', 'realsense2_camera', 'unitree_go',
+                     'rmw_cyclonedds_cpp', 'sensor_msgs_py')
+-        command = 'for pkg in '+shlex.join(packages)+'; do ros2 pkg prefix "$pkg" || exit; done'
+-        run(self.shell(command), stdin=subprocess.DEVNULL, timeout=30)
++        package_check = (
++            'import sys\n'
++            'from ament_index_python.packages import get_package_prefix\n'
++            'for name in sys.argv[1:]:\n'
++            '    print(get_package_prefix(name))\n'
++        )
++        run(self.shell(shlex.join(['/usr/bin/python3', '-c', package_check, *packages])),
++            stdin=subprocess.DEVNULL, timeout=30)
+         if self.detector == 'yolo' and not self.args.startup_check:
+             if self.args.model_path is None:
+                 self.args.model_path = self.work.parent/'best.pt'
+@@ -853,7 +859,40 @@
+         if extra.returncode!=1:
+             raise RuntimeError('仍有外部定位节点，保留现场: '+extra.stdout)
+ 
++    def require_idle_controller(self):
++        active = subprocess.run(
++            ['pgrep', '-af', '[s]cience_target_approach|[g]o2_safety_gate|[s]1_task_host.py'],
++            capture_output=True, text=True)
++        if active.returncode != 1:
++            raise RuntimeError('已有控制任务，拒绝并行启动: '+active.stdout)
++
++    def wait_for_full_start(self):
++        """Keep the NX terminal in control until a fresh line containing 1."""
++        self.healthy()
++        fd = sys.stdin.fileno()
++        termios.tcflush(fd, termios.TCIFLUSH)
++        print('NX_FULL_READY：相机、雷达、定位、检测和 S1 ZERO_HOLD 已通过。', flush=True)
++        print('现在可以拔掉 PC 侧网线，保留 NX 与 GO2 本体的连接。'
++              '在 NX 本机终端输入 1 并回车启动 FULL，Ctrl+C 取消。', flush=True)
++        while True:
++            self.healthy()
++            if not select.select([fd], [], [], .5)[0]:
++                continue
++            line = os.read(fd, 4096)
++            if not line:
++                raise RuntimeError('确认终端已关闭，FULL 未启动')
++            if line == b'1\n':
++                return
++            print('等待确认：请输入 1 并回车，Ctrl+C 取消。', flush=True)
++
+     def execute(self):
++        confirm_full = (self.nx_local and self.args.execute and self.args.mode == 'full'
++                        and not self.args.startup_check)
++        if confirm_full and not sys.stdin.isatty():
++            raise RuntimeError('NX FULL 需要交互式终端，请在 NX 本机终端运行')
++        if confirm_full:
++            print('正在预检硬件。若 S1 服务未运行，初始化会按原流程受控回零；'
++                  '导航和抓取任务将在确认后启动。', flush=True)
+         self.folder.mkdir(parents=True, exist_ok=True)
+         with self.stage('prepare_code_and_build'):
+             self.prepare()
+@@ -869,10 +908,7 @@
+             route=subprocess.check_output(['ip','route','get',destination],text=True)
+             if 'dev '+interface not in route or 'src '+source not in route:
+                 raise RuntimeError('有线路由/IP不符: '+route)
+-            active=subprocess.run(['pgrep','-af','[s]cience_target_approach|[g]o2_safety_gate|[s]1_task_host.py'],
+-                                  capture_output=True,text=True)
+-            if active.returncode != 1:
+-                raise RuntimeError('已有控制任务，拒绝并行启动: '+active.stdout)
++            self.require_idle_controller()
+             inventory=json.loads(self.host_run(shlex.join([ARM_PY,'-c',INVENTORY_SCRIPT]),
+                                         capture_output=True,text=True).stdout)
+             if inventory['task']:
+@@ -979,6 +1015,23 @@
+                      HOST+':'+REMOTE+'/'])
+         if not zero_hold(self.status()):
+             raise RuntimeError('运动前S1状态变化，停止')
++        if confirm_full:
++            with self.stage('operator_confirmation'):
++                self.wait_for_full_start()
++            with self.stage('post_confirmation_readiness'):
++                self.healthy()
++                self.require_idle_controller()
++                router = subprocess.run(
++                    ['systemctl', 'is-active', '--quiet', 'go2-remote-router.service'])
++                if router.returncode == 0:
++                    raise RuntimeError('遥控路由器已启动，停止后重新运行 NX FULL')
++                result = self.probe('post_confirmation', timeout=8, scope='all')
++                if not result.get('ready'):
++                    raise RuntimeError('确认后传感器链未就绪，FULL 未启动: '+str(result))
++                self.healthy()
++                if not zero_hold(self.status()):
++                    raise RuntimeError('确认后 S1 不再处于 ZERO_HOLD，FULL 未启动')
++            print('NX_FULL_START：确认和实时复核通过，启动 FULL 任务。', flush=True)
+         self.start_viewers()
+         if self.args.mode == 'full':
+             self.multi_memory_session = self.detector == 'yolo'
+@@ -1140,6 +1193,9 @@
+         if args.nx_local:
+             print('NX 本机路径：现有 Foxy 相机、定位、任务编排和 S1 同机运行。'
+                   '命令：bash go2_nx.sh --startup-check / --nx-sensors / --execute')
++            if args.mode == 'full':
++                print('看到 NX_FULL_READY 后可断开 PC 网线。保留 NX 与 GO2 本体的连接，'
++                      '在 NX 本机终端输入 1 并回车启动任务。')
+         print('离线计划（未连接硬件、未写文件）：\n'
+               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
+               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '

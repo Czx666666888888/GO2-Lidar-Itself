@@ -1,0 +1,57 @@
+[
+  {
+    "path": "camera_ws/scripts/go2_startup_probe.py",
+    "before": "e540acef80cd9e68eebc9f3b9e6e1c1f445a9c913bb22c3e1015a2e2c4f9896e",
+    "after": "9118b46d03c083617c1917ca42e5426639d56d8d879a9a4acd41c31f96c95e55"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/yolo_detector.py",
+    "before": "892ec3ec2dcf031aca7458a721f8e467a8786ec8b5d02ca211bdbca91d644e97",
+    "after": "7139e2726d55c1574026aafd771c5c48c072cd0a4f0196318420fb17667732f5"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/latest_data.py",
+    "before": null,
+    "after": "2363cef3c8cc5970f7be468263aed8abc11f5b7418ec60efe2d580f09d541dd4"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/science_target_approach.py",
+    "before": "62c40e5cbc5970fbec8594f5f7712267d4a8f91d607bd02a0c9d7685e7a38b60",
+    "after": "b09ad0912024cac6b6a23adc8d1b19685a8028fcc3442191e2842212226d1d0c"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py",
+    "before": "c247a4adb5c45d4fafcddefada75234481b92fa61688fcc7662b8cb91c1a1400",
+    "after": "e41412d33d2c38d572c89ae4bf19bf7b602a95abb1c0ca8248cf53496882b7a4"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/color_block_target_adapter.py",
+    "before": "b3f0f6124ff778bf36a28d0a22857af29f96fba949a61790e9dc8c127a34ca77",
+    "after": "7dff6085af6fd3e659f0b6e4bc44a62a3c955bdf12e7b09a7ea91274f2894dfc"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/camera_target_to_map.py",
+    "before": "921c59feb68afb19543b87a75f7323ca2da018d5c1e07e2b569c65f56da9e80e",
+    "after": "e8034d7a0a9a11be60a97efef450bbfcc140b2c12aa0b4e4eb71fe9251149b1b"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/coarse_target_locator.py",
+    "before": "b26860f9b2a6bd1dea0c75fa2a29f61c9cdcadeabd81acee38fd227669c6a0fe",
+    "after": "83f9195167265568da1deb28013dd993dd6149ac9119982660ba88b4cce4b88e"
+  },
+  {
+    "path": "camera_ws/src/go2_science_perception/go2_science_perception/science_target_manager.py",
+    "before": "cbd50fd4081d791874d9af45ef7ff4258a31ae35e1ec9d5c7266aa71ac452ca7",
+    "after": "5aeffb77ac2f9f03128c48461fe5abdb12e3490c39a0707a8ec1d47a072ef1f7"
+  },
+  {
+    "path": "scripts/go2_full_test.py",
+    "before": "76d395649605ceb92b709f0f1c4489df9af75b00a4e2009ee6a4d23195832ea8",
+    "after": "701fb8e87138ec875b68b3f03e749db5749334c6b6adf80c5677ca70e42fa031"
+  },
+  {
+    "path": "scripts/nx_timed_move_only/go2_reactive_avoid/node.py",
+    "before": "c74290b6048c08335b16d7bfe610c342b205b8f06d2c7e08a1619c5cfea2b3fd",
+    "after": "89bfcf68079b2e18a805adf8e6323136e2177c3f4b717f17f43b86777e06d649"
+  }
+]

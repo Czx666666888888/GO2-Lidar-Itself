@@ -1,0 +1,10 @@
+{
+  "scripts/go2_full_test.py": {
+    "before": "ae62a649a111050b58520ef23c21b6ec8925364513a71428f4854b2407ac5baf",
+    "after": "ec32a2145f260b630fab36d7f88cb293d0fbd16144bb4d3d3d942db25b1313ae"
+  },
+  "scripts/nx_inventory.py": {
+    "before": null,
+    "after": "d887d03d4b32063f18897c5dc021250ed17fa899bd464b7e2465864be6f80332"
+  }
+}

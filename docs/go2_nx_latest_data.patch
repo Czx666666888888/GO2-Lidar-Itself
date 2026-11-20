@@ -1,0 +1,715 @@
+--- a/camera_ws/scripts/go2_startup_probe.py
++++ b/camera_ws/scripts/go2_startup_probe.py
+@@ -29,6 +29,7 @@
+     from unitree_go.msg import LidarState
+     from tf2_ros import Buffer, TransformListener
+     from go2_time_diagnostic import cloud_times
++    latest_data = os.environ.get('GO2_LATEST_DATA') == '1'
+     rclpy.init()
+     n = rclpy.create_node('go2_startup_readonly')
+     samples = defaultdict(lambda: deque(maxlen=500))
+@@ -45,7 +46,7 @@
+                 value = json.loads(m.data)
+                 stamp = value.get('rgb_stamp_ns', value.get('color_stamp_ns', 0))/1e9
+                 detector.clear(); detector.update(value=value, received=now)
+-                if value.get('status', 'OK') == 'OK' and stamp > 0:
++                if value.get('status', 'OK') == 'OK' and (latest_data or stamp > 0):
+                     samples[key].append((now, stamp, {}))
+             except (ValueError, TypeError):
+                 bad.append('invalid detector JSON')
+@@ -62,7 +63,7 @@
+                           received=now)
+             return
+         stamp = m.header.stamp.sec+m.header.stamp.nanosec/1e9
+-        if samples[key] and key not in ('rgb', 'depth') and stamp <= samples[key][-1][1]:
++        if not latest_data and samples[key] and key not in ('rgb', 'depth') and stamp <= samples[key][-1][1]:
+             bad.append(key+' timestamp not advancing')
+         if key == 'selected':
+             selected_position[:]=[m.point.x,m.point.y,m.point.z]
+@@ -92,8 +93,8 @@
+     def fresh(key, tolerance=.4, future=.15):
+         rows=samples[key]
+         return (len(rows)>=5 and rows[-1][0]-rows[0][0]>=.3 and
+-                time.monotonic()-rows[-1][0]<tolerance and
+-                -future <= time.time()-rows[-1][1] < tolerance)
++                time.monotonic()-rows[-1][0]<(1.0 if latest_data else tolerance) and
++                (latest_data or -future <= time.time()-rows[-1][1] < tolerance))
+     try:
+         while time.monotonic()-begin < timeout:
+             rclpy.spin_once(n,timeout_sec=.03)
+@@ -107,7 +108,7 @@
+                     wall_clock=value.type==1 and value.bool_value is False
+                 except (IndexError,AttributeError,RuntimeError):
+                     pass
+-            if abs((time.time()-now)-baseline)>.1:
++            if not latest_data and abs((time.time()-now)-baseline)>.1:
+                 bad.append('local wall clock jump')
+             clouds=samples['raw_cloud']
+             hz=((len(clouds)-1)/(clouds[-1][0]-clouds[0][0]) if len(clouds)>1 else 0.)
+@@ -122,16 +123,16 @@
+             mapping_ok=(mapped.get('ready') is True and not mapped.get('fault') and
+                         mapped.get('mode')==os.environ.get('GO2_TIME_MAPPING_MODE','imu') and
+                         now-mapping.get('received',0)<2.5 and
+-                        abs(time.time()-mapped.get('ros_stamp_ns',0)/1e9)<2.5)
++                        (latest_data or abs(time.time()-mapped.get('ros_stamp_ns',0)/1e9)<2.5))
+             body_tf=camera_tf=False
+             try:
+                 if fresh('base'):
+-                    tf.lookup_transform('map','vehicle',rclpy.time.Time(
+-                        nanoseconds=round(samples['base'][-1][1]*1e9)))
++                    tf.lookup_transform('map','vehicle',(rclpy.time.Time() if latest_data else rclpy.time.Time(
++                        nanoseconds=round(samples['base'][-1][1]*1e9))))
+                     body_tf=True
+                 if camera_ok:
+-                    tf.lookup_transform('map','camera_link',rclpy.time.Time(
+-                        nanoseconds=round(samples['rgb'][-1][1]*1e9)))
++                    tf.lookup_transform('map','camera_link',(rclpy.time.Time() if latest_data else rclpy.time.Time(
++                        nanoseconds=round(samples['rgb'][-1][1]*1e9))))
+                     camera_tf=True
+             except Exception:
+                 pass
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/yolo_detector.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/yolo_detector.py
+@@ -30,6 +30,9 @@
+     if isinstance(value, list):
+         value = dict(enumerate(value))
+     return {int(k): str(v) for k, v in value.items()}
++
++
++from .latest_data import LATEST_DATA, RECEIPT_TIMEOUT
+ 
+ 
+ class YoloDetector(Node):
+@@ -131,10 +134,12 @@
+     def _rgb(self, msg):
+         """Retain only the latest image rather than accumulating inference backlog."""
+         self.rgb = msg
++        self.rgb_received_at = time.monotonic()
+ 
+     def _depth(self, msg):
+         """Keep a bounded source-time buffer for optional depth association."""
+         self.depths.append(msg)
++        self.depth_received_at = time.monotonic()
+ 
+     def _info(self, msg):
+         """Retain calibrated color-image projection information."""
+@@ -144,15 +149,18 @@
+         """Return depth only for compatible timestamps, frames, encodings and sizes."""
+         if not self.depths:
+             return None, None, 'no_depth'
+-        msg = min(self.depths, key=lambda d: abs(stamp_ns(d.header)-stamp_ns(rgb.header)))
++        msg = (self.depths[-1] if LATEST_DATA else
++               min(self.depths, key=lambda d: abs(stamp_ns(d.header)-stamp_ns(rgb.header))))
++        if LATEST_DATA and time.monotonic() - self.depth_received_at > RECEIPT_TIMEOUT:
++            return None, msg, 'depth_input_reception_stopped'
+         delta = (stamp_ns(rgb.header)-stamp_ns(msg.header))*1e-9
+-        if abs(delta) > self.cfg['max_rgb_depth_delta_sec']:
++        if not LATEST_DATA and abs(delta) > self.cfg['max_rgb_depth_delta_sec']:
+             return None, msg, 'rgb_depth_time_mismatch'
+         if self.info is None:
+             return None, msg, 'no_camera_info'
+-        if abs(stamp_ns(rgb.header)-stamp_ns(self.info.header))*1e-9 > self.cfg['max_rgb_info_delta_sec']:
++        if not LATEST_DATA and abs(stamp_ns(rgb.header)-stamp_ns(self.info.header))*1e-9 > self.cfg['max_rgb_info_delta_sec']:
+             return None, msg, 'rgb_camera_info_time_mismatch'
+-        if stamp_ns(msg.header) <= 0:
++        if not LATEST_DATA and stamp_ns(msg.header) <= 0:
+             return None, msg, 'zero_depth_stamp'
+         if (not rgb.header.frame_id or rgb.header.frame_id != msg.header.frame_id or
+                 rgb.header.frame_id != self.info.header.frame_id):
+@@ -169,8 +177,10 @@
+     def _tick(self):
+         """Publish per-image 2D detections, optional 3D and debug with source header."""
+         rgb = self.rgb
+-        if rgb is None or stamp_ns(rgb.header) == self.last_stamp:
++        if rgb is None or (rgb is getattr(self, "processed_rgb", None) if LATEST_DATA
++                           else stamp_ns(rgb.header) == self.last_stamp):
+             return
++        self.processed_rgb = rgb
+         self.last_stamp = stamp_ns(rgb.header)
+         start = time.perf_counter()
+         age = (self.get_clock().now().nanoseconds-self.last_stamp)*1e-9
+@@ -182,7 +192,7 @@
+                       camera_info_stamp_ns=stamp_ns(self.info.header) if self.info else None,
+                       camera_info_frame_id=self.info.header.frame_id if self.info else None)
+         try:
+-            if self.last_stamp <= 0 or age > self.cfg['max_image_age_sec'] or age < -0.1:
++            if not LATEST_DATA and (self.last_stamp <= 0 or age > self.cfg['max_image_age_sec'] or age < -0.1):
+                 report['status'] = 'stale_or_future_rgb'
+                 return
+             image = self.bridge.imgmsg_to_cv2(rgb, 'bgr8')
+@@ -216,7 +226,7 @@
+                         c['min_valid_depth_ratio'], c['max_depth_spread_m'])
+                 if quality['valid']:
+                     completed_age = (self.get_clock().now().nanoseconds-self.last_stamp)*1e-9
+-                    if completed_age > self.cfg['max_image_age_sec']:
++                    if not LATEST_DATA and completed_age > self.cfg['max_image_age_sec']:
+                         quality = dict(quality, valid=False, reason='inference_result_too_old')
+                 if quality['valid']:
+                     try:
+--- /dev/null
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/latest_data.py
+@@ -0,0 +1,21 @@
++"""NX application input policy. Source timestamps remain diagnostic metadata."""
++import copy
++import os
++
++LATEST_DATA = os.environ.get("GO2_LATEST_DATA") == "1"
++RECEIPT_TIMEOUT = 1.0
++
++
++def receipt_copy(message, now):
++    """Use the local receipt stamp without copying large image/cloud payloads."""
++    if not LATEST_DATA:
++        return message
++    result = copy.copy(message)
++    result.header = copy.copy(message.header)
++    result.header.stamp = now.to_msg()
++    return result
++
++
++def query_time(stamp):
++    import rclpy.time
++    return rclpy.time.Time() if LATEST_DATA else rclpy.time.Time.from_msg(stamp)
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/science_target_approach.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/science_target_approach.py
+@@ -1,7 +1,7 @@
+ """ROS adapter for manually confirmed approach; defaults to isolated dry-run."""
+ 
+ from collections import deque
+-from dataclasses import fields
++from dataclasses import fields, replace
+ import json
+ import math
+ import os
+@@ -34,6 +34,7 @@
+ from .approach_control import ApproachControl, Settings
+ from .grasp_pose_geometry import DockSettings, shared_side_settings, wrap
+ from .grasp_docking import GraspDocking
++from .latest_data import LATEST_DATA, RECEIPT_TIMEOUT, receipt_copy, query_time
+ 
+ 
+ class ExpiredOdometry(ValueError):
+@@ -86,6 +87,8 @@
+         self.core = ApproachControl(Settings(**{
+             f.name: self.get_parameter(f.name).value for f in fields(defaults)}), docking=docking,
+                                     docking_options=options)
++        if LATEST_DATA:
++            self.core.p = replace(self.core.p, odom_timeout=RECEIPT_TIMEOUT)
+         self.dry_run = self.get_parameter('dry_run').value
+         self.map_frame = self.get_parameter('map_frame').value
+         self.future_tolerance = self.get_parameter('future_tolerance').value
+@@ -106,7 +109,8 @@
+         if docking is not None:
+             self.log_file.write(json.dumps({
+                 'grasp_docking_enabled': True, 'docking_parameters': vars(docking.p),
+-                'vehicle_pose_source': 'exact_stamp_map_to_vehicle_TF',
++                'vehicle_pose_source': ('latest_map_to_vehicle_TF' if LATEST_DATA else
++                                        'exact_stamp_map_to_vehicle_TF'),
+                 's1_base_z': None}) + '\n')
+         self.tf_buffer = Buffer()
+         self.tf_listener = TransformListener(self.tf_buffer, self)
+@@ -216,6 +220,9 @@
+             return
+ 
+     def _matched_camera_range(self, track):
++        if LATEST_DATA:
++            return next((distance for _, point, distance in reversed(self.map_measurements)
++                         if math.dist(point, track["latest_observation"]) <= 1e-6), None)
+         matches = [distance for stamp, point, distance in self.map_measurements
+                    if stamp == track['observed_ns'] and
+                    math.dist(point, track['latest_observation']) <= 1e-6]
+@@ -237,9 +244,9 @@
+                        for point in self.completed_targets):
+                     t['visited'] = True  # Existing target-manager visited radius, session retained.
+                 t['age'] = (now_ros - t['observed_ns']) / 1e9
+-                if t['observed_ns'] <= 0 or t['age'] < -self.future_tolerance:
++                if not LATEST_DATA and (t['observed_ns'] <= 0 or t['age'] < -self.future_tolerance):
+                     raise ValueError('invalid target timestamp')
+-                t['age'] = max(0.0, t['age'])
++                t['age'] = 0.0 if LATEST_DATA else max(0.0, t['age'])
+                 t['lifetime'] = (now_ros - t['first_seen_ns']) / 1e9
+                 if self.core.p.search_enabled:
+                     raw = t.get('latest_observation')
+@@ -255,6 +262,11 @@
+             self.core.fault(str(exc))
+ 
+     def _odom(self, msg):
++        if LATEST_DATA:
++            self.latest_source_odom_stamp_ns = (msg.header.stamp.sec*10**9 + msg.header.stamp.nanosec)
++            msg = receipt_copy(msg, self.get_clock().now())
++            self.latest_odom_received_at = time.monotonic()
++            self.pending_odom.clear()
+         stamp = msg.header.stamp.sec * 10**9 + msg.header.stamp.nanosec
+         if self.last_queued_stamp is not None and stamp <= self.last_queued_stamp:
+             self._localization_fault('odometry stamp did not advance')
+@@ -278,7 +290,12 @@
+         while self.pending_odom:
+             msg, age_at_receipt_ns = self.pending_odom[0]
+             try:
+-                _, age = self._fresh(msg.header.stamp, self.core.p.odom_timeout)
++                if LATEST_DATA:
++                    age = time.monotonic() - self.latest_odom_received_at
++                    if age > RECEIPT_TIMEOUT:
++                        raise ExpiredOdometry("odometry input reception stopped")
++                else:
++                    _, age = self._fresh(msg.header.stamp, self.core.p.odom_timeout)
+                 if not self._apply_odom(msg, age):
+                     return
+             except ExpiredOdometry:
+@@ -306,7 +323,7 @@
+             if msg.header.frame_id != self.map_frame:
+                 transform = self.tf_buffer.lookup_transform(
+                     self.map_frame, msg.header.frame_id,
+-                    rclpy.time.Time.from_msg(msg.header.stamp))
++                    query_time(msg.header.stamp))
+                 pose = do_transform_pose(pose, transform)
+             q, p = pose.orientation, pose.position
+             if not all(math.isfinite(v) for v in (p.x, p.y, p.z, q.x, q.y, q.z, q.w)):
+@@ -317,7 +334,7 @@
+             if self.grasp_docking_enabled:
+                 # map->vehicle already includes the sensor offset: never subtract it twice.
+                 vehicle_tf = self.tf_buffer.lookup_transform(
+-                    self.map_frame, 'vehicle', rclpy.time.Time.from_msg(msg.header.stamp))
++                    self.map_frame, 'vehicle', query_time(msg.header.stamp))
+                 v = vehicle_tf.transform.translation
+                 q = vehicle_tf.transform.rotation
+                 if not all(math.isfinite(n) for n in (v.x, v.y, v.z, q.x, q.y, q.z, q.w)):
+@@ -325,7 +342,7 @@
+                 if abs(q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w-1) > 0.01:
+                     raise ValueError('invalid vehicle TF quaternion')
+                 vehicle_yaw = math.atan2(2*(q.w*q.z + q.x*q.y), 1-2*(q.y*q.y + q.z*q.z))
+-                if (
++                if not LATEST_DATA and (
+                         math.hypot(p.x-v.x, p.y-v.y) >= .08 or
+                         abs(wrap(yaw-vehicle_yaw)) >= .10):
+                     raise ValueError('body odometry and vehicle TF disagree')
+@@ -335,7 +352,7 @@
+             if self.core.p.stop_reference == 'camera_origin':
+                 camera_tf = self.tf_buffer.lookup_transform(
+                     self.map_frame, self.camera_frame,
+-                    rclpy.time.Time.from_msg(msg.header.stamp))
++                    query_time(msg.header.stamp))
+                 c = camera_tf.transform.translation
+                 self.core.camera_pose(c.x, c.y, sample_time)
+             self.core.pose(p.x, p.y, yaw, sample_time)
+@@ -470,7 +487,7 @@
+ 
+     def _tick(self):
+         now_ros = self.get_clock().now().nanoseconds
+-        if now_ros < self.last_ros_time:
++        if not LATEST_DATA and now_ros < self.last_ros_time:
+             self.core.fault('ROS clock regressed/map epoch invalid')
+         self.last_ros_time = now_ros
+         self._match_pending_odom()
+@@ -478,7 +495,8 @@
+             self.core.fault('competing cmd_vel_raw publishers')
+         now = time.monotonic()
+         if self.armed_once and now-self.core.odom_time > self.core.p.odom_timeout:
+-            self._localization_fault('no fresh timestamp-matched odometry after arming')
++            self._localization_fault('odometry input reception stopped' if LATEST_DATA else
++                                     'no fresh timestamp-matched odometry after arming')
+         if (not self.dry_run and self.core.state not in ('IDLE', 'STOP', 'FAULT')
+                 and now - self.gate_verified_at > 1.0):
+             self.core.fault('gate profile or sole Sport publisher verification expired')
+@@ -487,6 +505,8 @@
+                 self.core.fault('recording heartbeat lost')
+         report = self.core.step(now)
+         report['control_monotonic'] = now
++        report['input_time_policy'] = 'latest_received' if LATEST_DATA else 'source_time_matched'
++        report['source_odom_stamp_ns'] = getattr(self, 'latest_source_odom_stamp_ns', None)
+         report['external_stop_latched'] = self.external_stop_latched
+         report['localization_ready'] = (
+             self.matched_odom_count >= 3 and
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/mission_manager.py
+@@ -22,6 +22,7 @@
+ from .full_nbv_explore import return_tail_index
+ from .grasp_pose_geometry import DockSettings, docking_goal, rotate_xy, shared_side_settings, wrap
+ from .motion_arbiter import MotionArbiter
++from .latest_data import LATEST_DATA, RECEIPT_TIMEOUT, receipt_copy
+ from .wall_distance import corner_grasp_heading, wall_grasp_side, wall_segments
+ 
+ 
+@@ -143,13 +144,16 @@
+             (PointStamped, '/mission/far_way_point', self.far_waypoint, 10),
+             (Path, LOCAL_PATH_TOPIC, self.local_path, qos_profile_sensor_data),
+         ):
+-            self.node.create_subscription(kind, topic, callback, qos)
++            self.node.create_subscription(kind, topic,
++                lambda message, cb=callback: cb(receipt_copy(message, self.node.get_clock().now())
++                                               if hasattr(message, "header") else message), qos)
+ 
+     def now_ns(self):
+         return self.node.get_clock().now().nanoseconds
+ 
+     def fresh(self, ns, seconds):
+-        return ns > 0 and 0 <= self.now_ns() - ns < seconds * 1e9
++        budget = max(seconds, RECEIPT_TIMEOUT) if LATEST_DATA else seconds
++        return ns > 0 and 0 <= self.now_ns() - ns < budget * 1e9
+ 
+     def check_localization(self):
+         # localPlanner consumes numeric /way_point XY in Point-LIO's origin.
+@@ -200,7 +204,7 @@
+                     odom_age_sec=(self.now_ns() - ns) / 1e9, rejected_odom=self.rejected_odom)
+             try:
+                 vehicle = self.tf.lookup_transform('map', 'vehicle',
+-                                                   Time(nanoseconds=ns)).transform
++                                                   (Time() if LATEST_DATA else Time(nanoseconds=ns))).transform
+             except TransformException as exc:
+                 if pending_issue is None:
+                     pending_issue = dict(reason='map_vehicle_tf_at_odom_stamp_unavailable',
+@@ -209,11 +213,12 @@
+             p = vehicle.translation
+             xy_error = math.dist((p.x, p.y), pose[:2])
+             yaw_error = abs(wrap(yaw(vehicle.rotation) - pose[2]))
+-            if not (xy_error < .08 and yaw_error < .10):
++            if not LATEST_DATA and not (xy_error < .08 and yaw_error < .10):
+                 return dict(reason='body_odometry_tf_mismatch',
+                             xy_error_m=xy_error if math.isfinite(xy_error) else None,
+                             yaw_error_rad=yaw_error if math.isfinite(yaw_error) else None)
+-            self.pose, self.pose_ns = pose, ns
++            self.pose, self.pose_ns = ((p.x, p.y, yaw(vehicle.rotation), p.z) if LATEST_DATA
++                                       else pose), ns
+             while self.pending_odom and self.pending_odom[0][0] <= ns:
+                 self.pending_odom.popleft()
+             return pending_issue
+@@ -261,7 +266,7 @@
+     def odom(self, message):
+         ns = stamp(message.header)
+         received_age_sec = (self.now_ns() - ns) / 1e9
+-        if (ns <= 0 or not 0 <= received_age_sec < .8
++        if (ns <= 0 or not 0 <= received_age_sec < (RECEIPT_TIMEOUT if LATEST_DATA else .8)
+                 or message.header.frame_id not in ('map', 'camera_init')):
+             self.rejected_odom = dict(stamp_ns=ns, age_sec=received_age_sec,
+                                       frame=message.header.frame_id)
+@@ -329,7 +334,7 @@
+         if observation is None:
+             return None
+         return next((distance for ns, xyz, distance in reversed(self.camera_ranges)
+-                     if ns == track['observed_ns'] and math.dist(xyz, observation) <= 1e-6), None)
++                     if (LATEST_DATA or ns == track['observed_ns']) and math.dist(xyz, observation) <= 1e-6), None)
+ 
+     def prioritize_grasp(self):
+         """Claim the first fresh, wall-qualified target in the original approach range."""
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/color_block_target_adapter.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/color_block_target_adapter.py
+@@ -11,6 +11,7 @@
+ 
+ from .camera_target_to_map import CameraTargetToMap
+ from .color_block_selection import BlockSelection, CloseBlockFilter
++from .latest_data import LATEST_DATA, query_time
+ 
+ 
+ class ColorBlockTargetAdapter(CameraTargetToMap):
+@@ -56,6 +57,9 @@
+     def _frame(self, msg):
+         try:
+             report = json.loads(msg.data)
++            if LATEST_DATA:
++                report['source_rgb_stamp_ns'] = report['rgb_stamp_ns']
++                report['rgb_stamp_ns'] = self.get_clock().now().nanoseconds
+             if report['rgb_stamp_ns'] > self.last_published:
+                 self.latest = report
+         except (ValueError, KeyError, TypeError):
+@@ -76,7 +80,8 @@
+         try:
+             age = (self.get_clock().now().nanoseconds-stamp)/1e9
+             diagnostic['observation_age_sec'] = age
+-            if stamp <= self.last_published or not 0 <= age <= self.get_parameter('max_observation_age_sec').value:
++            if stamp <= self.last_published or (not LATEST_DATA and not
++                    0 <= age <= self.get_parameter('max_observation_age_sec').value):
+                 reason = 'stale_or_future_observation'
+                 self.latest = None
+                 return
+@@ -117,9 +122,9 @@
+             template.header.stamp.sec, template.header.stamp.nanosec = divmod(stamp, 10**9)
+             transform = self.tf_buffer.lookup_transform(
+                 self.map_frame, template.header.frame_id,
+-                rclpy.time.Time.from_msg(template.header.stamp))
++                query_time(template.header.stamp))
+             camera_tf = self.tf_buffer.lookup_transform(
+-                self.map_frame, 'camera_link', rclpy.time.Time.from_msg(template.header.stamp))
++                self.map_frame, 'camera_link', query_time(template.header.stamp))
+             points, mapped = [], []
+             for d in detections:
+                 xyz = d['xyz_m']
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/camera_target_to_map.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/camera_target_to_map.py
+@@ -80,6 +80,9 @@
+     transform.transform.rotation.z = quaternion[2]
+     transform.transform.rotation.w = quaternion[3]
+     return transform
++
++
++from .latest_data import LATEST_DATA, query_time, receipt_copy
+ 
+ 
+ class CameraTargetToMap(Node):
+@@ -203,7 +206,7 @@
+         transform = self.tf_buffer.lookup_transform(
+             self.map_frame,
+             point.header.frame_id,
+-            rclpy.time.Time.from_msg(point.header.stamp),
++            query_time(point.header.stamp),
+             timeout=Duration(seconds=max(0.0, timeout_sec)),
+         )
+         mapped = do_transform_point(point, transform)
+@@ -259,6 +262,9 @@
+         self.pending_points = retained
+ 
+     def _point_callback(self, point: PointStamped) -> None:
++        point = receipt_copy(point, self.get_clock().now())
++        if LATEST_DATA:
++            self.pending_points.clear()
+         self.input_count += 1
+         if not point.header.frame_id:
+             self.failed_count += 1
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/coarse_target_locator.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/coarse_target_locator.py
+@@ -309,6 +309,9 @@
+         min_depth_cluster_ratio, erosion_kernel_px, erosion_iterations,
+         wall_normal, wall_offset, min_wall_separation_m,
+     ) if candidate.accepted]
++
++
++from .latest_data import LATEST_DATA, receipt_copy
+ 
+ 
+ class CoarseTargetLocator(Node):
+@@ -399,6 +402,7 @@
+         return float(stamp.sec) + float(stamp.nanosec) * 1e-9
+ 
+     def _color_callback(self, msg):
++        msg = receipt_copy(msg, self.get_clock().now())
+         try:
+             self.color = self.bridge.imgmsg_to_cv2(msg, "bgr8").copy()
+             self.color_stamp = self._stamp_seconds(msg.header.stamp)
+@@ -407,6 +411,7 @@
+             self._warn(f"RGB conversion failed: {exc}")
+ 
+     def _depth_callback(self, msg):
++        msg = receipt_copy(msg, self.get_clock().now())
+         try:
+             depth = self.bridge.imgmsg_to_cv2(msg, "passthrough").astype(np.float32)
+             if msg.encoding in ("16UC1", "mono16"):
+@@ -535,8 +540,8 @@
+         if (
+             self.color.shape[:2] != self.depth_m.shape
+             or self.camera_size != (self.color.shape[1], self.color.shape[0])
+-            or abs(self.color_stamp - self.depth_stamp)
+-            > float(self.get_parameter("max_rgb_depth_delta_sec").value)
++            or (not LATEST_DATA and abs(self.color_stamp - self.depth_stamp)
++                > float(self.get_parameter("max_rgb_depth_delta_sec").value))
+         ):
+             self._warn("RGB, aligned depth and CameraInfo are not compatible")
+             self._record(0)
+--- a/camera_ws/src/go2_science_perception/go2_science_perception/science_target_manager.py
++++ b/camera_ws/src/go2_science_perception/go2_science_perception/science_target_manager.py
+@@ -315,6 +315,9 @@
+                    default=None)
+ 
+ 
++from .latest_data import query_time, receipt_copy
++
++
+ class ScienceTargetManager(Node):
+     """Maintain stable target IDs and publish visualization-only outputs."""
+ 
+@@ -448,6 +451,7 @@
+             self.get_logger().info(event)
+ 
+     def _odom_callback(self, message: Odometry) -> None:
++        message = receipt_copy(message, self.get_clock().now())
+         source_frame = message.header.frame_id
+         if not source_frame:
+             self.get_logger().warning("Rejected /base_state_estimation with empty frame")
+@@ -466,7 +470,7 @@
+             else:
+                 transform = self.tf_buffer.lookup_transform(
+                     self.map_frame, source_frame,
+-                    rclpy.time.Time.from_msg(message.header.stamp),
++                    query_time(message.header.stamp),
+                     timeout=Duration(seconds=0.0))
+                 mapped = do_transform_point(source, transform)
+         except TransformException as exc:
+--- a/scripts/go2_full_test.py
++++ b/scripts/go2_full_test.py
+@@ -687,7 +687,7 @@
+         self.env_prefix += (
+             'export CYCLONEDDS_HOME='+shlex.quote(str(cyclonedds))+'; '
+             'export LD_LIBRARY_PATH='+shlex.quote(str(library))+':"${LD_LIBRARY_PATH:-}"; '
+-            'export GO2_RUNTIME_PROFILE=local GO2_TIME_MAPPING_MODE=imu ROS_DOMAIN_ID=0 '
++            'export GO2_RUNTIME_PROFILE=local GO2_TIME_MAPPING_MODE=imu GO2_LATEST_DATA=1 ROS_DOMAIN_ID=0 '
+             'RMW_IMPLEMENTATION=rmw_cyclonedds_cpp; '
+             "export CYCLONEDDS_URI='<CycloneDDS><Domain><General><NetworkInterfaceAddress>"
+             "eth0</NetworkInterfaceAddress></General></Domain></CycloneDDS>'; ")
+--- a/scripts/nx_timed_move_only/go2_reactive_avoid/node.py
++++ b/scripts/nx_timed_move_only/go2_reactive_avoid/node.py
+@@ -94,6 +94,7 @@
+         self.track_position = track_position
+         self.use_lidar = use_lidar
+         self.timed = timed
++        self.latest_data = timed and os.environ.get("GO2_LATEST_DATA") == "1"
+         self.position = None
+         if use_lidar:
+             node.create_subscription(PointCloud2, CLOUD, self.cloud, qos_profile_sensor_data)
+@@ -104,6 +105,8 @@
+         vx, vy, _ = msg.velocity
+         wz = msg.yaw_speed
+         stamp = msg.stamp.sec * 1_000_000_000 + msg.stamp.nanosec
++        if self.latest_data:
++            stamp = time.monotonic_ns()
+         if stamp <= 0 or stamp < self.state_stamp:
+             self.attitude = None
+             self.state_message = "Sport 时间戳无效或回退"
+@@ -195,8 +198,9 @@
+         return sport_ok and (cloud_ok or not self.use_lidar)
+ 
+     def freshness(self, now):
++        state_age = 1.0 if self.latest_data else MAX_AGE
+         return (self.scan is not None and now - self.scan_at < MAX_AGE,
+-                self.attitude is not None and now - self.state_at < MAX_AGE)
++                self.attitude is not None and now - self.state_at < state_age)
+ 
+     def preflight(self, now):
+         cloud_ok, sport_ok = self.freshness(now)
+@@ -567,6 +571,8 @@
+                 "-p", "cmd_vel_topic:=/go2_reactive_avoid/cmd_vel_raw"] if execute else []
+     if timed:
+         ros_args += ["-p", f"max_accel:={COMMAND_ACCEL}"]
++        if os.environ.get("GO2_LATEST_DATA") == "1":
++            ros_args += ["-p", "state_timeout:=1.0"]
+     init_args = {}
+     if "signal_handler_options" in inspect.signature(rclpy.init).parameters:
+         from rclpy.signals import SignalHandlerOptions
+--- /dev/null
++++ b/camera_ws/src/go2_science_perception/test/test_latest_data_ros.py
+@@ -0,0 +1,128 @@
++"""Synthetic-only checks for the NX latest-received input policy."""
++import os
++import time
++from types import SimpleNamespace
++
++import pytest
++
++pytestmark = pytest.mark.skipif(os.environ.get('SCIENCE_ROS_TEST') != '1',
++                                reason='requires isolated DDS domain')
++
++
++def test_latest_odom_accepts_old_future_and_repeated_source_stamps():
++    import rclpy
++    from geometry_msgs.msg import TransformStamped
++    from nav_msgs.msg import Odometry
++    from go2_science_perception.science_target_approach import ScienceTargetApproach
++    from go2_science_perception.latest_data import LATEST_DATA
++
++    assert LATEST_DATA and os.environ['ROS_DOMAIN_ID'] == '86'
++    rclpy.init(args=['--ros-args', '-p', 'grasp_docking_enabled:=true'])
++    node = ScienceTargetApproach()
++    try:
++        now = node.get_clock().now().nanoseconds
++        # TF exists only at current time, unrelated to any message source stamp.
++        for child in ('vehicle', 'camera_link'):
++            transform = TransformStamped()
++            transform.header.frame_id = 'map'
++            transform.header.stamp = node.get_clock().now().to_msg()
++            transform.child_frame_id = child
++            transform.transform.rotation.w = 1.0
++            node.tf_buffer.set_transform(transform, 'latest_test')
++        for stamp in (now-20_000_000_000, now-20_000_000_000, now+60_000_000_000, 0):
++            message = Odometry()
++            message.header.frame_id = 'map'
++            message.header.stamp = rclpy.time.Time(nanoseconds=stamp).to_msg()
++            message.pose.pose.orientation.w = 1.0
++            previous = node.matched_odom_count
++            node._odom(message)
++            assert node.matched_odom_count == previous + 1
++            assert node.verified_vehicle_pose is not None
++            assert node.verified_vehicle_pose['stamp_ns'] >= now
++            assert message.header.stamp.sec*10**9+message.header.stamp.nanosec == stamp
++            assert node.core.state != 'FAULT'
++            time.sleep(.01)
++        node.armed_once = True
++        node.core.odom_time = time.monotonic()-1.1
++        node._tick()
++        assert node.core.state == 'FAULT'
++        assert 'input reception stopped' in node.core.reason
++    finally:
++        node.stop()
++        node.destroy_node()
++        rclpy.shutdown()
++
++
++def test_latest_mission_odom_accepts_old_stamp_and_latest_tf():
++    import rclpy
++    from nav_msgs.msg import Odometry
++    from go2_science_perception.mission_manager import MissionManager
++    from collections import deque
++    mission = MissionManager.__new__(MissionManager)
++    mission.node = SimpleNamespace(get_clock=lambda: SimpleNamespace(
++        now=lambda: rclpy.time.Time(nanoseconds=50_000_000_000)))
++    mission.now_ns = lambda: 50_000_000_000
++    mission.pending_odom = deque(maxlen=32)
++    mission.last_odom_ns = 0
++    mission.pose = None
++    message = Odometry()
++    message.header.frame_id = 'map'
++    message.header.stamp.sec = 1
++    message.pose.pose.orientation.w = 1.
++    # Exercise the same receipt policy used by the subscription wrapper.
++    from go2_science_perception.latest_data import receipt_copy
++    mission.odom(receipt_copy(message, mission.node.get_clock().now()))
++    assert mission.pending_odom[-1][0] == 50_000_000_000
++    requested = []
++    def lookup(_target, _source, when):
++        requested.append(when.nanoseconds)
++        return SimpleNamespace(transform=SimpleNamespace(
++            translation=SimpleNamespace(x=.01,y=.0,z=.0),
++            rotation=SimpleNamespace(x=.0,y=.0,z=.0,w=1.)))
++    mission.tf = SimpleNamespace(lookup_transform=lookup)
++    assert mission.match_body_pose() is None
++    assert requested == [0]
++    assert mission.pose[0] == .01
++
++
++def test_latest_depth_context_uses_last_received_depth_without_stamp_alignment():
++    import numpy as np
++    from collections import deque
++    from sensor_msgs.msg import Image, CameraInfo
++    from go2_science_perception.yolo_detector import YoloDetector
++    rgb = Image()
++    rgb.header.frame_id = 'optical'
++    rgb.header.stamp.sec = 100
++    near = Image()
++    near.header.frame_id = 'optical'
++    near.header.stamp.sec = 100
++    last = Image()
++    last.header.frame_id = 'optical'
++    last.header.stamp.sec = 1
++    last.width = last.height = 2
++    last.encoding = '16UC1'
++    info = CameraInfo()
++    info.header.frame_id = 'optical'
++    info.header.stamp.sec = 600
++    info.width = info.height = 2
++    node = SimpleNamespace(depths=deque([near, last]), info=info, depth_received_at=time.monotonic(),
++                           cfg={}, bridge=SimpleNamespace(
++                               imgmsg_to_cv2=lambda msg, encoding: np.ones((2, 2))*1000))
++    result, chosen, reason = YoloDetector._depth_context(node, rgb, (2,2))
++    assert chosen is last and reason == ''
++    np.testing.assert_allclose(result, 1.)
++    node.depth_received_at = time.monotonic()-2
++    assert YoloDetector._depth_context(node, rgb, (2,2))[2] == 'depth_input_reception_stopped'
++
++
++def test_target_adapter_accepts_latest_report_without_source_age_comparison():
++    import json
++    import rclpy.time
++    from go2_science_perception.color_block_target_adapter import ColorBlockTargetAdapter
++    node = SimpleNamespace(last_published=100_000_000_000, latest=None,
++                           get_clock=lambda: SimpleNamespace(
++                               now=lambda: rclpy.time.Time(nanoseconds=101_000_000_000)))
++    for ns in (0,1,999_000_000_000):
++        ColorBlockTargetAdapter._frame(node, SimpleNamespace(data=json.dumps({'rgb_stamp_ns':ns})))
++        assert node.latest['rgb_stamp_ns'] == 101_000_000_000
++        assert node.latest['source_rgb_stamp_ns'] == ns

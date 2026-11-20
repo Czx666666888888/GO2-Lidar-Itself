@@ -5,6 +5,33 @@
 set -euo pipefail
 go2_test_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+# Keep the optional entrance phase in the PC wrapper, before delegating.
+_go2_args=()
+_go2_entrance=0
+for _go2_argument in "$@"; do
+  if [[ "$_go2_argument" =~ ^--([0-9]+([.][0-9]+)?)--(-?[0-9]+([.][0-9]+)?)$ ]]; then
+    _go2_args+=(--entrance "${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}")
+    _go2_entrance=1
+  else
+    _go2_args+=("$_go2_argument")
+    if [[ "$_go2_argument" == --entrance || "$_go2_argument" == --entrance=* ]]; then
+      _go2_entrance=1
+    fi
+  fi
+done
+if (( _go2_entrance )); then
+  exec /usr/bin/python3 -u "$go2_test_root/camera_ws/scripts/pc_time_check.py" "${_go2_args[@]}"
+fi
+
+# The standalone avoidance test owns its ROS workspace and uses the same entry.
+_go2_previous=''
+for _go2_argument in "$@"; do
+  if [[ "$_go2_argument" == --mode=avoid || ( "$_go2_previous" == --mode && "$_go2_argument" == avoid ) ]]; then
+    exec bash "$go2_test_root/avoid_ws/run.sh" "$@"
+  fi
+  _go2_previous="$_go2_argument"
+done
+
 # ── parse key flags early so autonomous mode can intercept before the rest ──
 _go2_nav_mode=''
 _go2_detector='yolo'

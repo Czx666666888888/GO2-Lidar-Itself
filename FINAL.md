@@ -1,8 +1,10 @@
+> 历史集成说明（2026-11-17）：下文提交号和行为描述属于当时快照，未表示完整真机验收。最新 NX 修正与操作入口请以 [README](README.md)、[项目状态](PROJECT_STATUS.md) 和 [NX 最终命令](docs/go2_nx_final_commands.md) 为准。
+
 # GO2 自主探索与多科学目标抓取 — 集成总说明
 
-**分支：** `feature/science-targets-perception`  
-**最新Commit：** `bc9ff6d`  
-**日期：** 2026-11-17  
+**分支：** `feature/science-targets-perception`
+**最新Commit：** `bc9ff6d`
+**日期：** 2026-11-17
 
 ---
 
@@ -254,3 +256,183 @@ go2_test.sh                    # 新增 --nav-mode autonomous 入口（修改）
 3. **go2_safety_gate 包名确认**：`ros2 pkg list | grep gate`，修正 autonomous_full.launch.py；
 4. **NAV→APPROACH 时序调优**：根据实机观察调整 `WAIT_NAV_ARRIVE` 等待时间（当前 1 秒）和 `NAV_ARRIVE_M`（当前 1.2 m）；
 5. **BlockSelection 轮间重置**：在 MissionManager RESUME_EXPLORE 时发布 `/science/approach/reset`，防止旧目标锁残留阻断新一轮检测（已知历史 bug，见 `docs/go2_yolo_round2_selection_20261116.md`）。
+
+---
+
+## 九、同学复现环境搭建指南（同款硬件）
+
+> **前提**：操作系统 Ubuntu 22.04，ROS2 Humble，GO2 + S1 机械臂 + D435/D455 相机，网络拓扑与本机一致（有线网卡直连 GO2，IP 段 192.168.123.x）。
+
+### 快速初始化（推荐）
+
+拿到打包目录后，先运行初始化脚本，它会交互式询问网卡名、GO2 IP、SSH 密钥路径、D435 序列号，并自动写入所有需要修改的文件：
+
+```bash
+cd ~/go2_deploy        # 或解压后的目录名
+bash setup_for_new_machine.sh
+```
+
+脚本完成后，直接跳到**步骤 3**（重新编译 deploy_ws）。
+
+---
+
+### 手动步骤（脚本失败时参考）
+
+### 步骤 1：安装基础依赖
+
+```bash
+# ROS2 Humble（已安装可跳过）
+sudo apt install -y ros-humble-desktop python3-colcon-common-extensions
+
+# RealSense SDK 和 ROS2 wrapper
+sudo apt install -y ros-humble-realsense2-camera ros-humble-realsense2-description
+
+# Python 依赖
+pip3 install pyrealsense2 numpy opencv-python
+
+# unitree SDK（需要与 GO2 固件版本匹配，向原始团队获取）
+# 安装后确认 /opt/ros/humble/setup.bash 下能找到 unitree_go 包
+```
+
+### 步骤 2：克隆仓库
+
+```bash
+git clone --branch feature/science-targets-perception \
+  https://github.com/Czx666666888888/GO2-Lidar-Itself.git \
+  ~/today_full
+
+cd ~/today_full
+```
+
+### 步骤 3：获取并构建 deploy_ws
+
+`deploy_ws/` 包含导航栈预编译二进制（`point_lio_unilidar`、`far_planner`、`local_planner` 等）。**这些二进制与原机器编译环境绑定，不能直接复用**，需要从源码重新编译：
+
+```bash
+mkdir -p ~/today_full/deploy_ws/src
+cd ~/today_full/deploy_ws/src
+
+# 克隆导航栈源码（从 code/autonomy_stack_go2_src 目录获取）
+cp -r ~/today_full/code/autonomy_stack_go2_src/* .
+
+# 编译
+cd ~/today_full/deploy_ws
+source /opt/ros/humble/setup.bash
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release 2>&1 | tail -20
+```
+
+> **注意**：`point_lio_unilidar` 依赖 Eigen、PCL、livox_ros_driver2，编译前需要先安装：
+> ```bash
+> sudo apt install -y libeigen3-dev libpcl-dev ros-humble-pcl-ros
+> # livox_ros_driver2 需要从 Livox 官方 GitHub 单独克隆编译
+> ```
+
+### 步骤 4：构建感知包
+
+```bash
+cd ~/today_full
+source /opt/ros/humble/setup.bash
+source deploy_ws/install/setup.bash
+
+/usr/bin/python3 -X faulthandler /usr/bin/colcon \
+  --log-base camera_ws/.onekey/log build \
+  --base-paths camera_ws/src \
+  --build-base camera_ws/.onekey/build \
+  --install-base camera_ws/.onekey/install/go2_science_perception \
+  --packages-select go2_science_perception
+```
+
+### 步骤 5：修改机器特定配置
+
+以下配置写死在代码中，**必须按照你们的实际硬件修改**：
+
+| 文件 | 变量/参数 | 原值 | 改为 |
+|------|-----------|------|------|
+| `scripts/go2_full_test.py` | `HOST` | `unitree@192.168.123.18` | 你们 GO2 的实际 IP |
+| `scripts/go2_full_test.py` | `KEY` | `/home/czx666/.ssh/id_ed25519_go2` | 你们的 SSH 私钥路径 |
+| `scripts/go2_full_test.py` | `213622070598` | D435 序列号 | 你们 D435 的序列号（`rs-enumerate-devices` 查看） |
+| `scripts/go2_autonomous_mission.py` | （继承上面） | 同上 | 同上 |
+| `camera_ws/src/go2_science_perception/launch/d435_slam_target_validation.launch.py` | `realsense_d435.yaml` | 相机配置 | 确认序列号一致 |
+| `go2_test.sh` | `enp12s0` | 有线网卡名 | `ip link` 查看你们的有线网卡名 |
+
+修改 D435 序列号示例（`scripts/go2_full_test.py` 第 44 行附近）：
+
+```python
+# 原值
+p = subprocess.Popen(['bash', sys.argv[1]], start_new_session=True,
+                     env=dict(os.environ, GO2_D435_SERIAL='213622070598'))
+# 改为你们的序列号
+                     env=dict(os.environ, GO2_D435_SERIAL='你的序列号'))
+```
+
+### 步骤 6：配置 SSH 免密登录 GO2
+
+```bash
+# 生成密钥（已有可跳过）
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_go2
+
+# 复制公钥到 GO2
+ssh-copy-id -i ~/.ssh/id_ed25519_go2.pub unitree@192.168.123.18
+
+# 测试
+ssh -i ~/.ssh/id_ed25519_go2 unitree@192.168.123.18 echo OK
+```
+
+### 步骤 7：在 GO2（NX）上部署 S1 服务
+
+S1 机械臂控制服务运行在 GO2 机载 NX 上，需要提前部署：
+
+```bash
+# 从原机器复制（或从团队获取）
+scp -i ~/.ssh/id_ed25519_go2 -r <原机器>:/home/unitree/s1-arm-control-v4 \
+  unitree@192.168.123.18:/home/unitree/
+
+scp -i ~/.ssh/id_ed25519_go2 -r <原机器>:/home/unitree/s1-arm-py310 \
+  unitree@192.168.123.18:/home/unitree/
+```
+
+### 步骤 8：确认 localPlanner 参数字段名
+
+编译完成后运行一次确认参数名与 launch 文件一致：
+
+```bash
+source ~/today_full/deploy_ws/install/setup.bash
+# 在另一终端先启动节点
+ros2 run local_planner localPlanner &
+sleep 2
+ros2 param list /localPlanner
+```
+
+对比 `camera_ws/src/go2_science_perception/launch/nav_stack.launch.py` 中的参数名，如有不一致按实际字段名修正。
+
+### 步骤 9：验证接口（干运行）
+
+```bash
+cd ~/today_full
+bash go2_test.sh --mode full --nav-mode autonomous --detector yolo --dry-run
+```
+
+输出应列出全部节点计划，无报错退出。
+
+### 步骤 10：真实执行
+
+```bash
+# 确认：路线空旷、物理急停在手、S1 初始化位已检查
+bash go2_test.sh --execute --mode full --nav-mode autonomous --detector yolo
+```
+
+---
+
+## 十、常见问题
+
+**Q：colcon build 报找不到 `livox_ros_driver2`**
+A：从 [https://github.com/Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2) 克隆，放入 `deploy_ws/src/`，重新 build。
+
+**Q：`ros2 pkg list` 找不到 `go2_safety_gate`**
+A：这个包在 `deploy_ws` 里，需要先 `source deploy_ws/install/setup.bash`，或检查原编译是否成功。如果 `deploy_ws/src` 里没有这个包的源码，需向原团队获取。
+
+**Q：D435 探测不到**
+A：先用 `rs-enumerate-devices` 确认设备识别，再把序列号填入代码。USB 3.0 接口，避免使用 Hub。
+
+**Q：GO2 SDK DDS 通信失败**
+A：检查有线网卡名（`ip link`）和 IP（`ip addr`），确保 PC 有线 IP 在 `192.168.123.x` 段，且 `ip route get 192.168.123.18` 显示 `dev <你的网卡名> src 192.168.123.99`。如果 IP 段不同，修改 `go2_test.sh` 中的路由检查和 DDS 配置。

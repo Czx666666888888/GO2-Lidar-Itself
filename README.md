@@ -1,38 +1,57 @@
 # GO2-Lidar-Itself
 
-PC 一键启动最新 MAP + S1 完整实机测试：`bash go2_test.sh --execute`。
-自动连接检查、对时、独立构建、S1回零保持、相机/定位到搜索停靠和抓取起立。
-须先接线上电、核对S1初始位、清空路线并持有物理急停；过程中按提示输入GO2 sudo密码。
-不加 `--execute` 只显示离线计划。新完整流程真机验收仍为 `NOT VERIFIED`；
-详细条件、停止与日志见 [实机测试手册](GO2实机测试命令手册.md)。
+基于 ROS 2 的 Unitree GO2 自主导航与科学目标感知实验项目，包含 UTLiDAR/IMU、Point-LIO、FAR/局部规划、Sport 安全门、D435 RGB-D、MAP 停靠与 S1 抓取，以及独立 YOLO 数据和训练工程。
 
-基于 ROS 2 的 Unitree GO2 自主导航与科学目标感知实验项目，包含机载 UTLiDAR/IMU、Point-LIO、FAR/局部规划、安全运动门、D435 RGB-D 定位，以及可复用的 YOLO 训练与独立推理工作流。
+更新日期：**2026-11-20**。最新研发代码位于 [`feature/science-targets-perception`](https://github.com/Czx666666888888/GO2-Lidar-Itself/tree/feature/science-targets-perception)。当前事实及后续事项以 [PROJECT_STATUS.md](PROJECT_STATUS.md) 和 [TASKS.md](TASKS.md) 为准。
 
-更新日期：2026-11-11。当前研发分支：`feature/science-targets-perception`；本次视觉开发依据远端基线 `bfa7425` 和仓库实验报告，未重新进行训练、构建或真机实验。
+## 开始使用
 
-正式三类别视觉准备已加入 `feature/science-targets-perception`：
-`color_block / rock_compact / rock_spiky` 数据目录、CVAT导入、历史标签映射与只读RGB-D采集。
-可立即开始三类标注，尚待真实岩石/六色/负样本和独立会话数据，未启动正式训练。
-操作见 [科学目标采集标注指南](vision_training/SCIENCE_TARGETS_GUIDE.md)，
-本轮证据见 [验证记录](vision_training/reports/science_targets_v1_setup.md)。
+PC 基础环境为 Ubuntu 22.04 / ROS 2 Humble。默认入口仅显示离线计划或运行离线检查；真实执行须由操作者确认环境和急停条件后主动启动。
 
-## 当前进展
+```bash
+# PC：查看原 MAP + S1 FULL 离线计划
+bash go2_test.sh
 
-| 工作流 | 已有实现与证据 | 验证边界 |
+# PC：最小规则避障的离线回归，不连接机器人
+bash go2_test.sh --mode avoid --dry-run
+
+# PC：独立导航的离线构建、回归和启动配置解析
+bash go2_nav_test.sh --dry-run
+```
+
+- PC 搜索、停靠、抓取、洞口前置段及停止路径：[实机测试手册](GO2实机测试命令手册.md)。
+- PC 独立雷达避障：[avoid_ws/README.md](avoid_ws/README.md)。
+- PC 独立导航往返与 RViz2：[navigation_test/README.md](navigation_test/README.md)。
+- NX 自主 FULL、可调计时前置速度、持久终端与断线重连：[最终操作命令](docs/go2_nx_final_commands.md)。这些命令依赖已部署的 NX 环境，clone 本仓库不能代替部署。
+
+不要同时启动多个运动入口。真实运动须具备物理急停、空旷路线和可确认的停止路径；本次 GitHub 同步不执行机器人动作。
+
+## 当前进展与验证边界
+
+| 工作流 | 当前实现及已有证据 | 尚未验证或已知问题 |
 |---|---|---|
-| 雷达导航 | UTLiDAR/IMU → Point-LIO → 地形分析 → WP5/FAR → 局部规划/跟随 → safety gate；主链接口已静态盘点 | 干净环境全量构建、完整导航闭环和重复性能仍 `NOT VERIFIED` |
-| D435 / HSV | 蓝色多目标、蓝墙过滤、对齐深度粗定位、按原始时间戳转换 map、目标生命周期与 visited 空间记忆 | 外参仍 `PROVISIONAL / NOT CALIBRATED`；MAP 漂移根因未确认 |
-| 搜索与接近实验 | 独立 SEARCH → STOP_CONFIRM → MAP 锚点接近；5 m / 0.25 m/s 搜索、6 s 总确认预算；已审计一轮用户实测 9.5 cm 停稳，另有用户“两次都可以”反馈 | 单场景现场证据；5 m 路线终点、5 m ODOM 保护边界、重复精度和外部速度真值尚未验收 |
-| YOLO 工程 | 配置化数据准备、人工审核、按拍摄组划分、训练/评估/PT 与 ONNX 导出；独立 ROS 2 RGB-D 检测节点 | 与 HSV/运动链分离；真实 D435 连续推理、跨场景泛化及 Orin/NX 部署 `NOT VERIFIED` |
-| blue_cube pilot V2 | 20 张人工标注，14 train / 6 val，同场景按视频分组；实际 80 轮训练，已能拟合训练图 | 小样本、无 test；训练阶段有 NaN 记录，不能作为部署验收 |
+| PC MAP + S1 | 一键检查、对时、相机/定位、SEARCH → STOP_CONFIRM → MAP 停靠 → S1；可选洞口段 | 完整多轮重复精度、轮间恢复及机械抓取可靠性仍 `NOT VERIFIED`；失败轮次见实验记录 |
+| NX 自主 FULL | 持久任务终端、人工确认、可调计时直行、多目标；近场交接结束导航进程并隔离遗留导航回调，保留目标 ID 与抓取侧检查 | 最新修正后的接近、抓取、下一目标及返航，实际拔线和其他电脑登录均待现场验收 |
+| 独立导航 | Point-LIO → 地形 → NBV/FAR → 局部规划/跟踪 → Sport gate；记录路径返航、RViz2、分区前停转向与侧移 | 已有离线及隔离 DDS 模拟记录；实机完整往返、物理净距和重复性能 `NOT VERIFIED` |
+| PC 最小规则避障 | 固定 0.20 m/s；前缘 25 cm 停车后右优先 90°，左右同堵两段右转；侧边 15 cm 触发反向连续 20°弧线 | 当前规则取消覆盖、净空、扫掠与渐变速度判断；0 只表示未检出回波，不证明可通行；制动、转角和物理避障 `NOT VERIFIED` |
+| RGB-D / MAP | HSV 或 YOLO 适配、ROI 深度、目标关联、MAP 管理、停靠及抓取侧选择；NX 另有最新接收数据模式 | 外参仍 `PROVISIONAL / NOT CALIBRATED`；时间配对、定位连续性、错误锁定和 USB/数据中断需按具体轮次诊断 |
+| YOLO 三类别 | `color_block / rock_compact / rock_spiky`；已完成 V1/V2/V3 离线训练与开发集对比，V3 为 1063 train / 177 val | 真实 compact 训练框仍不足；同 57 张视频 B 为开发验证，独立最终 test 与 D435 跨场景泛化 `NOT VERIFIED` |
 
-YOLO V2 在 `conf=0.25`、类别正确且 `IoU≥0.5` 的一对一匹配下：best 为训练 `13/0/1`、验证 `4/0/2`；last 为训练 `14/0/0`、验证 `4/0/2`（均为 TP/FP/FN）。详情见 [V2 对比报告](vision_training/reports/blue_cube_pilot_v2.md)，失败的 V1 结果见 [V1 报告](vision_training/reports/blue_cube_pilot_v1.md)与[失败分析](vision_training/reports/blue_cube_pilot_v1_failure_analysis.md)。这些是既有实验记录，本次未重跑。
+上表根据仓库源码、状态文档及既有实验报告整理；历史测试和部署记录不代表本次重新执行。构建、节点启动、DDS 发现、安全门 ARMED 或 API 返回不能单独证明真实运动有效。
+
+最新证据入口：
+
+- [NX 接近退出的回调修正](docs/go2_nx_near_odometry_callback.md)、[原接近与导航隔离](docs/go2_nx_original_near.md)、[NX 启动与最新数据模式](docs/go2_nx_full_startup.md)。
+- [YOLO V2 报告](vision_training/reports/science_targets_mixed_v2/README.md)、[YOLO V3 报告](vision_training/reports/science_targets_mixed_v3/README.md)。V3 方块召回提高同时误检增加，不能直接推断所有场景都优于 V2。
+- [感知与接近实验](camera_ws/docs/experiments.md)、[项目实验记录](docs/experiments.md)。
 
 ## 仓库入口
 
 | 路径 | 用途 |
 |---|---|
 | [code/](code/) | GO2 DDS 接口、传感器变换、Point-LIO、地形、探索/规划、跟随与安全门 |
+| [avoid_ws/](avoid_ws/README.md) | 独立最小规则雷达避障与离线回归 |
+| [navigation_test/](navigation_test/README.md) | 独立自主导航往返、分区反应与 RViz2 |
 | [camera_ws/](camera_ws/README.md) | 独立 D435 感知、map 目标管理与用户授权的搜索接近实验 |
 | [vision_training/](vision_training/README.md) | 通用 YOLO 数据、训练、评估、导出与 PC ROS 2 推理 |
 | [PROJECT_STATUS.md](PROJECT_STATUS.md) | 当前状态、历史基线与验证边界 |
@@ -66,7 +85,7 @@ D435 构建和只读预览见 [camera_ws/README.md](camera_ws/README.md)；YOLO 
 
 源码、配置、测试、报告与数据版本信息进入 Git；rosbag、原始图像/视频、大日志、训练权重、venv 和构建产物保留在本机并按 `.gitignore` 排除。单独 clone 仓库不会获得完整实验数据与权重。复现实验前需按对应报告准备原始数据、核对哈希和参数快照。
 
-当前优先补充独立拍摄会话及弱光、边缘、小目标和干扰背景的人工标签，再评估泛化。未标注图不视作负样本，剩余标注包仍需人工审核。
+当前优先补充真实 compact、独立拍摄会话，以及弱光、边缘、小目标和干扰背景的人工标签，再评估泛化。未标注图不视作负样本；连续录像预测输出空档不能直接当作真实漏检，仍需人工逐帧标注。
 
 ## 历史导航基线
 

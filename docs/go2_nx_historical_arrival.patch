@@ -1,0 +1,11 @@
+--- a/camera_ws/scripts/run_map_anchor_experiment.py
++++ b/camera_ws/scripts/run_map_anchor_experiment.py
+@@ -294,7 +294,7 @@
+             '-p', 'multi_target_memory:='+str(getattr(self.args, 'multi_target_memory', False)).lower(),
+             '-p', 'resume_memory:='+str(getattr(self.args, 'multi_target_memory', False) and not self.mission and
+                 bool(json.loads(getattr(self.args, 'completed_targets_json', '[]')))).lower(),
+-            *(['-p', 'dock_require_current_arrival:=true',
++            *(['-p', 'dock_require_current_arrival:=false',
+                '-r', '/cmd_vel_raw:=/science/cmd_vel_raw',
+                '-r', '/science/target_tracks:=/mission/target_tracks']
+               if self.mission else []),

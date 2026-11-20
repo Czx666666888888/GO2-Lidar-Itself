@@ -58,6 +58,9 @@ def probe(seconds):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', help='run real motion; full also performs posture/grasp')
+    parser.add_argument('--entrance', nargs=2, type=float, action='append',
+                        metavar=('CM', 'CW_DEG'), help='PC entrance phase before the original full/dock task')
+    parser.add_argument('--dry-run', action='store_true', help='show the entrance plan offline')
     parser.add_argument('--mode', choices=('dock', 'full', 'approach'), default='full')
     parser.add_argument('--grasp-side', choices=('right', 'left', 'auto'), default=None)
     parser.add_argument('--left-geometry-verified', action='store_true')
@@ -73,6 +76,24 @@ def main():
     parser.add_argument('--model-path', type=Path)
     parser.add_argument('--python-executable', type=Path)
     args = parser.parse_args()
+    if args.entrance:
+        if len(args.entrance) != 1:
+            parser.error('--entrance 只能指定一次')
+        distance_cm, clockwise_deg = args.entrance[0]
+        if (not 0 <= distance_cm <= 500 or not -180 <= clockwise_deg <= 180
+                or (distance_cm == 0 and clockwise_deg == 0)):
+            parser.error('洞口段接受 0–500 cm 和 −180–180°，至少一项非零')
+        if args.mode not in ('full', 'dock') or args.forward_response_check or args.local_camera:
+            parser.error('洞口段支持 PC 的 MAP + S1 full/dock 常规任务')
+        if args.dry_run or not args.execute:
+            direction = '顺时针' if clockwise_deg >= 0 else '逆时针'
+            print(f'离线计划：沿起始航向前进 {distance_cm:g} cm → 停稳 → '
+                  f'{direction}原地转 {abs(clockwise_deg):g}° → 停稳 → 原 {args.mode} 流程')
+            return
+        if os.environ.get('GO2_PC_TIME_HELD') == '1':
+            parser.error('洞口段须从独立 PC 一键入口启动')
+    elif args.dry_run:
+        parser.error('--dry-run 在此入口须搭配 --entrance')
     args.grasp_side = args.grasp_side or ('auto' if args.mode == 'full' else 'right')
     if args.mode == 'approach' and (args.work_dir or args.left_geometry_verified):
         parser.error('approach mode does not use S1 geometry or work-dir')
@@ -85,6 +106,8 @@ def main():
     folder = ROOT/'camera_ws/records'/('pc_time_'+str(time.time_ns()))
     folder.mkdir(parents=True)
     state = {'service':'systemd-timesyncd', 'execute_requested':args.execute}
+    if args.entrance:
+        state['entrance'] = dict(distance_cm=distance_cm, clockwise_deg=clockwise_deg)
     def interrupted(*_):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, interrupted)
@@ -146,6 +169,9 @@ def main():
             run(['/usr/bin/python3', ROOT/'camera_ws/scripts/sync_go2_clock.py'])
             command = ['bash',str(ENTRY),'--time-mode','imu','--restart-localization',
                        '--require-target','--duration','60','--label','pc_paused_imu']
+        if args.entrance:
+            command = [sys.executable, str(ROOT/'scripts/go2_entrance.py'),
+                       str(distance_cm), str(clockwise_deg), str(folder), *command]
         job = subprocess.Popen(command,env=env)
         try:
             while job.poll() is None:

@@ -5,10 +5,11 @@ import sys
 import time
 from types import SimpleNamespace as NS
 import unittest
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "nodes"))
 from nbv_explore_node import ExploreNode as Explore
-from safety_gate import NavigationGate as Gate
+from safety_gate import ARMED, DISARMED, NavigationGate as Gate, SafetyGate
 from builtin_interfaces.msg import Time
 
 class NavigationRegressionTests(unittest.TestCase):
@@ -131,10 +132,34 @@ class NavigationRegressionTests(unittest.TestCase):
         self.assertLessEqual(math.dist(n.pos, n.home), n.return_arrive_dis)
 
     def gate(self):
-        n=object.__new__(Gate);n.state=1;n.last_cmd_time=time.time()-.2;n.last_cmd=(0.,0.,0.)
-        n.max_speed=.3;n.min_speed=.3;n.max_yaw_rate=.7;n.max_accel=10.;n.phase='EXPLORE';n.rotate=0.;n.front_blocked=False
-        n.body_gap = math.inf
-        n.sent=[];n._send=lambda *cmd:n.sent.append(cmd);return n
+        n = object.__new__(Gate)
+        n.state, n.phase, n.rotate = ARMED, "EXPLORE", 0.
+        n.started = time.monotonic()
+        n.finished, n.exit_requested = None, False
+        n.last_state_time = time.time()
+        n.state_timeout = 1.
+        n.dry_run, n.lease_id = True, 0
+        n._pose = (0., 0., 0.)
+        n._sport_still, n._planner_stop = True, False
+        n._turn_target = n._still_since = None
+        n._sectors = n._parking_points = None
+        n.seen = dict.fromkeys(("terrain", "odom", "path", "phase"), n.started)
+        n.last_cmd_time, n.last_cmd = time.time() - .2, (0., 0., 0.)
+        n.max_speed, n.min_speed, n.max_yaw_rate, n.max_accel = .3, .3, .7, 10.
+        n.sent = []
+        n.get_logger = Mock()
+        n._send = lambda *cmd: n.sent.append(cmd)
+        self.terrain(n, [(.6, 0., 0.), (0., -.4, 0.), (0., .4, 0.)])
+        return n
+
+    def terrain(self, gate, points):
+        from sensor_msgs.msg import PointField
+        from sensor_msgs_py import point_cloud2
+        from std_msgs.msg import Header
+        fields = [PointField(name=name, offset=i*4, datatype=PointField.FLOAT32, count=1)
+                  for i, name in enumerate(("x", "y", "intensity"))]
+        gate.cb_terrain(point_cloud2.create_cloud(Header(frame_id="map"), fields, points))
+
     def cmd(self,vx=0,vy=0,yaw=0):return NS(twist=NS(linear=NS(x=vx,y=vy),angular=NS(z=yaw)))
     def test_early_return_never_claims_roundtrip(self):
         n=self.explorer();n.outbound_reached=False;n.pos=(.05,0.)
@@ -147,9 +172,81 @@ class NavigationRegressionTests(unittest.TestCase):
         self.assertFalse(n.sent)
 
     def test_minimum_speed_never_exceeds_configured_maximum(self):
-        n=self.gate();n.max_speed=.1;n.min_speed=.2;n.cb(self.cmd(.01));self.assertLessEqual(abs(n.sent[-1][0]),.1)
-    def test_front_stop_is_immediate_even_with_previous_forward_velocity(self):
-        n=self.gate();n.front_blocked=True;n.max_accel=.5;n.last_cmd=(.3,0,0);n.cb(self.cmd(.3));self.assertEqual(n.sent[-1][0],0)
+        n = self.gate()
+        n.max_speed, n.min_speed = .1, .2
+        n.cb(self.cmd(.01))
+        self.assertAlmostEqual(n.sent[-1][0], .1)
+
+    def test_floor_only_cloud_can_arm_and_forward(self):
+        n = self.gate()
+        n.state = DISARMED
+        with patch.object(SafetyGate, "check"), patch.object(
+            SafetyGate, "cb_arm", side_effect=lambda _: setattr(n, "state", ARMED)
+        ):
+            n.check()
+        self.assertEqual(n.state, ARMED)
+        n.cb(self.cmd(.3))
+        self.assertGreater(n.sent[-1][0], 0.)
+
+    def test_front_stop_then_turns_ninety_degrees_away_from_obstacle(self):
+        for right_blocked, direction in ((False, -1), (True, 1)):
+            with self.subTest(right_blocked=right_blocked):
+                n = self.gate()
+                n.last_cmd = (.3, 0., 0.)
+                self.terrain(n, [(.56 + i*.005, 0., .3) for i in range(10)]
+                             + [(0., .4, 0.), (0., -.4, 0.),
+                                (0., -.25 if right_blocked else .25, .3)])
+                self.assertEqual(n.sent[-1], (0., 0., 0.))
+                n.max_accel = .5
+                n.last_cmd = (.3, 0., 0.)
+                n._sport_still = False
+                n._pose = (0., 0., math.radians(170)*direction)
+                now = time.monotonic()
+                with patch("safety_gate.time.monotonic", return_value=now) as clock:
+                    n.cb(self.cmd(.3))
+                    self.assertEqual(n.sent[-1], (0., 0., 0.))
+                    self.assertIsNone(n._turn_target)
+                    n._sport_still = True
+                    n.cb(self.cmd(.3))
+                    clock.return_value = now + .26
+                    n.cb(self.cmd(.3))
+                    goal = n._pose[2] + direction*math.pi/2
+                    self.assertAlmostEqual(n._turn_target, goal)
+                    self.assertEqual(n.sent[-1], (0., 0., 0.))
+                    clock.return_value = now + .28
+                    n.last_cmd_time = time.time() - .2
+                    n.cb(self.cmd(.3))
+                    self.assertEqual(n.sent[-1][:2], (0., 0.))
+                    self.assertGreater(n.sent[-1][2]*direction, 0.)
+                    n._pose = (0., 0., math.remainder(goal, math.tau))
+                    clock.return_value = now + .35
+                    n.cb(self.cmd(.3))
+                    clock.return_value = now + .62
+                    n.cb(self.cmd(.3))
+                    self.assertIsNone(n._turn_target)
+                    self.assertEqual(n.sent[-1], (0., 0., 0.))
+
+    def test_single_side_obstacle_slides_away_and_two_sides_hold(self):
+        for left_blocked, right_blocked, expected in ((True, False, -.1),
+                                                     (False, True, .1), (True, True, 0.)):
+            n = self.gate()
+            self.terrain(n, [(.6, 0., 0.),
+                             (0., .25, .3) if left_blocked else (0., .40, 0.),
+                             (0., -.25, .3) if right_blocked else (0., -.40, 0.)])
+            n.cb(self.cmd(.2, 0., .3))
+            if expected:
+                self.assertEqual(n.sent[-1][1:], (expected, 0.))
+                self.assertGreater(n.sent[-1][0], 0.)
+            else:
+                self.assertEqual(n.sent[-1], (0., 0., 0.))
+
+    def test_planner_stop_disallows_local_avoidance_commands(self):
+        n = self.gate()
+        n.cb(self.cmd(.3))
+        n.cb_planner_stop(NS(data=1))
+        self.assertEqual(n.sent[-1], (0., 0., 0.))
+        n.cb(self.cmd(.3, .1, -.2))
+        self.assertEqual(n.sent[-1], (0., 0., 0.))
 
     def test_rectangle_distance_uses_the_surface_and_rounded_corners(self):
         from body_footprint import edge_distance
@@ -166,36 +263,21 @@ class NavigationRegressionTests(unittest.TestCase):
         self.assertFalse(n._parking_space(0., 0., 0.))
         self.assertTrue(n._parking_space(0., 0., math.pi/2))
 
-    def test_rotated_body_hard_stop_and_unconfirmed_parking(self):
-        from sensor_msgs.msg import PointField
-        from sensor_msgs_py import point_cloud2
-        from std_msgs.msg import Header, String
-        fields = [PointField(name=name, offset=i*4, datatype=PointField.FLOAT32, count=1)
-                  for i, name in enumerate(("x", "y", "z", "intensity"))]
-        for obstacle_y, result in ((1.57, "BODY_CLEARANCE_STOP"),
+    def test_rotated_body_clearance_is_checked_at_parking(self):
+        from std_msgs.msg import String
+        for obstacle_y, result in ((1.57, "PARKING_CLEARANCE_UNCONFIRMED"),
                                    (1.54, "PARKING_CLEARANCE_UNCONFIRMED"),
                                    (1.48, "DONE")):
             n = self.gate()
             n._pose = (1., 2., math.pi/2)
-            n.front_stop_min, n.front_stop_max = .15, .80
-            n.front_stop_deg, n.front_stop_pts = 30., 6
-            n.seen = {"odom": time.monotonic()}
-            n.finished = None
-            n.exit_requested = False
-            n.hard_stop_pub = NS(publish=lambda _: None)
             faults = []
             n._fault = faults.append
-            cloud = point_cloud2.create_cloud(Header(frame_id="map"), fields,
-                                              [(1., obstacle_y, .25, .25)])
-            n.cb_terrain(cloud)
+            self.terrain(n, [(1., obstacle_y, .25)])
+            self.assertFalse(faults)
             n.cb_phase(String(data="DONE"))
             self.assertEqual(n.finished, result)
             self.assertEqual(len(faults), 1)
-            self.assertEqual(n.should_exit(), result != "BODY_CLEARANCE_STOP")
-            if result == "BODY_CLEARANCE_STOP":
-                n.cb_stop(NS(data=1))
-                self.assertTrue(n.should_exit())
-                self.assertEqual(n.finished, result)
+            self.assertTrue(n.should_exit())
 
     def test_exploration_stays_paused_after_body_hard_stop(self):
         n = self.corridor()
@@ -220,28 +302,18 @@ class NavigationRegressionTests(unittest.TestCase):
         self.assertEqual(n.finished, "PARKING_CLEARANCE_UNCONFIRMED")
 
     def test_side_obstacle_blocks_forced_turn_until_clear(self):
-        from sensor_msgs.msg import PointField
-        from sensor_msgs_py import point_cloud2
-        from std_msgs.msg import Header
-        fields = [PointField(name=name, offset=i*4, datatype=PointField.FLOAT32, count=1)
-                  for i, name in enumerate(("x", "y", "z", "intensity"))]
         n = self.gate()
-        n._pose = (0., 0., 0.)
-        n.front_stop_enable = True
-        n.front_stop_min, n.front_stop_max = .15, .80
-        n.front_stop_deg, n.front_stop_pts = 30, 6
         n.phase, n.rotate = 'RETURN', .45
-        n.seen = {'rotate': time.monotonic()}
+        n.seen['rotate'] = time.monotonic()
         n.last_cmd = (.2, .1, .3)
-        for y, blocked in ((.36, True), (.80, False)):
-            cloud = point_cloud2.create_cloud(Header(frame_id="map"), fields, [(0., y, .5, .5)])
-            n.cb_terrain(cloud)
-            self.assertEqual(n.turn_blocked, blocked)
-            n.cb(self.cmd(.2))
-            if blocked:
-                self.assertEqual(n.sent[-1], (0., 0., 0.))
-            else:
-                self.assertGreater(n.sent[-1][2], 0.)
+        self.terrain(n, [(.6, 0., 0.), (0., .25, .3)])
+        n.cb(self.cmd(.2))
+        self.assertEqual(n.sent[-1], (0., 0., 0.))
+        self.terrain(n, [(.6, 0., 0.), (0., .40, 0.)])
+        n.last_cmd_time = time.time() - .2
+        n.cb(self.cmd(.2))
+        self.assertEqual(n.sent[-1][:2], (0., 0.))
+        self.assertGreater(n.sent[-1][2], 0.)
     def test_cloud_transform_preserves_fractional_point_time(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "autonomy_stack/transform"))
         from transform_everything import Repuber

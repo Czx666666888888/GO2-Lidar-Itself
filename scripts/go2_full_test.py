@@ -180,7 +180,8 @@ class Workflow:
         self.overlay = self.work / '.onekey/install/setup.bash'
         self.env_prefix = ''
 
-    def status(self):
+    @staticmethod
+    def status():
         result = remote(shlex.join(['/usr/bin/python3', ARM+'/scripts/arm_task_client.py',
                                     'status']), capture_output=True, text=True)
         return json.loads(result.stdout)

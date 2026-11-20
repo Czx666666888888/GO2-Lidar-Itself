@@ -1,0 +1,162 @@
+--- a/scripts/go2_full_test.py
++++ b/scripts/go2_full_test.py
+@@ -16,6 +16,7 @@
+ import json
+ import os
+ from pathlib import Path
++import re
+ import select
+ import shlex
+ import shutil
+@@ -601,9 +602,9 @@
+             self.spawn(self.shell(shlex.join(['ros2', 'run', 'rviz2', 'rviz2', '-d', str(config)])),
+                        'rviz')
+ 
+-    def healthy(self):
++    def healthy(self, skip=None):
+         for p, _, name in self.children:
+-            if p.poll() is not None and name not in ('image_viewer', 'rviz'):
++            if p is not skip and p.poll() is not None and name not in ('image_viewer', 'rviz'):
+                 raise RuntimeError(f'{name} 已退出({p.returncode})，查看 {self.folder}')
+ 
+     def wait_job(self, p):
+@@ -866,6 +867,12 @@
+         if active.returncode != 1:
+             raise RuntimeError('已有控制任务，拒绝并行启动: '+active.stdout)
+ 
++    def require_inactive_router(self, strict=False):
++        router = subprocess.run(
++            ['systemctl', 'is-active', '--quiet', 'go2-remote-router.service'], timeout=2)
++        if router.returncode == 0 or (strict and router.returncode != 3):
++            raise RuntimeError('遥控路由器未确认停止，FULL 未启动')
++
+     def wait_for_full_start(self):
+         """Keep the NX terminal in control until a fresh line containing 1."""
+         self.healthy()
+@@ -882,9 +889,60 @@
+             if not line:
+                 raise RuntimeError('确认终端已关闭，FULL 未启动')
+             if line == b'1\n':
+-                return
++                return time.monotonic()
+             print('等待确认：请输入 1 并回车，Ctrl+C 取消。', flush=True)
+ 
++    def prepare_timed_straight(self):
++        timed_root = self.work/'scripts/nx_timed_move_only'
++        prefix = 'export PYTHONPATH='+shlex.quote(str(timed_root))+':"${PYTHONPATH:-}"; exec '
++        writers = self.folder/'sport_writers'
++        shutil.copyfile(timed_root/'sport_writers.baseline', writers)
++        audit = ['/usr/bin/python3', '-m', 'go2_reactive_avoid.writer_audit',
++                 str(writers), str(self.folder/'sport_writers.trace')]
++        with (self.folder/'timed_writer_audit.log').open('x') as log:
++            run(self.shell(prefix+shlex.join(audit)), timeout=14,
++                stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
++        ready = self.folder/'timed_straight.ready'
++        command = ['/usr/bin/python3', '-m', 'go2_reactive_avoid.node', 'execute',
++                   '--timed', str(self.args.timed_straight), '--timed-ready', str(ready),
++                   '--verified-sport-writers', str(writers)]
++        child = self.spawn(self.shell(prefix+shlex.join(command)), 'timed_straight',
++                           stdin=subprocess.PIPE, text=True)
++        deadline = time.monotonic() + 20.0
++        while not ready.is_file():
++            if child.poll() is not None:
++                output = (self.folder/'timed_straight.log').read_text(errors='replace')
++                for line in reversed(output.splitlines()):
++                    if line.startswith('NX_TIMED_BLOCKED '):
++                        raise RuntimeError(line.split(' ', 1)[1])
++                raise RuntimeError('计时直行预检提前退出，查看 timed_straight.log')
++            self.healthy()
++            if time.monotonic() >= deadline:
++                raise RuntimeError('计时直行未就绪，查看 timed_straight.log')
++            time.sleep(.05)
++        self.healthy()
++        return child
++
++    def run_timed_straight(self, child, confirmed_at):
++        self.healthy()
++        child.stdin.write(f'{confirmed_at:.9f}\n')
++        child.stdin.flush()
++        deadline = time.monotonic() + self.args.timed_straight + 15.0
++        while child.poll() is None:
++            self.healthy(skip=child)
++            if time.monotonic() >= deadline:
++                raise RuntimeError('计时直行未在期限内停稳并交接，查看 timed_straight.log')
++            time.sleep(.05)
++        if child.returncode:
++            raise RuntimeError('计时直行未完成，FULL 未启动，查看 timed_straight.log')
++        child.stdin.close()
++        for owner, stream, label in self.children:
++            if owner is child:
++                stream.close()
++                self.children.remove((owner, stream, label))
++                break
++        print('NX_TIMED_DONE：停稳和 Sport 交接完成，复核 FULL 传感器。', flush=True)
++
+     def execute(self):
+         confirm_full = (self.nx_local and self.args.execute and self.args.mode == 'full'
+                         and not self.args.startup_check)
+@@ -1016,15 +1074,24 @@
+         if not zero_hold(self.status()):
+             raise RuntimeError('运动前S1状态变化，停止')
+         if confirm_full:
++            timed = getattr(self.args, 'timed_straight', None)
++            if timed is not None:
++                print(f'预检 {timed:g} 秒计时直行。请保持站立静止，确认后延时 1 秒起步。', flush=True)
++                with self.stage('timed_straight_preflight'):
++                    child = self.prepare_timed_straight()
+             with self.stage('operator_confirmation'):
+-                self.wait_for_full_start()
++                confirmed_at = self.wait_for_full_start()
++            if timed is not None:
++                with self.stage('timed_straight'):
++                    self.require_idle_controller()
++                    self.require_inactive_router(strict=True)
++                    if not zero_hold(self.status()):
++                        raise RuntimeError('确认后 S1 不再处于 ZERO_HOLD，计时直行未启动')
++                    self.run_timed_straight(child, confirmed_at)
+             with self.stage('post_confirmation_readiness'):
+                 self.healthy()
+                 self.require_idle_controller()
+-                router = subprocess.run(
+-                    ['systemctl', 'is-active', '--quiet', 'go2-remote-router.service'])
+-                if router.returncode == 0:
+-                    raise RuntimeError('遥控路由器已启动，停止后重新运行 NX FULL')
++                self.require_inactive_router(strict=timed is not None)
+                 result = self.probe('post_confirmation', timeout=8, scope='all')
+                 if not result.get('ready'):
+                     raise RuntimeError('确认后传感器链未就绪，FULL 未启动: '+str(result))
+@@ -1170,7 +1237,22 @@
+                         help='NX: verify cameras/perception/SLAM using the existing sensor chain')
+     parser.add_argument('--startup-check', action='store_true',
+                         help='read-only stage timing/status; never zero/enable/move')
+-    args = parser.parse_args()
++    parser.add_argument('--timed-straight', type=float, metavar='SECONDS',
++                        help='NX FULL 计时直行，可简写为 --1、--2.5 等')
++    argv = sys.argv[1:]
++    shorthand = [value for value in argv if re.fullmatch(r'--[0-9]+(?:\.[0-9]+)?', value)]
++    if shorthand:
++        if len(shorthand) != 1 or any(value == '--timed-straight' or
++                                     value.startswith('--timed-straight=') for value in argv):
++            parser.error('只能指定一个计时直行时长')
++        argv = ['--timed-straight='+value[2:] if value == shorthand[0] else value
++                for value in argv]
++    args = parser.parse_args(argv)
++    if args.timed_straight is not None:
++        if not args.nx_local or args.mode != 'full' or args.startup_check or args.nx_sensors:
++            parser.error('计时直行仅用于 NX 本机 FULL')
++        if not 0 < args.timed_straight <= 10.0:
++            parser.error('计时直行时长必须大于 0 且不超过 10 秒')
+     args.grasp_side = args.grasp_side or ('auto' if args.mode == 'full' else 'right')
+     if args.nx_sensors and (not args.nx_local or args.execute or args.startup_check or
+                             args.forward_response_check):
+@@ -1196,6 +1278,10 @@
+             if args.mode == 'full':
+                 print('看到 NX_FULL_READY 后可断开 PC 网线。保留 NX 与 GO2 本体的连接，'
+                       '在 NX 本机终端输入 1 并回车启动任务。')
++            if args.timed_straight is not None:
++                print(f'计时直行计划：确认后等待 1 秒，保持 IMU 初始航向直行 '
++                      f'{args.timed_straight:g} 秒，停稳后交接 FULL。'
++                      '前置段目标速度 1.00 m/s，按 IMU 航向计时直行。')
+         print('离线计划（未连接硬件、未写文件）：\n'
+               '最新代码/按内容缓存构建 → 连接/设备检查 → 复用S1或原路径受控回零 → '
+               '复用健康D435/Point-LIO/TF，失效会话重建 → 实时数据就绪即继续 → '
